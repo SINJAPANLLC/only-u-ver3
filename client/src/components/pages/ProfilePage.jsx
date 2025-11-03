@@ -648,11 +648,24 @@ const ProfilePage = () => {
     // Create Payment Intent when modal opens
     useEffect(() => {
         const preparePayment = async () => {
-            if (!showPlanModal || !currentUser || !profileData) return;
+            if (!showPlanModal || !currentUser || !profileData) {
+                console.log('💳 決済準備スキップ:', { showPlanModal, hasUser: !!currentUser, hasProfile: !!profileData });
+                return;
+            }
 
             try {
                 const plan = subscriptionPlans.find(p => p.id === showPlanModal);
-                if (!plan) return;
+                if (!plan) {
+                    console.error('❌ プランが見つかりません:', showPlanModal);
+                    return;
+                }
+
+                console.log('💳 決済準備開始:', { 
+                    planId: plan.id, 
+                    userId: currentUser.uid, 
+                    userEmail: currentUser.email,
+                    creatorId: profileData.id 
+                });
 
                 const priceStr = String(plan.price || '0');
                 const priceMatch = priceStr.match(/\d+/);
@@ -661,7 +674,10 @@ const ProfilePage = () => {
                 const platformFee = Math.floor(basePrice * 0.10);
                 const totalAmount = basePrice + tax + platformFee;
 
+                console.log('💰 料金計算:', { basePrice, tax, platformFee, totalAmount });
+
                 // Create Subscription with Payment Intent
+                console.log('📡 API呼び出し: /api/create-subscription-payment-intent');
                 const response = await fetch('/api/create-subscription-payment-intent', {
                     method: 'POST',
                     headers: {
@@ -678,19 +694,25 @@ const ProfilePage = () => {
                     }),
                 });
 
+                console.log('📡 API応答ステータス:', response.status);
+
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     const errorMsg = errorData.error || 'Payment Intentの作成に失敗しました';
+                    console.error('❌ API エラー:', errorData);
                     throw new Error(errorMsg);
                 }
 
                 const data = await response.json();
+                console.log('✅ API成功:', { hasClientSecret: !!data.clientSecret });
+                
                 if (!data.clientSecret) {
                     throw new Error('Client Secretが取得できませんでした');
                 }
                 setClientSecret(data.clientSecret);
+                console.log('💳 Client Secret設定完了');
             } catch (error) {
-                console.error('決済準備エラー:', error);
+                console.error('❌ 決済準備エラー:', error);
                 alert(error.message || '決済の準備中にエラーが発生しました');
                 setShowPlanModal(null);
             }
