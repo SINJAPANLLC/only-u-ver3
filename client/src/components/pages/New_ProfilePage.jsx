@@ -171,7 +171,7 @@ if (!currentUser) {
 }
 
 return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-black">
         {/* NEW: Background Image Header */}
         <div className="relative h-48 sm:h-64">
             <img
@@ -203,13 +203,13 @@ return (
                                     initial={{ opacity: 0, scale: 0.8 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.8 }}
-                                    className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border z-50 min-w-[120px]"
+                                    className="absolute right-0 top-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50 min-w-[120px]"
                                 >
                                     <button
                                         onClick={handleBlock}
                                         className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 w-full text-left text-sm"
                                     >
-                                        <X size={16} className="text-gray-600" />
+                                        <X size={16} className="text-gray-600 dark:text-gray-300" />
                                         <span>Block</span>
                                     </button>
                                     <button
@@ -236,35 +236,37 @@ return (
                     initial={{ y: -100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -100, opacity: 0 }}
-                    className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 z-50"
+                    className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-black/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 z-50"
                 >
                     <div className="flex items-center justify-between p-3 sm:p-4">
                         <button onClick={() => navigate(-1)} className="p-1 sm:p-2">
-                            <ArrowLeft size={20} className="text-gray-700" />
+                            <ArrowLeft size={20} className="text-gray-700 dark:text-gray-200" />
                         </button>
                         <div className="flex items-center space-x-3">
                             <img
                                 src={profile.avatar}
                                 alt={profile.name}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-8 h-8 rounded-full"
                             />
                             <div>
                                 <h1 className="font-semibold text-sm truncate max-w-[150px]">
                                     {profile.name}
                                 </h1>
-                                <p className="text-xs text-gray-500">{profile.username}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{profile.username}</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-2">
                             <button onClick={handleShare} className="p-2">
-                                <Share2 size={18} className="text-gray-700" />
+                                <Share2 size={18} className="text-gray-700 dark:text-gray-200" />
                             </button>
                             <div className="relative" ref={optionsRef}>
                                 <button
                                     onClick={() => setShowOptionsMenu(!showOptionsMenu)}
                                     className="p-2"
                                 >
-                                    <MoreHorizontal size={18} className="text-gray-700" />
+                                    <MoreHorizontal size={18} className="text-gray-700 dark:text-gray-200" />
                                 </button>
                                 {/* Options menu would appear here too */}
                             </div>
@@ -281,6 +283,8 @@ return (
                     <img
                         src={profile.avatar}
                         alt={profile.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full shadow-lg border-4 border-white"
                     />
                     {profile.verified && (
@@ -308,30 +312,30 @@ return (
             <div className="grid grid-cols-4 gap-2 text-center mb-4 sm:mb-6">
                 <div>
                     <div className="text-lg sm:text-xl lg:text-2xl font-bold">{profile.stats.posts}</div>
-                    <div className="text-xs sm:text-sm text-gray-500">Post</div>
+                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Post</div>
                 </div>
                 <div>
                     <div className="text-lg sm:text-xl lg:text-2xl font-bold">{profile.stats.likes}</div>
-                    <div className="text-xs sm:text-sm text-gray-500">Like</div>
+                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Like</div>
                 </div>
                 <div>
                     <div className="text-lg sm:text-xl lg:text-2xl font-bold">{profile.stats.followers}</div>
-                    <div className="text-xs sm:text-sm text-gray-500">フォロワー</div>
+                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">フォロワー</div>
                 </div>
                 <div>
                     <div className="text-lg sm:text-xl lg:text-2xl font-bold">{profile.stats.following}</div>
-                    <div className="text-xs sm:text-sm text-gray-500">フォロー中</div>
+                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">フォロー中</div>
                 </div>
             </div>
 
             {/* Description */}
-            <p className="text-xs sm:text-sm text-gray-700 mb-4 sm:mb-6 leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mb-4 sm:mb-6 leading-relaxed">
                 {profile.description}
             </p>
 
             {/* Genre Rankings */}
             <div className="mb-4 sm:mb-6">
-                <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-2">Genre-based ranking (Daily)</p>
+                <p className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Genre-based ranking (Daily)</p>
                 <div className="grid grid-cols-3 gap-2 sm:gap-4 lg:flex lg:space-x-6">
                     {profile.rankings.map((ranking, index) => (
                         <div key={index} className="text-center">
@@ -343,7 +347,7 @@ return (
             </div>
 
             {/* Subscription Plan */}
-            <div className="bg-pink-50 border border-pink-300 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+            <div className="bg-pink-50 dark:bg-gray-800 border border-pink-300 dark:border-gray-700 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
                     <div className="flex-1">
                         <span className="bg-pink-600 text-white text-xs px-2 py-1 rounded mb-2 inline-block">
@@ -354,10 +358,10 @@ return (
                         </h3>
                         <div className="flex flex-wrap items-baseline gap-1 mb-2">
                             <span className="font-bold text-sm sm:text-lg">{profile.subscriptionPlan.price}</span>
-                            <span className="text-xs sm:text-sm text-gray-600">/ {profile.subscriptionPlan.period}</span>
-                            <span className="text-xs sm:text-sm text-gray-600">Posts: {profile.subscriptionPlan.posts}</span>
+                            <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">/ {profile.subscriptionPlan.period}</span>
+                            <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Posts: {profile.subscriptionPlan.posts}</span>
                         </div>
-                        <p className="text-xs text-gray-600 line-clamp-2">{profile.subscriptionPlan.description}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{profile.subscriptionPlan.description}</p>
                     </div>
                     <button className="bg-pink-600 text-white px-4 sm:px-6 py-2 rounded-full font-semibold hover:bg-pink-700 text-sm sm:text-base w-full sm:w-auto">
                         Subscribe
@@ -371,7 +375,7 @@ return (
                     onClick={() => setActiveTab('Post')}
                     className={`pb-2 border-b-2 font-semibold whitespace-nowrap text-sm sm:text-base ${activeTab === 'Post'
                         ? 'text-pink-600 border-pink-600'
-                        : 'text-gray-400 border-transparent'
+                        : 'text-gray-400 dark:text-gray-500 border-transparent'
                         }`}
                 >
                     Post
@@ -380,7 +384,7 @@ return (
                     onClick={() => setActiveTab('Single post sales')}
                     className={`pb-2 border-b-2 font-semibold whitespace-nowrap text-sm sm:text-base ${activeTab === 'Single post sales'
                         ? 'text-pink-600 border-pink-600'
-                        : 'text-gray-400 border-transparent'
+                        : 'text-gray-400 dark:text-gray-500 border-transparent'
                         }`}
                 >
                     Single post sales
@@ -395,7 +399,7 @@ return (
                         <div className="relative">
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
-                                className="flex items-center justify-between w-full sm:w-auto space-x-2 border border-gray-300 rounded-lg px-3 py-2 text-xs sm:text-sm bg-white"
+                                className="flex items-center justify-between w-full sm:w-auto space-x-2 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-800 dark:text-gray-200"
                             >
                                 <span className="truncate">{selectedTags}</span>
                                 <ChevronDown size={14} className="flex-shrink-0" />
@@ -410,7 +414,7 @@ return (
                                     onClick={() => setSelectedFilter(filter)}
                                     className={`px-2 sm:px-3 py-1 text-xs rounded border flex items-center space-x-1 ${selectedFilter === filter
                                         ? 'bg-pink-600 text-white border-pink-600'
-                                        : 'bg-white text-gray-600 border-gray-300'
+                                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600'
                                         }`}
                                 >
                                     {filter === 'Images' && <ImageIcon size={10} className="sm:w-3 sm:h-3" />}
@@ -425,7 +429,7 @@ return (
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
-                                className="border border-gray-300 rounded-lg px-3 py-2 text-xs sm:text-sm bg-white w-full sm:w-auto"
+                                className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-800 dark:text-gray-200 w-full sm:w-auto"
                             >
                                 {sortOptions.map(option => (
                                     <option key={option} value={option}>{option}</option>
@@ -438,14 +442,14 @@ return (
                     <div className="flex items-center space-x-2 self-end sm:self-auto">
                         <button
                             onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded ${viewMode === 'grid' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-600'
+                            className={`p-2 rounded ${viewMode === 'grid' ? 'bg-pink-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                                 }`}
                         >
                             <Grid3X3 size={14} className="sm:w-4 sm:h-4" />
                         </button>
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`p-2 rounded ${viewMode === 'list' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-600'
+                            className={`p-2 rounded ${viewMode === 'list' ? 'bg-pink-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                                 }`}
                         >
                             <List size={14} className="sm:w-4 sm:h-4" />
@@ -454,7 +458,7 @@ return (
                 </div>
 
                 {/* Post Count */}
-                <div className="flex items-center space-x-3 sm:space-x-4 text-xs sm:text-sm text-gray-600 overflow-x-auto">
+                <div className="flex items-center space-x-3 sm:space-x-4 text-xs sm:text-sm text-gray-600 dark:text-gray-400 overflow-x-auto">
                     <span className="whitespace-nowrap">{profile.postsData.total}件</span>
                     <span className="flex items-center space-x-1 whitespace-nowrap">
                         <ImageIcon size={12} className="sm:w-4 sm:h-4" />
@@ -485,13 +489,13 @@ return (
             ) : (
                 <div className="text-center py-8 sm:py-12">
                     <div className="text-gray-400 text-4xl sm:text-6xl mb-4">📷</div>
-                    <p className="text-gray-500 text-sm sm:text-base">コンテンツがありません</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">コンテンツがありません</p>
                 </div>
             )}
         </div>
 
         {/* Bottom Action Buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 sm:p-4 flex space-x-2 sm:space-x-3">
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-3 sm:p-4 flex space-x-2 sm:space-x-3">
             <button className="flex-1 bg-pink-600 text-white py-2 sm:py-3 rounded-full font-semibold flex items-center justify-center space-x-1 sm:space-x-2 hover:bg-pink-700 text-xs sm:text-sm">
                 <Heart size={14} className="sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Send a tip</span>

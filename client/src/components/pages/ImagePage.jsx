@@ -71,6 +71,19 @@ const ImagePage = () => {
             return url;
         }
         
+        // Bunny CDN直接URL（CORSエラーを防ぐためプロキシ経由に変換）
+        if (url.includes('only-u.fun/') || url.includes('b-cdn.net/')) {
+            const bunnyPattern = /https?:\/\/[^/]+\/(public|private)\/(.+)/;
+            const match = url.match(bunnyPattern);
+            if (match) {
+                const folder = match[1];
+                const filename = match[2];
+                const proxyUrl = `/api/proxy/${folder}/${filename}`;
+                console.log('ImagePage - Converted Bunny CDN URL to proxy:', proxyUrl);
+                return proxyUrl;
+            }
+        }
+        
         // Google Storage URLの場合
         if (url.includes('storage.googleapis.com')) {
             const match = url.match(/\/(public|\.private)\/([^?]+)/);

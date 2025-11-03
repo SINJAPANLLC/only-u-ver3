@@ -97,61 +97,24 @@ const CreatePostPage = () => {
         setUploadedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Generate thumbnail from video (optimized with compression)
-    const generateVideoThumbnail = (file) => {
-        return new Promise((resolve, reject) => {
+    // Helper function to get video duration from file
+    const getVideoDurationFromFile = (file) => {
+        return new Promise((resolve) => {
             const video = document.createElement('video');
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            
             video.preload = 'metadata';
-            video.muted = true;
-            video.playsInline = true;
             
-            video.onloadeddata = () => {
-                // Seek to 1 second or 10% of video duration
-                const seekTime = Math.min(1, video.duration * 0.1);
-                video.currentTime = seekTime;
-            };
-            
-            video.onseeked = () => {
-                // Optimize thumbnail size: max 600px on longest side
-                const MAX_SIZE = 600;
-                let width = video.videoWidth;
-                let height = video.videoHeight;
-                
-                if (width > height) {
-                    if (width > MAX_SIZE) {
-                        height = Math.round((height * MAX_SIZE) / width);
-                        width = MAX_SIZE;
-                    }
-                } else {
-                    if (height > MAX_SIZE) {
-                        width = Math.round((width * MAX_SIZE) / height);
-                        height = MAX_SIZE;
-                    }
-                }
-                
-                canvas.width = width;
-                canvas.height = height;
-                context.drawImage(video, 0, 0, width, height);
-                
-                // Compress to JPEG with 0.7 quality (smaller file size)
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        console.log(`📸 サムネイル生成完了: ${(blob.size / 1024).toFixed(2)} KB (元: ${width}x${height})`);
-                        resolve(blob);
-                    } else {
-                        reject(new Error('Failed to generate thumbnail'));
-                    }
-                }, 'image/jpeg', 0.7);
-                
+            video.onloadedmetadata = () => {
+                const duration = video.duration;
+                const minutes = Math.floor(duration / 60);
+                const seconds = Math.floor(duration % 60);
+                const formattedDuration = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                resolve(formattedDuration);
                 URL.revokeObjectURL(video.src);
             };
             
             video.onerror = () => {
+                resolve('00:00');
                 URL.revokeObjectURL(video.src);
-                reject(new Error('Failed to load video'));
             };
             
             video.src = URL.createObjectURL(file);
@@ -176,6 +139,17 @@ const CreatePostPage = () => {
                 setCurrentStep(`${file.name}をアップロード中 (${index + 1}/${files.length})`);
                 console.log(`アップロード中 ${index + 1}/${files.length}: ${file.name}`);
 
+                // Get video duration before upload (if it's a video)
+                let videoDuration = null;
+                if (file.type.startsWith('video/')) {
+                    try {
+                        videoDuration = await getVideoDurationFromFile(file);
+                        console.log(`動画の再生時間: ${videoDuration}`);
+                    } catch (error) {
+                        console.error('動画の再生時間取得エラー:', error);
+                    }
+                }
+
                 // Upload file directly to server, which uploads to Object Storage
                 const formData = new FormData();
                 formData.append('file', file);
@@ -194,52 +168,30 @@ const CreatePostPage = () => {
                     throw new Error(errorData.error || 'ファイルのアップロードに失敗しました');
                 }
 
-                const { objectPath, storageUri, fileName, contentType, size } = await response.json();
+                const { objectPath, storageUri, fileName, contentType, size, thumbnailUrl } = await response.json();
 
                 console.log(`ファイル ${index + 1} アップロード成功`);
                 console.log('Object Storage Path:', objectPath);
                 console.log('Storage URI:', storageUri);
+                if (thumbnailUrl) {
+                    console.log('Thumbnail URL:', thumbnailUrl);
+                }
 
-                // Generate and upload thumbnail for videos, or use image itself for images
-                let thumbnailUrl = null;
-                if (contentType.startsWith('video/')) {
-                    try {
-                        setCurrentStep(`${file.name}のサムネイルを生成中...`);
-                        console.log('Generating thumbnail for video...');
-                        
-                        const thumbnailBlob = await generateVideoThumbnail(file);
-                        const thumbnailFile = new File([thumbnailBlob], `thumbnail-${fileName}.jpg`, { type: 'image/jpeg' });
-                        
-                        // Upload thumbnail
-                        const thumbnailFormData = new FormData();
-                        thumbnailFormData.append('file', thumbnailFile);
-                        thumbnailFormData.append('visibility', isExclusiveContent ? 'private' : 'public');
-                        
-                        const thumbnailResponse = await fetch('/api/objects/upload', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${idToken}`,
-                            },
-                            body: thumbnailFormData,
-                        });
-                        
-                        if (thumbnailResponse.ok) {
-                            const thumbnailData = await thumbnailResponse.json();
-                            thumbnailUrl = thumbnailData.objectPath;
-                            console.log('Thumbnail uploaded:', thumbnailUrl);
-                        }
-                    } catch (error) {
-                        console.error('Failed to generate/upload thumbnail:', error);
-                        // Continue without thumbnail if generation fails
+                // Convert Bunny Stream thumbnail URL to proxy URL to avoid CORS issues
+                let proxyThumbnailUrl = thumbnailUrl;
+                if (thumbnailUrl && thumbnailUrl.includes('b-cdn.net') && thumbnailUrl.includes('/thumbnail')) {
+                    // Extract video GUID from Bunny Stream thumbnail URL
+                    // Example: https://vz-524827.b-cdn.net/1c4adc82-0ee4-4b72-9d53-f8fc634277eb/thumbnail.jpg
+                    const guidMatch = thumbnailUrl.match(/\/([0-9a-f-]{36})\//i);
+                    if (guidMatch) {
+                        const videoGuid = guidMatch[1];
+                        proxyThumbnailUrl = `/api/bunny-stream-thumbnail/${videoGuid}`;
+                        console.log(`🔄 Converted Bunny Stream thumbnail to proxy URL: ${proxyThumbnailUrl}`);
                     }
-                } else if (contentType.startsWith('image/')) {
-                    // For images, use the image itself as the thumbnail
-                    thumbnailUrl = objectPath;
-                    console.log('Using image as thumbnail:', thumbnailUrl);
                 }
 
                 // Use objectPath for API references (will be proxied through /api/proxy)
-                uploadedResults.push({
+                const uploadResult = {
                     fileName: fileName,
                     url: objectPath,
                     secure_url: objectPath,
@@ -247,10 +199,17 @@ const CreatePostPage = () => {
                     size: size,
                     source: 'replit-object-storage',
                     resourceType: contentType.startsWith('video/') ? 'video' : 'image',
-                    thumbnailUrl: thumbnailUrl,
+                    thumbnailUrl: proxyThumbnailUrl || (contentType.startsWith('video/') ? objectPath : null),
                     objectPath: objectPath,
                     storageUri: storageUri, // Store both for reference
-                });
+                };
+
+                // Add duration if it's a video
+                if (videoDuration) {
+                    uploadResult.duration = videoDuration;
+                }
+
+                uploadedResults.push(uploadResult);
 
                 setFilesUploaded(index + 1);
                 const progress = ((index + 1) / files.length) * 100;
@@ -282,6 +241,17 @@ const CreatePostPage = () => {
                 setCurrentStep(`${file.name}を${t('createPost.messages.uploadingToCloudinary')} (${index + 1}/${files.length})`);
                 console.log(`${t('createPost.messages.uploadingFile')} ${index + 1}/${files.length}: ${file.name}`);
 
+                // Get video duration before upload (if it's a video)
+                let videoDuration = null;
+                if (file.type.startsWith('video/')) {
+                    try {
+                        videoDuration = await getVideoDurationFromFile(file);
+                        console.log(`動画の再生時間: ${videoDuration}`);
+                    } catch (error) {
+                        console.error('動画の再生時間取得エラー:', error);
+                    }
+                }
+
                 const uploadResult = await uploadToCloudinary(file);
 
                 if (!uploadResult.success) {
@@ -291,7 +261,7 @@ const CreatePostPage = () => {
                 console.log(`ファイル ${index + 1} ${t('createPost.messages.fileUploadedSuccess')}`);
                 console.log('Cloudinary URL:', uploadResult.url);
 
-                uploadedResults.push({
+                const result = {
                     fileName: file.name,
                     url: uploadResult.url,
                     publicId: uploadResult.publicId,
@@ -303,12 +273,14 @@ const CreatePostPage = () => {
                     size: file.size,
                     source: 'cloudinary',
                     resourceType: uploadResult.resourceType,
-                    duration: uploadResult.duration || null,
+                    duration: videoDuration || uploadResult.duration || null,
                     fps: uploadResult.fps || null,
                     thumbnailUrl: file.type.startsWith('video/')
                         ? uploadResult.url.replace('/upload/', '/upload/so_auto,w_300,h_300,c_fill,q_auto,f_jpg/')
                         : null
-                });
+                };
+
+                uploadedResults.push(result);
 
                 setFilesUploaded(index + 1);
                 const progress = ((index + 1) / files.length) * 100;

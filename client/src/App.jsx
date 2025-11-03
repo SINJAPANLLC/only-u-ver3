@@ -1,92 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import SocialFeedScreen from './components/pages/feed';
-import MessagesUI from './components/pages/msg';
-import RankingPage from './components/pages/RankingPage';
-import AccountPage from './components/pages/AccountPage'; // Add this import
-import LoggedInAccountPage from './components/pages/LoggedInAccount';
-import Home from './components/pages/Home';
-import AgeVerification from './components/pages/AgeVerification';
-import GenreNavigationSystem from './components/pages/Ranking/GenreCategoryList';
-import CreatePostPage from './components/pages/CreatePostPage';
-import MyFansLogin from './Auth/login_page';
-import MyFansSignUp from './Auth/sign_up';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UnreadMessagesProvider } from './context/UnreadMessagesContext';
 import { UserStatsProvider } from './context/UserStatsContext';
 import { CreatorProvider } from './context/CreatorContext';
 import { NotificationProvider } from './context/NotificationContext';
-import SearchPage from './components/pages/SearchPage';
-import TermsOfUse from './components/pages/TermsOfUse'; // Import TermsOfUse component
-import PrivacyPolicy from './components/pages/PrivacyPolicy';
-import LegalNotice from './components/pages/LegalNotice';
-import ContentGuidelines from './components/pages/ContentGuidelines';
-import LanguageSettings from './components/pages/LanguagePage';
-import RegisterCreatorPage from './components/pages/RegisterCreatorPage';
-import ProfilePage from './components/pages/ProfilePage';
-import NotificationPage from './components/pages/NotificationPage';
-import LikePurchasePage from './components/pages/LikePurchedViewPage';
-import GenreDataPage from './components/pages/GenreDataPage';
-import VideoPage from './components/pages/VideoPage';
-import ProfilePageNew from './components/pages/ProfilePage';
-import CreatorDashboard from './components/pages/CreatorDashboard';
-import HighQualityPlanPage from './components/pages/HighQualityPlanPage';
-import CurrentPlanPage from './components/pages/CurrentPlanPage';
-import PaymentMethodsPage from './components/pages/PaymentMethodsPage';
-import PurchaseHistoryPage from './components/pages/PurchaseHistoryPage';
-import CouponListPage from './components/pages/CouponListPage';
-import CreatorRankingPage from './components/pages/CreatorRankingPage';
-import ActivePlansPage from './components/pages/ActivePlansPage';
-import MyPostsPage from './components/pages/MyPostsPage';
-import PostCommentsPage from './components/pages/PostCommentsPage';
-import SalesManagementPage from './components/pages/SalesManagementPage';
-import BankAccountRegistrationPage from './components/pages/BankAccountRegistrationPage';
-import TransferRequestPage from './components/pages/TransferRequestPage';
-import CouponManagementPage from './components/pages/CouponManagementPage';
-import SettingsPage from './components/pages/SettingsPage';
-import EmailNotificationSettingsPage from './components/pages/EmailNotificationSettingsPage';
-import FollowListPage from './components/pages/FollowListPage';
-import BlockedUsersPage from './components/pages/BlockedUsersPage';
-import PersonalInfoPage from './components/pages/PersonalInfoPage';
-import PhoneVerificationPage from './components/pages/PhoneVerificationPage';
-import EmailVerificationPage from './components/pages/EmailVerificationPage';
-import HelpPage from './components/pages/HelpPage';
-import SwitchAccountPage from './components/pages/SwitchAccountPage';
-import CreatorPhoneVerificationPage from './components/pages/CreatorPhoneVerificationPage';
-import CreatorRegistrationCompletePage from './components/pages/CreatorRegistrationCompletePage';
-import DocumentSubmissionPage from './components/pages/DocumentSubmissionPage';
-import EditProfilePage from './components/pages/EditProfilePage';
-import ImagePage from './components/pages/ImagePage';
-import LandingPage from './components/pages/LandingPage';
-import AdminLoginPage from './components/pages/AdminLoginPage';
+import { ThemeProvider } from './context/ThemeContext';
 
-// import AdminLayout from "./components/admin/AdminLayout";
-import AdminLayout from './components/pages/admin/AdminLayout';
-import Dashboard from "./components/pages/admin/Dashboard";
-import Users from "./components/pages/admin/Users";
-import Creators from './components/pages/admin/Creators';
-import Reports from "./components/pages/admin/Reports";
-import Posts from "./components/pages/admin/Posts";
-import Sales from "./components/pages/admin/Sales";
-import Verification from "./components/pages/admin/Verification";
-import NotificationManagement from "./components/pages/admin/NotificationManagement";
-import UserManagement from "./components/pages/admin/UserManagement";
-import AnalyticsDashboard from "./components/pages/admin/AnalyticsDashboard";
-import PostManagement from "./components/pages/admin/PostManagement";
-import RevenueManagement from "./components/pages/admin/RevenueManagement";
-import KYCManagement from "./components/pages/admin/KYCManagement";
-import PDCAManagement from "./components/pages/admin/PDCAManagement";
-import CustomerFeedback from "./components/pages/admin/CustomerFeedback";
-import ABTesting from "./components/pages/admin/ABTesting";
-import KPIDashboard from "./components/pages/admin/KPIDashboard";
-import ReportManagement from "./components/pages/admin/ReportManagement";
-import EmailNotificationManagement from "./components/pages/admin/EmailNotificationManagement";
-import PushNotificationManagement from "./components/pages/admin/PushNotificationManagement";
-import FeaturedPickupManagement from "./components/pages/admin/FeaturedPickupManagement";
-import HomeSliderManagement from "./components/pages/admin/HomeSliderManagement";
-import TransferRequestManagement from "./components/pages/admin/TransferRequestManagement";
-import AdminLogin from "./components/pages/admin/AdminLogin";
+// 年齢確認は遅延読み込みしない（最初に必要）
+import AgeVerification from './components/pages/AgeVerification';
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
+    <div className="text-center">
+      <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-pink-500 border-r-transparent"></div>
+      <p className="mt-4 text-pink-600 font-medium">読み込み中...</p>
+    </div>
+  </div>
+);
+
+// 主要ページの遅延読み込み
+const Home = lazy(() => import('./components/pages/Home'));
+const SearchPage = lazy(() => import('./components/pages/SearchPage'));
+const SocialFeedScreen = lazy(() => import('./components/pages/feed'));
+const MessagesUI = lazy(() => import('./components/pages/msg'));
+const RankingPage = lazy(() => import('./components/pages/RankingPage'));
+const VideoPage = lazy(() => import('./components/pages/VideoPage'));
+const ImagePage = lazy(() => import('./components/pages/ImagePage'));
+const LandingPage = lazy(() => import('./components/pages/LandingPage'));
+
+// プロフィール・アカウント関連
+const AccountPage = lazy(() => import('./components/pages/AccountPage'));
+const LoggedInAccountPage = lazy(() => import('./components/pages/LoggedInAccount'));
+const ProfilePage = lazy(() => import('./components/pages/ProfilePage'));
+const EditProfilePage = lazy(() => import('./components/pages/EditProfilePage'));
+
+// 認証関連
+const MyFansLogin = lazy(() => import('./Auth/login_page'));
+const MyFansSignUp = lazy(() => import('./Auth/sign_up'));
+
+// 投稿・コンテンツ作成
+const CreatePostPage = lazy(() => import('./components/pages/CreatePostPage'));
+const GenreNavigationSystem = lazy(() => import('./components/pages/Ranking/GenreCategoryList'));
+const GenreDataPage = lazy(() => import('./components/pages/GenreDataPage'));
+
+// 通知・通知一覧
+const NotificationPage = lazy(() => import('./components/pages/NotificationPage'));
+
+// いいね・購入履歴
+const LikePurchasePage = lazy(() => import('./components/pages/LikePurchedViewPage'));
+const PurchaseHistoryPage = lazy(() => import('./components/pages/PurchaseHistoryPage'));
+
+// プラン・支払い
+const HighQualityPlanPage = lazy(() => import('./components/pages/HighQualityPlanPage'));
+const CurrentPlanPage = lazy(() => import('./components/pages/CurrentPlanPage'));
+const PaymentMethodsPage = lazy(() => import('./components/pages/PaymentMethodsPage'));
+const CouponListPage = lazy(() => import('./components/pages/CouponListPage'));
+const ActivePlansPage = lazy(() => import('./components/pages/ActivePlansPage'));
+
+// クリエイター関連
+const RegisterCreatorPage = lazy(() => import('./components/pages/RegisterCreatorPage'));
+const CreatorDashboard = lazy(() => import('./components/pages/CreatorDashboard'));
+const CreatorRankingPage = lazy(() => import('./components/pages/CreatorRankingPage'));
+const MyPostsPage = lazy(() => import('./components/pages/MyPostsPage'));
+const PostCommentsPage = lazy(() => import('./components/pages/PostCommentsPage'));
+const SalesManagementPage = lazy(() => import('./components/pages/SalesManagementPage'));
+const BankAccountRegistrationPage = lazy(() => import('./components/pages/BankAccountRegistrationPage'));
+const TransferRequestPage = lazy(() => import('./components/pages/TransferRequestPage'));
+const CouponManagementPage = lazy(() => import('./components/pages/CouponManagementPage'));
+const CreatorPhoneVerificationPage = lazy(() => import('./components/pages/CreatorPhoneVerificationPage'));
+const CreatorRegistrationCompletePage = lazy(() => import('./components/pages/CreatorRegistrationCompletePage'));
+const DocumentSubmissionPage = lazy(() => import('./components/pages/DocumentSubmissionPage'));
+
+// 設定関連
+const SettingsPage = lazy(() => import('./components/pages/SettingsPage'));
+const EmailNotificationSettingsPage = lazy(() => import('./components/pages/EmailNotificationSettingsPage'));
+const FollowListPage = lazy(() => import('./components/pages/FollowListPage'));
+const BlockedUsersPage = lazy(() => import('./components/pages/BlockedUsersPage'));
+const PersonalInfoPage = lazy(() => import('./components/pages/PersonalInfoPage'));
+const PhoneVerificationPage = lazy(() => import('./components/pages/PhoneVerificationPage'));
+const EmailVerificationPage = lazy(() => import('./components/pages/EmailVerificationPage'));
+const HelpPage = lazy(() => import('./components/pages/HelpPage'));
+const SwitchAccountPage = lazy(() => import('./components/pages/SwitchAccountPage'));
+const LanguageSettings = lazy(() => import('./components/pages/LanguagePage'));
+
+// 法的ページ
+const TermsOfUse = lazy(() => import('./components/pages/TermsOfUse'));
+const PrivacyPolicy = lazy(() => import('./components/pages/PrivacyPolicy'));
+const LegalNotice = lazy(() => import('./components/pages/LegalNotice'));
+const ContentGuidelines = lazy(() => import('./components/pages/ContentGuidelines'));
+
+// 管理者関連
+const AdminLoginPage = lazy(() => import('./components/pages/AdminLoginPage'));
+const AdminLayout = lazy(() => import('./components/pages/admin/AdminLayout'));
+const Dashboard = lazy(() => import("./components/pages/admin/Dashboard"));
+const Users = lazy(() => import("./components/pages/admin/Users"));
+const Creators = lazy(() => import('./components/pages/admin/Creators'));
+const Reports = lazy(() => import("./components/pages/admin/Reports"));
+const Posts = lazy(() => import("./components/pages/admin/Posts"));
+const Sales = lazy(() => import("./components/pages/admin/Sales"));
+const Verification = lazy(() => import("./components/pages/admin/Verification"));
+const NotificationManagement = lazy(() => import("./components/pages/admin/NotificationManagement"));
+const UserManagement = lazy(() => import("./components/pages/admin/UserManagement"));
+const AnalyticsDashboard = lazy(() => import("./components/pages/admin/AnalyticsDashboard"));
+const PostManagement = lazy(() => import("./components/pages/admin/PostManagement"));
+const RevenueManagement = lazy(() => import("./components/pages/admin/RevenueManagement"));
+const KYCManagement = lazy(() => import("./components/pages/admin/KYCManagement"));
+const PDCAManagement = lazy(() => import("./components/pages/admin/PDCAManagement"));
+const CustomerFeedback = lazy(() => import("./components/pages/admin/CustomerFeedback"));
+const ABTesting = lazy(() => import("./components/pages/admin/ABTesting"));
+const KPIDashboard = lazy(() => import("./components/pages/admin/KPIDashboard"));
+const ReportManagement = lazy(() => import("./components/pages/admin/ReportManagement"));
+const EmailNotificationManagement = lazy(() => import("./components/pages/admin/EmailNotificationManagement"));
+const PushNotificationManagement = lazy(() => import("./components/pages/admin/PushNotificationManagement"));
+const FeaturedPickupManagement = lazy(() => import("./components/pages/admin/FeaturedPickupManagement"));
+const HomeSliderManagement = lazy(() => import("./components/pages/admin/HomeSliderManagement"));
+const TransferRequestManagement = lazy(() => import("./components/pages/admin/TransferRequestManagement"));
+const AdminLogin = lazy(() => import("./components/pages/admin/AdminLogin"));
 
 const AccountWrapper = () => {
   const { isAuthenticated } = useAuth();
@@ -135,12 +167,13 @@ const AppRoutes = () => {
   };
 
   return (
-    <Routes>
-      {/* Age verification route */}
-      <Route
-        path="/age-verification"
-        element={<AgeVerification onVerify={handleVerification} />}
-      />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Age verification route */}
+        <Route
+          path="/age-verification"
+          element={<AgeVerification onVerify={handleVerification} />}
+        />
 
       {/* Authentication routes - only accessible if age verified */}
       <Route
@@ -173,7 +206,7 @@ const AppRoutes = () => {
 
       <Route path="/genre/:genreName" element={<ProtectedRoute><GenreDataPage /></ProtectedRoute>} />
       <Route path="/video/:id" element={<ProtectedRoute><VideoPage /></ProtectedRoute>} />
-      <Route path="/profile/:id" element={<ProtectedRoute><ProfilePageNew /></ProtectedRoute>} />
+      <Route path="/profile/:id" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
       <Route path="/added-content/:contentType?" element={<ProtectedRoute><LikePurchasePage /></ProtectedRoute>} />
 
@@ -260,27 +293,30 @@ const AppRoutes = () => {
             <LandingPage />
         }
       />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 };
 
 function App() {
   return (
-    <AuthProvider>
-      <UnreadMessagesProvider>
-        <UserStatsProvider>
-          <CreatorProvider>
-            <NotificationProvider>
-              <Router>
-                <div className="App">
-                  <AppRoutes />
-                </div>
-              </Router>
-            </NotificationProvider>
-          </CreatorProvider>
-        </UserStatsProvider>
-      </UnreadMessagesProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <UnreadMessagesProvider>
+          <UserStatsProvider>
+            <CreatorProvider>
+              <NotificationProvider>
+                <Router>
+                  <div className="App min-h-screen bg-white dark:bg-black transition-colors duration-300">
+                    <AppRoutes />
+                  </div>
+                </Router>
+              </NotificationProvider>
+            </CreatorProvider>
+          </UserStatsProvider>
+        </UnreadMessagesProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

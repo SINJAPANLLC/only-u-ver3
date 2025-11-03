@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Crown, Bookmark, Clock, Sparkles } from 'lucide-react';
 import { t } from 'i18next';
@@ -17,28 +17,22 @@ const Ranking = () => {
     const [posts, setPosts] = useState([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
     const [videoDurations, setVideoDurations] = useState({});
-    const [loadedVideos, setLoadedVideos] = useState(new Set());
-    
-    // デバイス検出（スマホ・タブレット判定）
-    const isMobile = useMemo(() => {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-            || window.innerWidth < 768;
-    }, []);
 
-    // クリック機能（useCallbackでメモ化）
-    const handleVideoClick = useCallback((post) => {
+    // クリック機能
+    const handleVideoClick = (post) => {
         navigate(`/video/${post.id}`);
-    }, [navigate]);
+    };
 
-    const handleAccountClick = useCallback((post, e) => {
+    const handleAccountClick = (post, e) => {
         e.stopPropagation();
         navigate(`/profile/${post.user.id}`);
-    }, [navigate]);
+    };
 
-    const handleLikeClick = useCallback((postId, e) => {
+    const handleLikeClick = (postId, e) => {
         e.stopPropagation();
         const wasLiked = localLikedPosts.has(postId);
         
+        // ローカルステートを更新
         setLocalLikedPosts(prev => {
             const newSet = new Set(prev);
             if (newSet.has(postId)) {
@@ -49,6 +43,7 @@ const Ranking = () => {
             return newSet;
         });
         
+        // 投稿データのいいね数を更新
         setPosts(prevPosts => 
             prevPosts.map(post => 
                 post.id === postId 
@@ -57,10 +52,13 @@ const Ranking = () => {
             )
         );
         
+        // 統計を更新
         updateLikedCount(wasLiked ? -1 : 1);
         
+        // Firestoreに保存
         toggleLike(postId).catch(error => {
             console.error('いいねの切り替えでエラーが発生しました:', error);
+            // エラーの場合は元に戻す
             setLocalLikedPosts(prev => {
                 const newSet = new Set(prev);
                 if (wasLiked) newSet.add(postId);
@@ -76,12 +74,13 @@ const Ranking = () => {
             );
             updateLikedCount(wasLiked ? 1 : -1);
         });
-    }, [localLikedPosts, toggleLike, updateLikedCount]);
+    };
 
-    const handleSaveClick = useCallback((postId, e) => {
+    const handleSaveClick = (postId, e) => {
         e.stopPropagation();
         const wasSaved = localSavedPosts.has(postId);
         
+        // ローカルステートを更新
         setLocalSavedPosts(prev => {
             const newSet = new Set(prev);
             if (newSet.has(postId)) {
@@ -92,6 +91,7 @@ const Ranking = () => {
             return newSet;
         });
         
+        // 投稿データのブックマーク数を更新
         setPosts(prevPosts => 
             prevPosts.map(post => 
                 post.id === postId 
@@ -100,10 +100,13 @@ const Ranking = () => {
             )
         );
         
+        // 統計を更新
         updateSavedCount(wasSaved ? -1 : 1);
         
+        // Firestoreに保存
         toggleSave(postId).catch(error => {
             console.error('保存の切り替えでエラーが発生しました:', error);
+            // エラーの場合は元に戻す
             setLocalSavedPosts(prev => {
                 const newSet = new Set(prev);
                 if (wasSaved) newSet.add(postId);
@@ -119,53 +122,115 @@ const Ranking = () => {
             );
             updateSavedCount(wasSaved ? 1 : -1);
         });
-    }, [localSavedPosts, toggleSave, updateSavedCount]);
+    };
 
-    // URLをプロキシURLに変換する関数（useCallbackでメモ化）
-    const convertToProxyUrl = useCallback((url) => {
+    // URLをプロキシURLに変換する関数
+    const convertToProxyUrl = (url) => {
         if (!url) return null;
         
-        if (url.startsWith('/api/proxy/')) return url;
-        
-        if (url.startsWith('/objects/')) {
-            const fileName = url.replace('/objects/', '');
-            return `/api/proxy/public/${fileName}`;
+        // すでにプロキシURLの場合、重複パスをチェック
+        if (url.startsWith('/api/proxy/')) {
+            // public/public/ または private/private/ の重複を修正
+            if (url.includes('/public/public/')) {
+                return url.replace('/public/public/', '/public/');
+            }
+            if (url.includes('/private/private/')) {
+                return url.replace('/private/private/', '/private/');
+            }
+            return url;
         }
         
-        if (url.includes('firebasestorage.googleapis.com') || url.includes('storage.googleapis.com')) {
+        if (url.startsWith('/api/bunny-stream-thumbnail/')) return url;
+        
+        // 完全URL（https://...）の場合、パス部分のみを抽出
+        if (url.startsWith('https://') || url.startsWith('http://')) {
             try {
                 const urlObj = new URL(url);
-                const pathMatch = urlObj.pathname.match(/\/o\/(.+)$/);
-                if (pathMatch) {
-                    const decodedPath = decodeURIComponent(pathMatch[1]);
-                    const parts = decodedPath.split('/');
-                    if (parts.length >= 2) {
-                        const folder = parts[0];
-                        const fileName = parts.slice(1).join('/');
-                        return `/api/proxy/${folder}/${fileName}`;
-                    }
+                const pathname = urlObj.pathname;
+                
+                // /objects/ を含む場合
+                if (pathname.includes('/objects/')) {
+                    const filename = pathname.split('/objects/')[1];
+                    const converted = `/api/proxy/public/${filename}`;
+                    console.log('🔄 Converting full /objects/ URL:', url, '→', converted);
+                    return converted;
+                }
+                
+                // /api/proxy/ を含む場合
+                if (pathname.includes('/api/proxy/')) {
+                    return pathname; // パス部分のみを返す
+                }
+                
+                // /public/ を含む場合（重複パス修正）
+                if (pathname.includes('/public/')) {
+                    const lastPublicIndex = pathname.lastIndexOf('/public/');
+                    const filename = pathname.substring(lastPublicIndex + '/public/'.length);
+                    return `/api/proxy/public/${filename}`;
                 }
             } catch (e) {
-                console.error('URL parse error:', e);
+                console.error('URL parsing error:', e);
+            }
+        }
+        
+        // /objects/ で始まるURLは /api/proxy/public/ に変換
+        if (url.startsWith('/objects/')) {
+            const converted = url.replace('/objects/', '/api/proxy/public/');
+            console.log('🔄 Converting /objects/ URL:', url, '→', converted);
+            return converted;
+        }
+        
+        // Bunny Stream thumbnail URL（CORSエラーを防ぐためプロキシ経由に変換）
+        // 例: https://vz-524827.b-cdn.net/1c4adc82-0ee4-4b72-9d53-f8fc634277eb/thumbnail.jpg
+        if (url.includes('b-cdn.net') && url.includes('/thumbnail')) {
+            const guidMatch = url.match(/\/([0-9a-f-]{36})\//i);
+            if (guidMatch) {
+                const videoGuid = guidMatch[1];
+                return `/api/bunny-stream-thumbnail/${videoGuid}`;
+            }
+        }
+        
+        // Bunny CDN直接URL（CORSエラーを防ぐためプロキシ経由に変換）
+        if (url.includes('only-u.fun/') || url.includes('b-cdn.net/')) {
+            const bunnyPattern = /https?:\/\/[^/]+\/(public|private)\/(.+)/;
+            const match = url.match(bunnyPattern);
+            if (match) {
+                const folder = match[1];
+                const fileName = match[2];
+                return `/api/proxy/${folder}/${fileName}`;
+            }
+        }
+        
+        // Google Cloud Storage URLをプロキシURLに変換
+        // 例: https://storage.googleapis.com/BUCKET_NAME/public/file.mp4
+        if (url.includes('storage.googleapis.com')) {
+            const match = url.match(/\/(public|\.private)\/([^?]+)/);
+            if (match) {
+                const folder = match[1];  // 'public' または '.private'
+                const fileName = match[2]; // ファイル名
+                return `/api/proxy/${folder}/${fileName}`;
             }
         }
         
         return url;
-    }, []);
+    };
 
-    // 新しさボーナスを計算する関数（useCallbackでメモ化）
-    const calculateFreshnessBonus = useCallback((timestamp) => {
+    // 新しさボーナスを計算する関数
+    const calculateFreshnessBonus = (timestamp) => {
         if (!timestamp) return 0;
         
         const now = new Date();
         const postDate = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
         const diffInHours = (now - postDate) / (1000 * 60 * 60);
         
+        // 24時間以内: +100ポイント
         if (diffInHours < 24) return 100;
+        // 3日以内: +50ポイント
         if (diffInHours < 72) return 50;
+        // 7日以内: +20ポイント
         if (diffInHours < 168) return 20;
+        // それ以降: ボーナスなし
         return 0;
-    }, []);
+    };
 
     // Firestoreから人気投稿を取得
     useEffect(() => {
@@ -174,11 +239,11 @@ const Ranking = () => {
             try {
                 const postsRef = collection(db, 'posts');
                 
-                // 🚀 最適化: 50件 → 10件に削減（6件表示なので10件で十分）
+                // 最新の投稿を50件取得（createdAtで降順）
                 const q = query(
                     postsRef,
                     orderBy('createdAt', 'desc'),
-                    limit(10)
+                    limit(50)
                 );
                 
                 const querySnapshot = await getDocs(q);
@@ -187,32 +252,51 @@ const Ranking = () => {
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     
+                    // 限定コンテンツはランキングから除外
                     if (data.isExclusiveContent === true || data.visibility !== 'public') {
                         return;
                     }
                     
+                    // 新しさボーナスを計算
                     const freshnessBonus = calculateFreshnessBonus(data.createdAt);
                     
+                    // サムネイルURLを取得（複数のフォールバックオプション）
                     let originalThumbnail = null;
+                    let isVideo = false;
                     if (data.files && data.files.length > 0) {
-                        const file = data.files[0];
-                        if (file.thumbnailUrl) {
-                            originalThumbnail = file.thumbnailUrl;
+                        const firstFile = data.files[0];
+                        isVideo = firstFile.type && firstFile.type.startsWith('video/');
+                        
+                        // 動画の場合: 動画ファイル自体をサムネイルとして使用（ブラウザが最初のフレームを表示）
+                        // 画像の場合: 通常通りサムネイルまたは画像URLを使用
+                        if (isVideo) {
+                            originalThumbnail = firstFile.secure_url || firstFile.url || null;
+                        } else {
+                            originalThumbnail = firstFile.thumbnailUrl || firstFile.secure_url || firstFile.url || null;
                         }
-                        else if (file.resourceType === 'image' || file.type?.startsWith('image/')) {
-                            originalThumbnail = file.url;
-                        }
-                        else if (file.resourceType === 'video' || file.type?.startsWith('video/')) {
-                            originalThumbnail = file.url;
+                        
+                        // storageUriがある場合はプロキシURLを生成
+                        if (!originalThumbnail && firstFile.storageUri) {
+                            originalThumbnail = `/api/proxy/${firstFile.storageUri}`;
                         }
                     }
                     const proxyThumbnail = convertToProxyUrl(originalThumbnail);
                     
+                    // デバッグ: サムネイルURL変換を確認
+                    if (fetchedPosts.length < 2) {
+                        console.log(`🖼️ Post ${fetchedPosts.length + 1} Thumbnail:`, 
+                            'original:', originalThumbnail,
+                            'proxy:', proxyThumbnail
+                        );
+                    }
+                    
+                    // 動画の実際のファイルURLを取得
                     let videoFileUrl = null;
                     if (data.files && data.files.length > 0) {
                         videoFileUrl = data.files[0].url || null;
                     }
                     
+                    // 動画の再生時間を取得（filesから取得するか、durationフィールドを使用）
                     let videoDuration = '00:00';
                     if (data.files && data.files.length > 0 && data.files[0].duration) {
                         videoDuration = data.files[0].duration;
@@ -220,6 +304,7 @@ const Ranking = () => {
                         videoDuration = data.duration;
                     }
                     
+                    // 投稿データを整形
                     fetchedPosts.push({
                         id: doc.id,
                         title: data.title || 'タイトルなし',
@@ -227,8 +312,7 @@ const Ranking = () => {
                         bookmarks: data.bookmarks || 0,
                         duration: videoDuration,
                         thumbnail: proxyThumbnail,
-                        videoUrl: convertToProxyUrl(videoFileUrl),
-                        isVideo: originalThumbnail && originalThumbnail.match(/\.(mp4|mov|webm|MP4|MOV|WEBM)$/i),
+                        videoUrl: convertToProxyUrl(videoFileUrl), // 実際の動画URL
                         user: {
                             id: data.userId,
                             name: data.userName || '匿名',
@@ -236,12 +320,15 @@ const Ranking = () => {
                         },
                         isNew: calculateIsNew(data.createdAt),
                         postedDate: calculateTimeAgo(data.createdAt),
+                        // ランキング用スコア（likes + bookmarks + 新しさボーナス）
                         score: (data.likes || 0) + (data.bookmarks || 0) + freshnessBonus
                     });
                 });
                 
+                // スコア順（likes + bookmarks + 新しさボーナス）でソート
                 const sortedPosts = fetchedPosts.sort((a, b) => b.score - a.score);
                 
+                // デバッグ: トップ6件のスコア情報をログ出力
                 console.log('📊 Top 6 posts by score:', sortedPosts.slice(0, 6).map(p => ({
                     title: p.title,
                     score: p.score,
@@ -250,53 +337,31 @@ const Ranking = () => {
                     postedDate: p.postedDate
                 })));
                 
+                // 上位6件のみ表示
                 const topPosts = sortedPosts.slice(0, 6);
                 
-                // 🚀 最適化: ユーザー情報を一括取得（6回 → 1回のクエリ、必要なユーザーのみ）
-                const uniqueUserIds = [...new Set(topPosts.map(post => post.user.id))];
-                const usersMap = {};
-                
-                // ユーザー情報を一括取得（Firestore の where('__name__', 'in', ...) を使用）
-                // Note: Firestore の 'in' は最大10件まで、それ以上の場合は分割クエリ
-                if (uniqueUserIds.length > 0) {
+                // 各投稿の投稿者の最新プロフィール情報を取得
+                const postsWithUserInfo = await Promise.all(topPosts.map(async (post) => {
                     try {
-                        const usersRef = collection(db, 'users');
-                        // 10件ずつ分割してクエリ（Firestoreの制限対応）
-                        const chunks = [];
-                        for (let i = 0; i < uniqueUserIds.length; i += 10) {
-                            chunks.push(uniqueUserIds.slice(i, i + 10));
+                        const userDoc = await getDoc(doc(db, 'users', post.user.id));
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data();
+                            return {
+                                ...post,
+                                user: {
+                                    id: post.user.id,
+                                    name: userData.displayName || userData.username || post.user.name,
+                                    avatar: userData.photoURL || userData.avatar || post.user.avatar
+                                }
+                            };
                         }
-                        
-                        // 各チャンクを並列で取得
-                        await Promise.all(chunks.map(async (chunk) => {
-                            const { query: firestoreQuery, where, documentId } = await import('firebase/firestore');
-                            const q = firestoreQuery(usersRef, where(documentId(), 'in', chunk));
-                            const usersSnapshot = await getDocs(q);
-                            usersSnapshot.forEach(doc => {
-                                usersMap[doc.id] = doc.data();
-                            });
-                        }));
                     } catch (error) {
-                        console.error('Error fetching users:', error);
-                    }
-                }
-                
-                // 取得したユーザー情報を投稿データにマージ
-                const postsWithUserInfo = topPosts.map(post => {
-                    const userData = usersMap[post.user.id];
-                    if (userData) {
-                        return {
-                            ...post,
-                            user: {
-                                id: post.user.id,
-                                name: userData.displayName || userData.username || post.user.name,
-                                avatar: userData.photoURL || userData.avatar || post.user.avatar
-                            }
-                        };
+                        console.error(`Error fetching user ${post.user.id}:`, error);
                     }
                     return post;
-                });
+                }));
                 
+                // データがない場合はサンプルデータを1つ表示
                 if (postsWithUserInfo.length === 0) {
                     const samplePosts = [
                         {
@@ -306,7 +371,6 @@ const Ranking = () => {
                             bookmarks: 89,
                             duration: '05:32',
                             thumbnail: '/genre-1.png',
-                            isVideo: false,
                             user: {
                                 id: '1',
                                 name: 'サンプルユーザー',
@@ -325,6 +389,7 @@ const Ranking = () => {
                 }
             } catch (error) {
                 console.error('Error fetching ranking posts:', error);
+                // エラーの場合もサンプルデータを表示
                 const samplePosts = [
                     {
                         id: 'sample_1',
@@ -333,7 +398,6 @@ const Ranking = () => {
                         bookmarks: 89,
                         duration: '05:32',
                         thumbnail: '/genre-1.png',
-                        isVideo: false,
                         user: {
                             id: '1',
                             name: 'サンプルユーザー',
@@ -351,51 +415,38 @@ const Ranking = () => {
         };
 
         fetchRankingPosts();
-    }, [calculateFreshnessBonus, convertToProxyUrl]);
-
-    // 動画の再生時間を遅延取得（画面に表示されているもののみ）
-    const loadVideoDuration = useCallback(async (postId, videoUrl) => {
-        if (loadedVideos.has(postId)) return;
-        
-        setLoadedVideos(prev => new Set(prev).add(postId));
-        
-        try {
-            const duration = await getVideoDuration(videoUrl);
-            setVideoDurations(prev => ({
-                ...prev,
-                [postId]: formatDuration(duration)
-            }));
-        } catch (error) {
-            console.error(`Error loading duration for ${postId}:`, error);
-        }
-    }, [loadedVideos]);
+    }, []);
     
-    // 動画の再生時間を取得する関数
-    const getVideoDuration = (videoUrl) => {
-        return new Promise((resolve, reject) => {
-            const video = document.createElement('video');
-            video.preload = 'metadata';
+    // 各動画の再生時間を取得
+    useEffect(() => {
+        const loadVideoDurations = async () => {
+            const durations = {};
             
-            const timeout = setTimeout(() => {
-                video.src = '';
-                reject(new Error('Timeout loading video metadata'));
-            }, 10000); // 10秒でタイムアウト
+            for (const post of posts) {
+                // ✅ 最適化: Firestoreのfiles配列からdurationを取得
+                const fileDuration = post.files?.[0]?.duration;
+                if (fileDuration && fileDuration !== '00:00') {
+                    durations[post.id] = fileDuration;
+                    continue;
+                }
+                
+                // 後方互換性: post.durationもチェック
+                if (post.duration && post.duration !== '00:00') {
+                    durations[post.id] = post.duration;
+                    continue;
+                }
+                
+                // デフォルト値（メタデータ読み込みは削除 - CORSエラーとパフォーマンス問題を回避）
+                durations[post.id] = '00:00';
+            }
             
-            video.onloadedmetadata = () => {
-                clearTimeout(timeout);
-                resolve(video.duration);
-                video.src = '';
-            };
-            
-            video.onerror = () => {
-                clearTimeout(timeout);
-                reject(new Error('Failed to load video metadata'));
-                video.src = '';
-            };
-            
-            video.src = videoUrl;
-        });
-    };
+            setVideoDurations(durations);
+        };
+        
+        if (posts.length > 0) {
+            loadVideoDurations();
+        }
+    }, [posts]);
     
     // 再生時間をフォーマットする関数
     const formatDuration = (seconds) => {
@@ -438,24 +489,23 @@ const Ranking = () => {
 
     const filteredPosts = posts;
 
-    // スマホではアニメーションを簡略化
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: isMobile ? 0.05 : 0.1
+                staggerChildren: 0.1
             }
         }
     };
 
     const itemVariants = {
-        hidden: { y: isMobile ? 10 : 20, opacity: 0 },
+        hidden: { y: 20, opacity: 0 },
         visible: {
             y: 0,
             opacity: 1,
             transition: {
-                duration: isMobile ? 0.3 : 0.5,
+                duration: 0.5,
                 ease: "easeOut"
             }
         }
@@ -465,13 +515,13 @@ const Ranking = () => {
         <div className="mb-12">
             {/* Header */}
             <div className="mb-6">
-                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center">
                     <motion.div
                         whileHover={{ scale: 1.1, rotate: -10 }}
                         transition={{ duration: 0.3 }}
                         className="mr-2 p-1.5 rounded-lg bg-gradient-to-br from-pink-400 to-pink-600 shadow-md"
                     >
-                        <Crown className="w-5 h-5 text-white fill-white" strokeWidth={2.5} />
+                        <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white" strokeWidth={2.5} />
                     </motion.div>
                     総合ランキング
                 </h2>
@@ -491,7 +541,7 @@ const Ranking = () => {
                     >
                         <Sparkles className="text-pink-500" size={48} strokeWidth={2} />
                     </motion.div>
-                    <p className="mt-4 text-gray-600 font-medium">読み込み中...</p>
+                    <p className="mt-4 text-gray-600 dark:text-gray-400 font-medium">読み込み中...</p>
                 </motion.div>
             ) : (
                 <AnimatePresence mode="wait">
@@ -503,253 +553,198 @@ const Ranking = () => {
                         className="grid grid-cols-2 gap-4"
                     >
                         {filteredPosts.map((post, index) => (
-                            <RankingCard
-                                key={post.id}
-                                post={post}
-                                index={index}
-                                isMobile={isMobile}
-                                itemVariants={itemVariants}
-                                handleVideoClick={handleVideoClick}
-                                handleAccountClick={handleAccountClick}
-                                handleLikeClick={handleLikeClick}
-                                handleSaveClick={handleSaveClick}
-                                localLikedPosts={localLikedPosts}
-                                localSavedPosts={localSavedPosts}
-                                videoDurations={videoDurations}
-                                loadVideoDuration={loadVideoDuration}
-                            />
+                        <motion.div
+                            key={post.id}
+                            variants={itemVariants}
+                            whileHover={{ y: -8, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+                            onClick={() => handleVideoClick(post)}
+                            data-testid={`ranking-card-${post.id}`}
+                        >
+                            {/* サムネイル */}
+                            <div className="relative aspect-square overflow-hidden bg-gray-100">
+                                {post.thumbnail ? (
+                                    // Check if thumbnail is an image file (jpg, jpeg, png, webp, gif)
+                                    post.thumbnail.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
+                                        // 画像サムネイルの場合
+                                        <motion.img
+                                            src={post.thumbnail}
+                                            alt={post.title}
+                                            loading={index < 4 ? "eager" : "lazy"}
+                                            fetchpriority={index < 2 ? "high" : "auto"}
+                                            decoding="async"
+                                            className="w-full h-full object-cover"
+                                            animate={{ 
+                                                scale: [1, 1.05, 1],
+                                                x: [0, 5, 0],
+                                                y: [0, -3, 0]
+                                            }}
+                                            transition={{ 
+                                                duration: 8,
+                                                repeat: Infinity,
+                                                ease: "easeInOut"
+                                            }}
+                                            whileHover={{ scale: 1.15 }}
+                                            onError={(e) => {
+                                                console.error('Image thumbnail error:', e.target.src);
+                                                e.target.src = '/genre-1.png';
+                                            }}
+                                        />
+                                    ) : (
+                                        // 動画ファイルの場合、videoタグで最初のフレームを表示
+                                        <video
+                                            src={post.thumbnail}
+                                            className="w-full h-full object-cover"
+                                            preload="metadata"
+                                            muted
+                                            playsInline
+                                            onError={(e) => {
+                                                console.error('Video thumbnail error:', e.target.src);
+                                                // エラー時はデフォルト画像に置き換え
+                                                e.target.style.display = 'none';
+                                                e.target.nextElementSibling?.classList.remove('hidden');
+                                            }}
+                                        />
+                                    )
+                                ) : null}
+                                {/* フォールバック画像（動画エラー時に表示） */}
+                                <img 
+                                    src="/genre-1.png" 
+                                    alt={post.title}
+                                    loading={index < 4 ? "eager" : "lazy"}
+                                    fetchpriority={index < 2 ? "high" : "auto"}
+                                    decoding="async"
+                                    className={`w-full h-full object-cover ${post.thumbnail && !post.thumbnail.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? 'hidden' : ''}`}
+                                />
+                                
+                                {/* ランキングバッジ */}
+                                <motion.div 
+                                    whileHover={{ scale: 1.1, rotate: 5 }}
+                                    className="absolute top-2 left-2 w-9 h-9 bg-gradient-to-br from-pink-400 via-pink-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg"
+                                    style={{ boxShadow: '0 4px 12px rgba(236, 72, 153, 0.4)' }}
+                                >
+                                    <span className="text-white font-black text-sm drop-shadow-md">{index + 1}</span>
+                                </motion.div>
+                                
+                                {/* NEWバッジ */}
+                                {post.isNew && (
+                                    <motion.div 
+                                        initial={{ scale: 0, rotate: -180 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        transition={{ 
+                                            type: "spring",
+                                            stiffness: 260,
+                                            damping: 20,
+                                            delay: index * 0.1 + 0.3 
+                                        }}
+                                        className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg"
+                                    >
+                                        <motion.span
+                                            animate={{ scale: [1, 1.1, 1] }}
+                                            transition={{ duration: 2, repeat: Infinity }}
+                                        >
+                                            NEW
+                                        </motion.span>
+                                    </motion.div>
+                                )}
+                                
+                                {/* 動画時間 */}
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.1 + 0.4 }}
+                                    className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm text-white text-xs px-2 py-1 rounded font-semibold"
+                                >
+                                    {videoDurations[post.id] || post.duration}
+                                </motion.div>
+                            </div>
+
+                            {/* カード情報 */}
+                            <div className="p-3">
+                                {/* タイトル */}
+                                <h3 className="text-sm font-medium line-clamp-2 mb-2 text-gray-800 dark:text-gray-100 leading-snug">
+                                    {post.title}
+                                </h3>
+
+                                {/* クリエイター情報 */}
+                                <div 
+                                    className="flex items-center mb-2"
+                                    onClick={(e) => handleAccountClick(post, e)}
+                                >
+                                    {post.user.avatar ? (
+                                        <img
+                                            src={post.user.avatar}
+                                            alt={post.user.name}
+                                            loading="lazy"
+                                            decoding="async"
+                                            className="w-6 h-6 rounded-full mr-2 object-cover ring-1 ring-pink-100"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.nextSibling.style.display = 'flex';
+                                            }}
+                                        />
+                                    ) : null}
+                                    <div 
+                                        className={`w-6 h-6 rounded-full mr-2 bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center text-white font-bold text-xs ring-1 ring-pink-100 ${post.user.avatar ? 'hidden' : 'flex'}`}
+                                        style={{ display: post.user.avatar ? 'none' : 'flex' }}
+                                    >
+                                        {post.user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{post.user.name}</p>
+                                        <p className="text-xs text-gray-400">{post.postedDate}</p>
+                                    </div>
+                                </div>
+
+                                {/* 統計情報 */}
+                                <div className="flex items-center gap-3 text-xs">
+                                    <motion.button 
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="flex items-center gap-1 hover:bg-pink-50 p-1.5 rounded-lg transition-colors"
+                                        onClick={(e) => handleLikeClick(post.id, e)}
+                                        data-testid={`like-button-${post.id}`}
+                                    >
+                                        <Heart 
+                                            className={`w-4 h-4 transition-all ${localLikedPosts.has(post.id) ? 'fill-pink-500 text-pink-500 scale-110' : 'text-gray-400'}`}
+                                            strokeWidth={2.5}
+                                        />
+                                        <span className="text-gray-600 font-medium">{post.likes}</span>
+                                    </motion.button>
+                                    <motion.button 
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="flex items-center gap-1 hover:bg-pink-50 p-1.5 rounded-lg transition-colors"
+                                        onClick={(e) => handleSaveClick(post.id, e)}
+                                        data-testid={`save-button-${post.id}`}
+                                    >
+                                        <Bookmark 
+                                            className={`w-4 h-4 transition-all ${localSavedPosts.has(post.id) ? 'fill-pink-500 text-pink-500 scale-110' : 'text-gray-400'}`}
+                                            strokeWidth={2.5}
+                                        />
+                                        <span className="text-gray-600 font-medium">{post.bookmarks}</span>
+                                    </motion.button>
+                                </div>
+                            </div>
+                        </motion.div>
                         ))}
                     </motion.div>
                 </AnimatePresence>
             )}
+
+            {!loadingPosts && filteredPosts.length === 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center py-12"
+                >
+                    <div className="text-6xl mb-4">💕</div>
+                    <p className="text-gray-500 text-lg">コンテンツがありません</p>
+                </motion.div>
+            )}
         </div>
     );
 };
-
-// 個別カードコンポーネント（最適化のため分離）
-const RankingCard = React.memo(({ 
-    post, 
-    index, 
-    isMobile,
-    itemVariants,
-    handleVideoClick, 
-    handleAccountClick,
-    handleLikeClick, 
-    handleSaveClick, 
-    localLikedPosts, 
-    localSavedPosts,
-    videoDurations,
-    loadVideoDuration
-}) => {
-    const videoRef = useRef(null);
-    const cardRef = useRef(null);
-    const [isVisible, setIsVisible] = useState(false);
-
-    // Intersection Observer: 画面に表示されたら動画をロード
-    useEffect(() => {
-        if (!cardRef.current) return;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        setIsVisible(true);
-                        
-                        // 動画の場合、preloadを有効化
-                        if (videoRef.current && post.isVideo) {
-                            videoRef.current.preload = 'metadata';
-                        }
-                        
-                        // 再生時間が未取得かつ動画URLがある場合、取得
-                        if (post.videoUrl && !videoDurations[post.id] && post.duration === '00:00') {
-                            loadVideoDuration(post.id, post.videoUrl);
-                        }
-                    }
-                });
-            },
-            {
-                rootMargin: '50px', // 50px手前から準備開始
-                threshold: 0.1
-            }
-        );
-
-        observer.observe(cardRef.current);
-
-        return () => {
-            if (cardRef.current) {
-                observer.unobserve(cardRef.current);
-            }
-        };
-    }, [post.id, post.videoUrl, post.isVideo, post.duration, videoDurations, loadVideoDuration]);
-
-    return (
-        <motion.div
-            ref={cardRef}
-            variants={itemVariants}
-            whileHover={isMobile ? {} : { y: -8, scale: 1.02 }}
-            whileTap={isMobile ? {} : { scale: 0.98 }}
-            className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-shadow cursor-pointer group active:opacity-80"
-            onClick={() => handleVideoClick(post)}
-            data-testid={`ranking-card-${post.id}`}
-        >
-            {/* サムネイル */}
-            <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pink-50 to-pink-100">
-                {post.thumbnail ? (
-                    post.isVideo ? (
-                        /* 動画の場合：遅延ロード */
-                        <video
-                            ref={videoRef}
-                            src={isVisible ? post.thumbnail : undefined}
-                            className="w-full h-full object-cover"
-                            preload="none"
-                            muted
-                            playsInline
-                            onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextElementSibling.style.display = 'flex';
-                            }}
-                        />
-                    ) : (
-                        /* 画像の場合：リサイズ済みサムネイルを遅延ロード（400x400px） */
-                        <img
-                            src={isVisible && post.thumbnail ? `${post.thumbnail}${post.thumbnail.includes('?') ? '&' : '?'}thumbnail=true` : undefined}
-                            alt={post.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextElementSibling.style.display = 'flex';
-                            }}
-                        />
-                    )
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <Sparkles className="text-pink-300" size={48} />
-                    </div>
-                )}
-                {/* エラー時のフォールバック */}
-                <div className="hidden w-full h-full items-center justify-center">
-                    <Sparkles className="text-pink-300" size={48} />
-                </div>
-                
-                {/* ランキングバッジ */}
-                {index < 3 && (
-                    <motion.div 
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
-                        className="absolute top-2 left-2 z-10"
-                    >
-                        <div className={`
-                            w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-base shadow-lg
-                            ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : ''}
-                            ${index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' : ''}
-                            ${index === 2 ? 'bg-gradient-to-br from-amber-600 to-amber-800' : ''}
-                        `}>
-                            {index + 1}
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* NEWバッジ */}
-                {post.isNew && (
-                    <motion.div 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.2, type: "spring" }}
-                        className="absolute top-2 right-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg z-10"
-                    >
-                        NEW
-                    </motion.div>
-                )}
-
-                {/* 再生時間 */}
-                <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-                    <Clock size={12} strokeWidth={2.5} />
-                    {videoDurations[post.id] || post.duration}
-                </div>
-
-                {/* ホバーオーバーレイ（PCのみ） */}
-                {!isMobile && (
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                )}
-            </div>
-
-            {/* 投稿情報 */}
-            <div className="p-4">
-                {/* タイトル */}
-                <h3 className="font-bold text-gray-900 mb-2 line-clamp-2 text-base group-hover:text-pink-600 transition-colors">
-                    {post.title}
-                </h3>
-
-                {/* ユーザー情報 */}
-                <div 
-                    className="flex items-center gap-2 mb-3 cursor-pointer hover:opacity-70 transition-opacity"
-                    onClick={(e) => handleAccountClick(post, e)}
-                    data-testid={`user-link-${post.id}`}
-                >
-                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-pink-200 to-pink-300 flex-shrink-0">
-                        {post.user.avatar ? (
-                            <img 
-                                src={post.user.avatar} 
-                                alt={post.user.name}
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-pink-600 font-bold text-sm">
-                                {post.user.name.charAt(0)}
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-700 font-medium truncate">{post.user.name}</p>
-                        <p className="text-xs text-gray-500">{post.postedDate}</p>
-                    </div>
-                </div>
-
-                {/* アクションボタン */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => handleLikeClick(post.id, e)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
-                            localLikedPosts.has(post.id)
-                                ? 'bg-pink-100 text-pink-600'
-                                : 'hover:bg-gray-100 text-gray-600'
-                        }`}
-                        data-testid={`like-button-${post.id}`}
-                    >
-                        <Heart 
-                            size={14} 
-                            className={localLikedPosts.has(post.id) ? 'fill-current' : ''} 
-                            strokeWidth={2.5}
-                        />
-                        <span className="text-sm font-medium">{post.likes}</span>
-                    </motion.button>
-
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => handleSaveClick(post.id, e)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
-                            localSavedPosts.has(post.id)
-                                ? 'bg-pink-100 text-pink-600'
-                                : 'hover:bg-gray-100 text-gray-600'
-                        }`}
-                        data-testid={`save-button-${post.id}`}
-                    >
-                        <Bookmark 
-                            size={14} 
-                            className={localSavedPosts.has(post.id) ? 'fill-current' : ''} 
-                            strokeWidth={2.5}
-                        />
-                        <span className="text-sm font-medium">{post.bookmarks}</span>
-                    </motion.button>
-                </div>
-            </div>
-        </motion.div>
-    );
-});
-
-RankingCard.displayName = 'RankingCard';
 
 export default Ranking;

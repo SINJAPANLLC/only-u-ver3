@@ -33,11 +33,10 @@ const PurchaseHistoryPage = () => {
       return;
     }
 
-    // Firestoreから購入履歴を取得
+    // Firestoreから購入履歴を取得（orderByを削除してクライアント側でソート）
     const purchasesQuery = query(
       collection(db, 'purchases'),
-      where('userId', '==', currentUser.uid),
-      orderBy('date', 'desc')
+      where('userId', '==', currentUser.uid)
     );
 
     const unsubscribe = onSnapshot(purchasesQuery, (snapshot) => {
@@ -45,7 +44,7 @@ const PurchaseHistoryPage = () => {
         id: doc.id,
         ...doc.data(),
         date: doc.data().date?.toDate?.() || new Date()
-      }));
+      })).sort((a, b) => b.date - a.date); // クライアント側でソート
       setPurchases(purchasesData);
       setLoading(false);
     });

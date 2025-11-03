@@ -46,6 +46,46 @@ const CreatorDashboard = () => {
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [postsData, setPostsData] = useState([]);
   const [plansData, setPlansData] = useState([]);
+  
+  // マーケティング方法のサンプルデータ
+  const marketingMethods = [
+    {
+      id: 1,
+      name: 'SNSマーケティング',
+      platform: 'Twitter / Instagram',
+      description: 'SNSでフォロワーを増やし、投稿をシェアして認知度を高める',
+      cost: 5000,
+      reach: 10000,
+      engagement: 800,
+      conversion: 50,
+      roi: 250,
+      bestPractices: ['定期投稿', 'ハッシュタグ活用', 'フォロワーとの交流']
+    },
+    {
+      id: 2,
+      name: 'コラボレーション',
+      platform: '他クリエイター',
+      description: '他のクリエイターとコラボして相互にフォロワーを増やす',
+      cost: 0,
+      reach: 5000,
+      engagement: 600,
+      conversion: 40,
+      roi: 400,
+      bestPractices: ['相性の良いクリエイター選び', '企画の魅力', '相互プロモーション']
+    },
+    {
+      id: 3,
+      name: '広告キャンペーン',
+      platform: 'Google / Facebook Ads',
+      description: 'ターゲット広告で新規ファンを獲得',
+      cost: 20000,
+      reach: 50000,
+      engagement: 2500,
+      conversion: 150,
+      roi: 180,
+      bestPractices: ['ターゲティング最適化', 'A/Bテスト', 'リターゲティング']
+    }
+  ];
 
   // Firestoreからクリエイターデータを取得
   useEffect(() => {

@@ -20,6 +20,7 @@ import {
     EyeOff,
     UserPlus,
     UserMinus,
+    Users,
     Copy,
     ExternalLink,
     Sparkles,
@@ -191,7 +192,8 @@ const ProfilePage = () => {
                 try {
                     // プランの価格を解析（カンマを除去してから数値化）
                     // plan.priceはクリエイター受取額（basePrice）
-                    const priceMatch = plan.price.match(/[\d,]+/);
+                    const priceStr = String(plan.price || '0');
+                    const priceMatch = priceStr.match(/[\d,]+/);
                     if (!priceMatch) {
                         console.error('価格の解析に失敗しました');
                         return;
@@ -632,48 +634,70 @@ const ProfilePage = () => {
         navigate(`/messages?user=${profileData.username}`);
     };
 
-    const handlePlanConfirm = async (planId) => {
+    const handlePlanConfirm = (planId) => {
         if (!currentUser) {
             alert('サブスクリプションに加入するにはログインが必要です。');
             navigate('/login');
             return;
         }
-
-        try {
-            const plan = subscriptionPlans.find(p => p.id === planId);
-            if (!plan) {
-                alert('プランが見つかりません。');
-                return;
-            }
-
-            // Create Payment Intent for in-app payment
-            const response = await fetch('/api/create-subscription-payment-intent', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    planId: plan.id,
-                    planTitle: plan.title,
-                    planPrice: plan.price,
-                    creatorId: profileData.id,
-                    creatorName: profileData.name,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.clientSecret) {
-                setClientSecret(data.clientSecret);
-                setShowPlanModal(planId);
-            } else {
-                throw new Error('Payment Intentの作成に失敗しました');
-            }
-        } catch (error) {
-            console.error('決済の準備に失敗しました:', error);
-            alert('決済の準備に失敗しました。しばらくしてからお試しください。');
-        }
+        
+        // Show payment modal and prepare payment
+        setShowPlanModal(planId);
     };
+
+    // Create Payment Intent when modal opens
+    useEffect(() => {
+        const preparePayment = async () => {
+            if (!showPlanModal || !currentUser || !profileData) return;
+
+            try {
+                const plan = subscriptionPlans.find(p => p.id === showPlanModal);
+                if (!plan) return;
+
+                const priceStr = String(plan.price || '0');
+                const priceMatch = priceStr.match(/\d+/);
+                const basePrice = priceMatch ? parseInt(priceMatch[0]) : 0;
+                const tax = Math.floor(basePrice * 0.10);
+                const platformFee = Math.floor(basePrice * 0.10);
+                const totalAmount = basePrice + tax + platformFee;
+
+                // Create Subscription with Payment Intent
+                const response = await fetch('/api/create-subscription-payment-intent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        planId: plan.id,
+                        planTitle: plan.title,
+                        planPrice: plan.price,
+                        creatorId: profileData.id,
+                        creatorName: profileData.name,
+                        userId: currentUser.uid,
+                        userEmail: currentUser.email,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMsg = errorData.error || 'Payment Intentの作成に失敗しました';
+                    throw new Error(errorMsg);
+                }
+
+                const data = await response.json();
+                if (!data.clientSecret) {
+                    throw new Error('Client Secretが取得できませんでした');
+                }
+                setClientSecret(data.clientSecret);
+            } catch (error) {
+                console.error('決済準備エラー:', error);
+                alert(error.message || '決済の準備中にエラーが発生しました');
+                setShowPlanModal(null);
+            }
+        };
+
+        preparePayment();
+    }, [showPlanModal, currentUser, profileData, subscriptionPlans]);
 
     const handlePaymentSuccess = async () => {
         if (!currentUser || !profileData || !showPlanModal) return;
@@ -684,7 +708,8 @@ const ProfilePage = () => {
 
             // プランの価格を解析（カンマを除去してから数値化）
             // plan.priceはクリエイター受取額（basePrice）
-            const priceMatch = plan.price.match(/[\d,]+/);
+            const priceStr = String(plan.price || '0');
+            const priceMatch = priceStr.match(/[\d,]+/);
             if (!priceMatch) return;
             const basePrice = parseInt(priceMatch[0].replace(/,/g, '')); // クリエイター受取額（例：50円）
             
@@ -1056,128 +1081,242 @@ const ProfilePage = () => {
                     )}
                 </div>
 
-                {/* Name and username Card - Premium Style */}
+                {/* Name Card - Ultra Premium Style */}
                 <motion.div 
-                    initial={{ opacity: 0, y: 20 }} 
-                    animate={{ opacity: 1, y: 0 }} 
-                    transition={{ delay: 0.3 }}
-                    className="mb-6 bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/50 relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }} 
+                    animate={{ opacity: 1, y: 0, scale: 1 }} 
+                    transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
+                    className="mb-6 bg-gradient-to-br from-white via-pink-50/30 to-white backdrop-blur-2xl rounded-3xl p-8 shadow-[0_20px_60px_-15px_rgba(236,72,153,0.3)] border-2 border-white/80 relative overflow-hidden group"
                 >
                     <motion.div 
                         animate={{ 
-                            scale: [1, 1.2, 1],
-                            rotate: [0, 180, 360]
+                            x: [-100, 100, -100],
+                            y: [-50, 50, -50],
+                            scale: [1, 1.3, 1]
                         }} 
-                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }} 
-                        className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-pink-300/20 to-pink-500/20 rounded-full blur-3xl" 
+                        transition={{ duration: 25, repeat: Infinity, ease: "linear" }} 
+                        className="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-pink-300/30 via-purple-300/20 to-pink-400/30 rounded-full blur-3xl" 
                     />
                     <motion.div 
                         animate={{ 
-                            scale: [1.2, 1, 1.2],
-                            rotate: [360, 180, 0]
+                            x: [100, -100, 100],
+                            y: [50, -50, 50],
+                            scale: [1.3, 1, 1.3]
                         }} 
-                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }} 
-                        className="absolute -bottom-10 -left-10 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-pink-600/20 rounded-full blur-3xl" 
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }} 
+                        className="absolute -bottom-20 -left-20 w-48 h-48 bg-gradient-to-br from-purple-400/25 to-pink-500/25 rounded-full blur-3xl" 
                     />
                     <div className="relative z-10">
-                        <h1 className="text-4xl font-black bg-gradient-to-r from-pink-500 via-pink-600 to-purple-600 bg-clip-text text-transparent flex items-center" data-testid="text-profile-name">
+                        <motion.h1 
+                            whileHover={{ scale: 1.02 }}
+                            className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-pink-500 via-pink-600 to-purple-600 bg-clip-text text-transparent flex items-center drop-shadow-sm" 
+                            data-testid="text-profile-name"
+                        >
                             {profileData.name} 
-                            {profileData.emoji && <span className="ml-2 text-3xl">{profileData.emoji}</span>}
-                        </h1>
+                            {profileData.emoji && (
+                                <motion.span 
+                                    animate={{ rotate: [0, 10, -10, 0] }}
+                                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                                    className="ml-2 text-2xl"
+                                >
+                                    {profileData.emoji}
+                                </motion.span>
+                            )}
+                        </motion.h1>
                     </div>
                 </motion.div>
 
-                {/* Stats - Glassmorphism Design */}
+                {/* Stats - Modern 3D Cards */}
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }} 
                     animate={{ opacity: 1, y: 0 }} 
                     transition={{ delay: 0.4 }} 
-                    className="grid grid-cols-4 gap-3 mb-6"
+                    className="grid grid-cols-4 gap-2.5 sm:gap-3 mb-6"
                 >
                     <motion.div 
-                        whileHover={{ scale: 1.08, y: -4 }} 
+                        whileHover={{ scale: 1.05, y: -6, rotateX: 5 }} 
                         whileTap={{ scale: 0.95 }}
-                        className="bg-white/70 backdrop-blur-md rounded-2xl p-4 text-center shadow-xl border border-white/60 relative overflow-hidden group"
+                        transition={{ type: "spring", stiffness: 300 }}
+                        className="bg-gradient-to-br from-white to-pink-50/50 backdrop-blur-xl rounded-2xl p-3 sm:p-4 text-center shadow-[0_8px_30px_-6px_rgba(236,72,153,0.25)] border-2 border-white relative overflow-hidden group"
+                        style={{ transformStyle: "preserve-3d" }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-pink-400/10 to-pink-600/10 group-hover:from-pink-400/20 group-hover:to-pink-600/20 transition-all duration-300" />
-                        <div className="relative z-10">
-                            <div className="font-black text-2xl bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent" data-testid="text-posts-count">{profileData.stats.posts}</div>
-                            <div className="text-xs text-pink-700 font-semibold mt-1">投稿</div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-pink-400/15 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <motion.div 
+                            className="absolute top-1 right-1 w-8 h-8 bg-pink-100/80 rounded-full flex items-center justify-center"
+                            whileHover={{ rotate: 360 }}
+                            transition={{ duration: 0.6 }}
+                        >
+                            <Image className="w-4 h-4 text-pink-500" />
+                        </motion.div>
+                        <div className="relative z-10 pt-4">
+                            <motion.div 
+                                className="font-black text-2xl sm:text-3xl bg-gradient-to-br from-pink-500 to-pink-600 bg-clip-text text-transparent drop-shadow-sm" 
+                                data-testid="text-posts-count"
+                            >
+                                {profileData.stats.posts}
+                            </motion.div>
+                            <div className="text-[10px] sm:text-xs text-pink-700 font-bold mt-1 tracking-wide">投稿</div>
                         </div>
                     </motion.div>
+                    
                     <motion.div 
-                        whileHover={{ scale: 1.08, y: -4 }} 
+                        whileHover={{ scale: 1.05, y: -6, rotateX: 5 }} 
                         whileTap={{ scale: 0.95 }}
-                        className="bg-white/70 backdrop-blur-md rounded-2xl p-4 text-center shadow-xl border border-white/60 relative overflow-hidden group"
+                        transition={{ type: "spring", stiffness: 300 }}
+                        className="bg-gradient-to-br from-white to-pink-50/50 backdrop-blur-xl rounded-2xl p-3 sm:p-4 text-center shadow-[0_8px_30px_-6px_rgba(236,72,153,0.25)] border-2 border-white relative overflow-hidden group"
+                        style={{ transformStyle: "preserve-3d" }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-pink-700/10 group-hover:from-pink-500/20 group-hover:to-pink-700/20 transition-all duration-300" />
-                        <div className="relative z-10">
-                            <div className="font-black text-2xl bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent" data-testid="text-likes-count">{profileData.stats.likes}</div>
-                            <div className="text-xs text-pink-700 font-semibold mt-1">いいね</div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/15 to-pink-700/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <motion.div 
+                            className="absolute top-1 right-1 w-8 h-8 bg-pink-100/80 rounded-full flex items-center justify-center"
+                            whileHover={{ rotate: 360 }}
+                            transition={{ duration: 0.6 }}
+                        >
+                            <Heart className="w-4 h-4 text-pink-600 fill-pink-600" />
+                        </motion.div>
+                        <div className="relative z-10 pt-4">
+                            <motion.div 
+                                className="font-black text-2xl sm:text-3xl bg-gradient-to-br from-pink-600 to-pink-700 bg-clip-text text-transparent drop-shadow-sm" 
+                                data-testid="text-likes-count"
+                            >
+                                {profileData.stats.likes}
+                            </motion.div>
+                            <div className="text-[10px] sm:text-xs text-pink-700 font-bold mt-1 tracking-wide">いいね</div>
                         </div>
                     </motion.div>
+                    
                     <motion.div 
-                        whileHover={{ scale: 1.08, y: -4 }} 
+                        whileHover={{ scale: 1.05, y: -6, rotateX: 5 }} 
                         whileTap={{ scale: 0.95 }}
-                        className="bg-white/70 backdrop-blur-md rounded-2xl p-4 text-center shadow-xl border border-white/60 relative overflow-hidden group"
+                        transition={{ type: "spring", stiffness: 300 }}
+                        className="bg-gradient-to-br from-white to-purple-50/50 backdrop-blur-xl rounded-2xl p-3 sm:p-4 text-center shadow-[0_8px_30px_-6px_rgba(168,85,247,0.25)] border-2 border-white relative overflow-hidden group"
+                        style={{ transformStyle: "preserve-3d" }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-pink-600/10 to-purple-600/10 group-hover:from-pink-600/20 group-hover:to-purple-600/20 transition-all duration-300" />
-                        <div className="relative z-10">
-                            <div className="font-black text-2xl bg-gradient-to-r from-pink-700 to-purple-600 bg-clip-text text-transparent" data-testid="text-followers-count">{profileData.stats.followers}</div>
-                            <div className="text-xs text-pink-800 font-semibold mt-1">フォロワー</div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-pink-600/15 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <motion.div 
+                            className="absolute top-1 right-1 w-8 h-8 bg-purple-100/80 rounded-full flex items-center justify-center"
+                            whileHover={{ rotate: 360 }}
+                            transition={{ duration: 0.6 }}
+                        >
+                            <Users className="w-4 h-4 text-purple-600" />
+                        </motion.div>
+                        <div className="relative z-10 pt-4">
+                            <motion.div 
+                                className="font-black text-2xl sm:text-3xl bg-gradient-to-br from-pink-700 to-purple-600 bg-clip-text text-transparent drop-shadow-sm" 
+                                data-testid="text-followers-count"
+                            >
+                                {profileData.stats.followers}
+                            </motion.div>
+                            <div className="text-[10px] sm:text-xs text-purple-700 font-bold mt-1 tracking-wide">フォロワー</div>
                         </div>
                     </motion.div>
+                    
                     <motion.div 
-                        whileHover={{ scale: 1.08, y: -4 }} 
+                        whileHover={{ scale: 1.05, y: -6, rotateX: 5 }} 
                         whileTap={{ scale: 0.95 }}
-                        className="bg-white/70 backdrop-blur-md rounded-2xl p-4 text-center shadow-xl border border-white/60 relative overflow-hidden group"
+                        transition={{ type: "spring", stiffness: 300 }}
+                        className="bg-gradient-to-br from-white to-purple-50/50 backdrop-blur-xl rounded-2xl p-3 sm:p-4 text-center shadow-[0_8px_30px_-6px_rgba(168,85,247,0.25)] border-2 border-white relative overflow-hidden group"
+                        style={{ transformStyle: "preserve-3d" }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-purple-700/10 group-hover:from-purple-500/20 group-hover:to-purple-700/20 transition-all duration-300" />
-                        <div className="relative z-10">
-                            <div className="font-black text-2xl bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent" data-testid="text-following-count">{profileData.stats.following}</div>
-                            <div className="text-xs text-purple-800 font-semibold mt-1">フォロー</div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/15 to-purple-700/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <motion.div 
+                            className="absolute top-1 right-1 w-8 h-8 bg-purple-100/80 rounded-full flex items-center justify-center"
+                            whileHover={{ rotate: 360 }}
+                            transition={{ duration: 0.6 }}
+                        >
+                            <UserPlus className="w-4 h-4 text-purple-700" />
+                        </motion.div>
+                        <div className="relative z-10 pt-4">
+                            <motion.div 
+                                className="font-black text-2xl sm:text-3xl bg-gradient-to-br from-purple-600 to-purple-700 bg-clip-text text-transparent drop-shadow-sm" 
+                                data-testid="text-following-count"
+                            >
+                                {profileData.stats.following}
+                            </motion.div>
+                            <div className="text-[10px] sm:text-xs text-purple-700 font-bold mt-1 tracking-wide">フォロー</div>
                         </div>
                     </motion.div>
                 </motion.div>
 
-                {/* Bio - Elegant Card */}
+                {/* Bio - Premium Card */}
                 {profileData.bio && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mb-6 bg-gradient-to-br from-pink-50 via-pink-100 to-pink-50 rounded-2xl p-5 shadow-lg border-2 border-pink-100 relative overflow-hidden">
-                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute -top-10 -right-10 w-32 h-32 bg-pink-200/30 rounded-full blur-2xl" />
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }} 
+                        animate={{ opacity: 1, y: 0, scale: 1 }} 
+                        transition={{ delay: 0.5, type: "spring" }} 
+                        className="mb-6 bg-gradient-to-br from-white via-pink-50/40 to-white backdrop-blur-xl rounded-3xl p-6 shadow-[0_15px_50px_-10px_rgba(236,72,153,0.2)] border-2 border-pink-100/60 relative overflow-hidden group"
+                    >
+                        <motion.div 
+                            animate={{ 
+                                scale: [1, 1.2, 1],
+                                rotate: [0, 180, 360]
+                            }} 
+                            transition={{ duration: 30, repeat: Infinity, ease: "linear" }} 
+                            className="absolute -top-16 -right-16 w-48 h-48 bg-gradient-to-br from-pink-200/20 via-pink-300/15 to-pink-400/20 rounded-full blur-3xl" 
+                        />
                         <div className="relative z-10">
-                            <div className="flex items-center mb-2">
-                                <Sparkles className="w-4 h-4 text-pink-500 mr-2" />
-                                <span className="text-xs font-bold text-pink-700">プロフィール</span>
+                            <div className="flex items-center mb-3">
+                                <motion.div
+                                    whileHover={{ rotate: 360 }}
+                                    transition={{ duration: 0.6 }}
+                                    className="w-8 h-8 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full flex items-center justify-center mr-2 shadow-md"
+                                >
+                                    <Sparkles className="w-4 h-4 text-white" />
+                                </motion.div>
+                                <span className="text-sm font-black bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent">プロフィール</span>
                             </div>
-                            <p className="text-pink-900 text-sm font-medium whitespace-pre-line leading-relaxed" data-testid="text-bio">{profileData.bio}</p>
+                            <p className="text-gray-700 dark:text-gray-300 text-sm font-medium whitespace-pre-line leading-relaxed" data-testid="text-bio">{profileData.bio}</p>
                         </div>
                     </motion.div>
                 )}
 
                 {/* Social Links */}
                 {(profileData.website || profileData.twitter || profileData.instagram || profileData.youtube) && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mb-6 bg-gradient-to-br from-pink-50 via-pink-100 to-pink-50 rounded-2xl p-5 shadow-lg border-2 border-pink-100 relative overflow-hidden">
-                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute -top-10 -right-10 w-32 h-32 bg-pink-200/30 rounded-full blur-2xl" />
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }} 
+                        animate={{ opacity: 1, y: 0, scale: 1 }} 
+                        transition={{ delay: 0.55, type: "spring" }} 
+                        className="mb-6 bg-gradient-to-br from-white via-pink-50/40 to-white backdrop-blur-xl rounded-3xl p-6 shadow-[0_15px_50px_-10px_rgba(236,72,153,0.2)] border-2 border-pink-100/60 relative overflow-hidden"
+                    >
+                        <motion.div 
+                            animate={{ 
+                                scale: [1.2, 1, 1.2],
+                                rotate: [360, 180, 0]
+                            }} 
+                            transition={{ duration: 30, repeat: Infinity, ease: "linear" }} 
+                            className="absolute -bottom-16 -left-16 w-48 h-48 bg-gradient-to-br from-pink-200/20 to-purple-200/15 rounded-full blur-3xl" 
+                        />
                         <div className="relative z-10">
-                            <div className="flex items-center mb-3">
-                                <Globe className="w-4 h-4 text-pink-500 mr-2" />
-                                <span className="text-xs font-bold text-pink-700">ソーシャルリンク</span>
+                            <div className="flex items-center mb-4">
+                                <motion.div
+                                    whileHover={{ rotate: 360 }}
+                                    transition={{ duration: 0.6 }}
+                                    className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center mr-2 shadow-md"
+                                >
+                                    <Globe className="w-4 h-4 text-white" />
+                                </motion.div>
+                                <span className="text-sm font-black bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">ソーシャルリンク</span>
                             </div>
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 {profileData.website && (
                                     <motion.a 
                                         href={profileData.website} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        whileHover={{ scale: 1.02, x: 4 }}
-                                        className="flex items-center text-pink-600 hover:text-pink-700 text-sm font-medium bg-pink-50/80 px-3 py-2 rounded-lg transition-colors"
+                                        whileHover={{ scale: 1.02, x: 6 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="flex items-center text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 text-sm font-semibold bg-gradient-to-r from-pink-50/90 to-pink-100/80 dark:from-pink-900/20 dark:to-pink-800/20 px-4 py-3 rounded-2xl transition-all shadow-md hover:shadow-lg border border-pink-100 dark:border-pink-800/30"
                                         data-testid="link-website"
                                     >
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full mr-3 shadow-md">
-                                            <Globe className="w-4 h-4 text-white" />
-                                        </div>
+                                        <motion.div 
+                                            whileHover={{ rotate: 360 }}
+                                            transition={{ duration: 0.5 }}
+                                            className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full mr-3 shadow-lg"
+                                        >
+                                            <Globe className="w-5 h-5 text-white" />
+                                        </motion.div>
                                         <span className="truncate flex-1">{profileData.website}</span>
-                                        <ExternalLink className="w-3.5 h-3.5 text-pink-400 ml-2 flex-shrink-0" />
+                                        <ExternalLink className="w-4 h-4 text-pink-400 ml-2 flex-shrink-0" />
                                     </motion.a>
                                 )}
                                 {profileData.twitter && (
@@ -1185,15 +1324,20 @@ const ProfilePage = () => {
                                         href={profileData.twitter} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        whileHover={{ scale: 1.02, x: 4 }}
-                                        className="flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium bg-blue-50/80 px-3 py-2 rounded-lg transition-colors"
+                                        whileHover={{ scale: 1.02, x: 6 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-semibold bg-gradient-to-r from-blue-50/90 to-blue-100/80 dark:from-blue-900/20 dark:to-blue-800/20 px-4 py-3 rounded-2xl transition-all shadow-md hover:shadow-lg border border-blue-100 dark:border-blue-800/30"
                                         data-testid="link-twitter"
                                     >
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full mr-3 shadow-md">
-                                            <Twitter className="w-4 h-4 text-white" />
-                                        </div>
+                                        <motion.div 
+                                            whileHover={{ rotate: 360 }}
+                                            transition={{ duration: 0.5 }}
+                                            className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full mr-3 shadow-lg"
+                                        >
+                                            <Twitter className="w-5 h-5 text-white" />
+                                        </motion.div>
                                         <span className="truncate flex-1">{profileData.twitter}</span>
-                                        <ExternalLink className="w-3.5 h-3.5 text-blue-400 ml-2 flex-shrink-0" />
+                                        <ExternalLink className="w-4 h-4 text-blue-400 ml-2 flex-shrink-0" />
                                     </motion.a>
                                 )}
                                 {profileData.instagram && (
@@ -1201,15 +1345,20 @@ const ProfilePage = () => {
                                         href={profileData.instagram} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        whileHover={{ scale: 1.02, x: 4 }}
-                                        className="flex items-center text-purple-600 hover:text-purple-700 text-sm font-medium bg-purple-50/80 px-3 py-2 rounded-lg transition-colors"
+                                        whileHover={{ scale: 1.02, x: 6 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="flex items-center text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-semibold bg-gradient-to-r from-purple-50/90 to-pink-50/90 dark:from-purple-900/20 dark:to-pink-900/20 px-4 py-3 rounded-2xl transition-all shadow-md hover:shadow-lg border border-purple-100 dark:border-purple-800/30"
                                         data-testid="link-instagram"
                                     >
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 rounded-full mr-3 shadow-md">
-                                            <Instagram className="w-4 h-4 text-white" />
-                                        </div>
+                                        <motion.div 
+                                            whileHover={{ rotate: 360 }}
+                                            transition={{ duration: 0.5 }}
+                                            className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-400 via-pink-400 to-orange-400 rounded-full mr-3 shadow-lg"
+                                        >
+                                            <Instagram className="w-5 h-5 text-white" />
+                                        </motion.div>
                                         <span className="truncate flex-1">{profileData.instagram}</span>
-                                        <ExternalLink className="w-3.5 h-3.5 text-purple-400 ml-2 flex-shrink-0" />
+                                        <ExternalLink className="w-4 h-4 text-purple-400 ml-2 flex-shrink-0" />
                                     </motion.a>
                                 )}
                                 {profileData.youtube && (
@@ -1217,15 +1366,20 @@ const ProfilePage = () => {
                                         href={profileData.youtube} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        whileHover={{ scale: 1.02, x: 4 }}
-                                        className="flex items-center text-red-600 hover:text-red-700 text-sm font-medium bg-red-50/80 px-3 py-2 rounded-lg transition-colors"
+                                        whileHover={{ scale: 1.02, x: 6 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="flex items-center text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm font-semibold bg-gradient-to-r from-red-50/90 to-red-100/80 dark:from-red-900/20 dark:to-red-800/20 px-4 py-3 rounded-2xl transition-all shadow-md hover:shadow-lg border border-red-100 dark:border-red-800/30"
                                         data-testid="link-youtube"
                                     >
-                                        <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-full mr-3 shadow-md">
-                                            <Youtube className="w-4 h-4 text-white" />
-                                        </div>
+                                        <motion.div 
+                                            whileHover={{ rotate: 360 }}
+                                            transition={{ duration: 0.5 }}
+                                            className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full mr-3 shadow-lg"
+                                        >
+                                            <Youtube className="w-5 h-5 text-white" />
+                                        </motion.div>
                                         <span className="truncate flex-1">{profileData.youtube}</span>
-                                        <ExternalLink className="w-3.5 h-3.5 text-red-400 ml-2 flex-shrink-0" />
+                                        <ExternalLink className="w-4 h-4 text-red-400 ml-2 flex-shrink-0" />
                                     </motion.a>
                                 )}
                             </div>
@@ -1263,87 +1417,139 @@ const ProfilePage = () => {
                     </motion.div>
                 )}
 
-                {/* Subscription Plans - Compact & Stylish */}
+                {/* Subscription Plans - Ultra Premium Design */}
                 {subscriptionPlans.length > 0 && (
-                    <div className="space-y-3 mb-6">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }} 
+                        animate={{ opacity: 1, y: 0, scale: 1 }} 
+                        transition={{ delay: 0.6, type: "spring" }} 
+                        className="mb-6 bg-gradient-to-br from-white via-pink-50/40 to-white backdrop-blur-xl rounded-3xl p-6 shadow-[0_15px_50px_-10px_rgba(236,72,153,0.2)] border-2 border-pink-100/60 relative overflow-hidden"
+                    >
                         <motion.div 
-                            initial={{ opacity: 0, x: -20 }} 
-                            animate={{ opacity: 1, x: 0 }} 
-                            transition={{ delay: 0.75 }} 
-                            className="flex items-center mb-3"
-                        >
-                            <Star className="w-5 h-5 text-pink-500 mr-2" />
-                            <h3 className="font-bold text-lg bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">サブスクリプションプラン</h3>
-                        </motion.div>
+                            animate={{ 
+                                scale: [1, 1.2, 1],
+                                rotate: [0, 180, 360]
+                            }} 
+                            transition={{ duration: 30, repeat: Infinity, ease: "linear" }} 
+                            className="absolute -top-16 -right-16 w-48 h-48 bg-gradient-to-br from-pink-200/20 via-purple-200/15 to-pink-400/20 rounded-full blur-3xl" 
+                        />
+                        
+                        <div className="relative z-10">
+                            <div className="flex items-center mb-5">
+                                <motion.div
+                                    whileHover={{ rotate: 360 }}
+                                    transition={{ duration: 0.6 }}
+                                    className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center mr-2 shadow-md"
+                                >
+                                    <Star className="w-4 h-4 text-white" />
+                                </motion.div>
+                                <h3 className="text-sm font-black bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">サブスクリプションプラン</h3>
+                            </div>
 
-                        {displayedPlans.map((plan, index) => (
-                            <motion.div
-                                key={plan.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.8 + index * 0.05 }}
-                                whileHover={{ scale: 1.01 }}
-                                whileTap={{ scale: 0.99 }}
-                                onClick={() => handlePlanConfirm(plan.id)}
-                                className={`bg-gradient-to-br from-white to-pink-50/50 rounded-2xl p-4 shadow-lg border-2 ${
-                                    plan.isRecommended ? 'border-pink-400' : 'border-pink-200'
-                                } cursor-pointer relative overflow-hidden`}
-                                data-testid={`subscription-plan-${plan.id}`}
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex-1 pr-4">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h4 className="font-bold text-base text-pink-900 flex items-center">
-                                                {plan.emoji && <span className="mr-1.5 text-lg">{plan.emoji}</span>}
-                                                {plan.title}
-                                            </h4>
-                                            {plan.isRecommended && (
-                                                <div className="bg-gradient-to-r from-pink-500 to-pink-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm flex items-center">
-                                                    <Sparkles className="w-2.5 h-2.5 mr-0.5" />
-                                                    おすすめ
+                            <div className="space-y-3">
+                                {displayedPlans.map((plan, index) => (
+                                    <motion.div
+                                        key={plan.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.65 + index * 0.05, type: "spring" }}
+                                        whileHover={{ scale: 1.02, y: -2 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => handlePlanConfirm(plan.id)}
+                                        className={`bg-gradient-to-br ${
+                                            plan.isRecommended 
+                                                ? 'from-pink-50 via-white to-purple-50/50 border-pink-300 shadow-[0_8px_30px_-6px_rgba(236,72,153,0.4)]' 
+                                                : 'from-white to-pink-50/30 border-pink-200 shadow-[0_8px_30px_-6px_rgba(236,72,153,0.2)]'
+                                        } rounded-2xl p-4 border-2 cursor-pointer relative overflow-hidden group`}
+                                        data-testid={`subscription-plan-${plan.id}`}
+                                    >
+                                        {plan.isRecommended && (
+                                            <motion.div
+                                                animate={{ 
+                                                    x: ["-100%", "200%"]
+                                                }}
+                                                transition={{
+                                                    duration: 3,
+                                                    repeat: Infinity,
+                                                    ease: "linear"
+                                                }}
+                                                className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-200/30 to-transparent"
+                                            />
+                                        )}
+                                        
+                                        <div className="relative z-10 flex items-center justify-between">
+                                            <div className="flex-1 pr-3">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <h4 className="font-black text-base text-gray-800 dark:text-gray-200 flex items-center">
+                                                        {plan.emoji && <span className="mr-1.5 text-xl">{plan.emoji}</span>}
+                                                        {plan.title}
+                                                    </h4>
+                                                    {plan.isRecommended && (
+                                                        <motion.div 
+                                                            animate={{ scale: [1, 1.1, 1] }}
+                                                            transition={{ duration: 2, repeat: Infinity }}
+                                                            className="bg-gradient-to-r from-pink-500 to-pink-600 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-md flex items-center"
+                                                        >
+                                                            <Sparkles className="w-3 h-3 mr-0.5" />
+                                                            おすすめ
+                                                        </motion.div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs text-pink-600 mb-2">
-                                            <div className="flex items-center bg-pink-100 px-2 py-0.5 rounded-full">
-                                                <Video className="w-3 h-3 mr-1" />
-                                                {plan.posts}投稿
+                                                <div className="flex items-center gap-2 text-xs mb-2">
+                                                    <div className="flex items-center bg-gradient-to-r from-pink-100 to-pink-200 dark:from-pink-900/30 dark:to-pink-800/30 px-2.5 py-1 rounded-full">
+                                                        <Video className="w-3.5 h-3.5 mr-1 text-pink-600" />
+                                                        <span className="font-semibold text-pink-700 dark:text-pink-400">{plan.posts}投稿</span>
+                                                    </div>
+                                                </div>
+                                                {plan.description && (
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{plan.description}</p>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2.5">
+                                                <div className="text-right">
+                                                    <div className="font-black text-2xl bg-gradient-to-br from-pink-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
+                                                        {calculateTotalPrice(plan.price)}
+                                                    </div>
+                                                    <div className="text-[10px] text-pink-500 dark:text-pink-400 font-semibold">税込</div>
+                                                </div>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.08, boxShadow: "0 8px 25px rgba(236, 72, 153, 0.4)" }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    className="relative bg-gradient-to-r from-pink-500 via-pink-600 to-purple-600 text-white px-6 py-2 rounded-full font-bold shadow-lg text-xs whitespace-nowrap overflow-hidden group"
+                                                    data-testid={`button-subscribe-${plan.id}`}
+                                                >
+                                                    <motion.div
+                                                        animate={{
+                                                            x: ["-100%", "100%"]
+                                                        }}
+                                                        transition={{
+                                                            duration: 2,
+                                                            repeat: Infinity,
+                                                            ease: "linear"
+                                                        }}
+                                                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                                                    />
+                                                    <span className="relative z-10">加入する</span>
+                                                </motion.button>
                                             </div>
                                         </div>
-                                        {plan.description && (
-                                            <p className="text-xs text-pink-700 line-clamp-2">{plan.description}</p>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2">
-                                        <div className="text-right">
-                                            <div className="font-black text-xl bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">{calculateTotalPrice(plan.price)}</div>
-                                            <div className="text-[10px] text-pink-500 font-medium">税込</div>
-                                        </div>
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            className="bg-gradient-to-r from-pink-500 to-pink-600 text-white px-5 py-1.5 rounded-full font-bold shadow-md text-xs whitespace-nowrap"
-                                            data-testid={`button-subscribe-${plan.id}`}
-                                        >
-                                            加入する
-                                        </motion.button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-
-                        {subscriptionPlans.length > 3 && !showAllPlans && (
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => setShowAllPlans(true)}
-                                className="w-full bg-white text-pink-600 border-2 border-pink-300 py-3 rounded-xl font-bold shadow-md hover:bg-pink-50 transition-colors"
-                                data-testid="button-show-all-plans"
-                            >
-                                すべてのプランを見る
-                            </motion.button>
-                        )}
-                    </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                            
+                            {subscriptionPlans.length > 3 && !showAllPlans && (
+                                <motion.button
+                                    whileHover={{ scale: 1.02, y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setShowAllPlans(true)}
+                                    className="w-full bg-gradient-to-r from-white to-pink-50 text-pink-600 border-2 border-pink-300 py-3 rounded-2xl font-bold shadow-md hover:shadow-lg hover:bg-pink-50 transition-all mt-3"
+                                    data-testid="button-show-all-plans"
+                                >
+                                    すべてのプランを見る
+                                </motion.button>
+                            )}
+                        </div>
+                    </motion.div>
                 )}
 
                 {/* Posts Section */}
@@ -1400,7 +1606,7 @@ const ProfilePage = () => {
 
                     {/* Content Grid */}
                     {contentData.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-3 gap-3">
                             {contentData.map((content, index) => {
                                 // プランベースのアクセス制御チェック
                                 const hasAccess = !content.isExclusiveContent || 
@@ -1460,7 +1666,7 @@ const ProfilePage = () => {
                                     )}
                                     
                                     {content.type === 'video' && (
-                                        <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs font-bold" data-testid={`duration-${content.id}`}>
+                                        <div className="absolute top-1.5 right-1.5 bg-black/60 text-white px-1.5 py-0.5 rounded text-[10px]" data-testid={`duration-${content.id}`}>
                                             {videoDurations[content.id] || content.duration || '00:00'}
                                         </div>
                                     )}
@@ -1563,7 +1769,8 @@ const ProfilePage = () => {
                                 const plan = subscriptionPlans.find(p => p.id === showPlanModal);
                                 if (!plan) return null;
                                 
-                                const priceMatch = plan.price.match(/\d+/);
+                                const priceStr = String(plan.price || '0');
+                                const priceMatch = priceStr.match(/\d+/);
                                 const basePrice = priceMatch ? parseInt(priceMatch[0]) : 0;
                                 const tax = Math.floor(basePrice * 0.10);
                                 const platformFee = Math.floor(basePrice * 0.10);

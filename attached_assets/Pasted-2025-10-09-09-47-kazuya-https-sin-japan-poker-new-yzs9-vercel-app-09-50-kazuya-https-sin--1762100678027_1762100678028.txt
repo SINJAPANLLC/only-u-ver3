@@ -1,0 +1,331 @@
+2025.10.09 木曜日
+09:47 kazuya https://sin-japan-poker-new-yzs9.vercel.app/
+09:50 kazuya https://sin-japan-poker-new-yzs9.vercel.app/admin/dashbord
+09:51 kazuya https://sin-japan-poker-new-yzs9.vercel.app/admin
+09:51 kazuya https://sin-japan-poker-new-yzs9.vercel.app/admin/login
+10:30 kazuya stitch_poker_table.zip
+10:52 kazuya 画像
+2025.10.10 金曜日
+11:45 kazuya 画像
+16:26 kazuya https://sin-japan-poker-new-yzs9.vercel.app/
+19:38 kazuya https://sin-japan-poker-new-93ba.vercel.app/
+19:51 kazuya https://sin-japan-poker-new-93ba.vercel.app/admin
+23:28 kazuya https://68e917526988f827e155bb06--poker12345678.netlify.app/
+23:32 kazuya https://68e917526988f827e155bb06--poker12345678.netlify.app/admin
+2025.10.12 日曜日
+05:35 kazuya https://poker123456.netlify.app/
+07:33 kazuya 画像
+08:57 kazuya https://fluffy-jalebi-ca3d09.netlify.app/
+09:17 kazuya https://sin-japan-school.netlify.app/
+10:37 kazuya https://sin-japan-online-work.netlify.app/
+2025.10.13 月曜日
+01:19 kazuya 画像
+01:24 kazuya 山口白山公園
+https://maps.apple.com/place?address=%E3%80%92215-0021,%20%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C%E5%B7%9D%E5%B4%8E%E5%B8%82%E9%BA%BB%E7%94%9F%E5%8C%BA,%20%E4%B8%8A%E9%BA%BB%E7%94%9F3%E4%B8%81%E7%9B%AE5-1&coordinate=35.599612,139.506054&name=%E5%B1%B1%E5%8F%A3%E7%99%BD%E5%B1%B1%E5%85%AC%E5%9C%92&place-id=I59E281EF767E2385&map=explore
+01:25 kazuya 9:30〜
+11:46 kazuya フードデリバリー
+ライブ
+11:59 kazuya tocとかのやつ作成
+12:01 kazuya ティンだわ
+2025.10.14 火曜日
+11:39 kazuya あなたは「求人媒体（AgentBank等）から案件を自動取得し、求職者がAIで職務経歴書を作成して応募できるWebプラットフォーム」を構築します。
+
+目的：
+1. 求人媒体（AgentBank APIまたはスクレイピング）から求人情報を取得
+2. 求職者が求人を選択
+3. 求職者がAI（OpenAI API）で職務経歴書を自動生成
+4. 「応募する」を押すと、応募データが管理者とAgentBankに自動送信される
+5. 管理画面で応募一覧を閲覧・管理できる
+
+使用技術：
+- Next.js + TailwindCSS
+- Node.js + Prisma + PostgreSQL
+- OpenAI GPT-4 or GPT-5
+- SendGrid（メール通知）またはAgentBank API連携
+- デプロイ先：Vercel または Supabase
+13:34 kazuya brew install libimobiledevice ideviceinstaller
+2025.10.15 水曜日
+08:48 kazuya ♠️AA♠️-NLH 72o🐷/ボム💣 (NLH 0.1/0.2, 9-Max)に空席あり！一緒にプレイしよう！
+https://pppoker.club/poker/api/share.php?share_type=share_2_table_player&uid=13019060&lang=jp&lan=jp&time=1760485682&type=46&id=97944148_4661666_5_511_0_False&club_id=4661666&club_name=%E2%99%A0%EF%B8%8FAA%E2%99%A0%EF%B8%8F&room_id=97944148&room_name=NLH%2072o%F0%9F%90%B7%2F%E3%83%9C%E3%83%A0%F0%9F%92%A3&room_mode=3&game_mode=511&room_type=5&blind=10&player_nums=9
+08:48 kazuya 画像
+08:48 kazuya ♠️AA♠️-NLH 72o🐷/ボム💣 (NLH 0.1/0.2, 9-Max)に空席あり！一緒にプレイしよう！
+https://pppoker.club/poker/api/share.php?share_type=share_2_table_player&uid=13019060&lang=jp&lan=jp&time=1760485693&type=46&id=97944148_4661666_5_511_0_False&club_id=4661666&club_name=%E2%99%A0%EF%B8%8FAA%E2%99%A0%EF%B8%8F&room_id=97944148&room_name=NLH%2072o%F0%9F%90%B7%2F%E3%83%9C%E3%83%A0%F0%9F%92%A3&room_mode=3&game_mode=511&room_type=5&blind=10&player_nums=9
+08:48 kazuya 画像
+08:48 kazuya ♠️AA♠️-NLH 72o🐷/ボム💣 (NLH 0.1/0.2, 9-Max)に空席あり！一緒にプレイしよう！
+https://pppoker.club/poker/api/share.php?share_type=share_2_table_player&uid=13019060&lang=jp&lan=jp&time=1760485699&type=46&id=97944148_4661666_5_511_0_False&club_id=4661666&club_name=%E2%99%A0%EF%B8%8FAA%E2%99%A0%EF%B8%8F&room_id=97944148&room_name=NLH%2072o%F0%9F%90%B7%2F%E3%83%9C%E3%83%A0%F0%9F%92%A3&room_mode=3&game_mode=511&room_type=5&blind=10&player_nums=9
+08:48 kazuya 画像
+2025.10.16 木曜日
+08:32 kazuya https://famous-pika-6bb62c.netlify.app/
+08:34 kazuya https://super-daifuku-61cf42.netlify.app/
+08:41 kazuya https://fikfap.com/
+08:48 kazuya した
+08:54 kazuya 物流
+https://animated-capybara-def408.netlify.app/
+09:11 kazuya CRM
+09:20 kazuya 画像
+11:26 kazuya 画像
+13:17 kazuya https://quirky-hateful-trust-japan6.replit.app/login
+2025.10.17 金曜日
+08:23 kazuya 画像
+16:17 kazuya https://hyakkarabu.efun.com/pre/?campaign_name=tiktok_jpmysqios_jp_2_WEB_Conversion_Click_ios-tt_all_0923_auto&adgroup_name=tiktok_jpmysqios_jp_2_video_NEW2_all-game_WEB_Conversion_Click_ios-tt_all_1002_auto&ad_name=tiktok_jpmysqios_jp_2_banner_b0327a-%E5%B0%91%E5%A5%B3%E8%83%8C%E5%BD%B1-%E9%A9%AC%E6%A5%9A%E6%B6%B5_1080x1080_%E9%BB%98%E8%AE%A4%E5%8F%97%E4%BC%97%E7%BB%84_WEB_Conversion_Click_ios-tt_all_1015_bid_banner_8875_06424&utm_source=tiktok&asset_id=all&utm_medium=tiktok&utm_campaign=tiktok_jpmysqios_jp_2_banner_b0327a-%E5%B0%91%E5%A5%B3%E8%83%8C%E5%BD%B1-%E9%A9%AC%E6%A5%9A%E6%B6%B5_1080x1080_%E9%BB%98%E8%AE%A4%E5%8F%97%E4%BC%97%E7%BB%84_WEB_Conversion_Click_ios-tt_all_1015_bid_banner_8875_06424&ttclid=E_C_P_CuQBUaRMXtkKr-rF4Eewpw-EH1NIAzVDptQSO3C_lpWiIF79toEo7oswFcCog5BMyqNV2T14gDTDrHCe255nU4SyFFyCAldwcbrh1VzH1dVNv9-ynUTrlpaNhWaQEirgS24PXzNfJ0tP6-Lpzz-Wgd7eEEcTEcH7mW5iAPF0ds2mdFzLLWGvdhJzpFyY9sdp1SwQJMPCglZYP1Nblqb48nXubKyQtQNwxP9OQD59KI0TdOLrxSPGzLjNEKBPC3G9h_yb-AQSgrYxNK4oDv4KFy1Wjbeyr2BhA1doFHjjNlTcoteqQOIHEgR2Mi4w
+23:46 kazuya sandbox-sq0idb-biqrhq0ccgmGmioX8yDMNw
+
+EAAAl34RF7ykXSjQ1tATUdoIo0uzlqy-i_ymt4u7416zJl2QEnzNBUyu4wU66vtR
+
+sq0idp-QQ3k6fOtnBVPZJCdoqX9Dg
+
+EAAAl1Lcx4Jl_-pYT6o4TaPFL7aymQ_fhHxSpxoezreIIP_cUtfF0R6gRCBlBZyu
+2025.10.18 土曜日
+00:25 kazuya 画像
+00:30 kazuya 画像
+00:36 kazuya 人材
+
+00:36 kazuya https://www.tiktok.com/@mizuki_onlinework?_t=ZS-90d1WpZv9tI&_r=1
+00:37 kazuya 在宅
+00:37 kazuya https://www.tiktok.com/@mizuki_onlinework?_t=ZS-90d1YZinQie&_r=1
+00:37 kazuya ライブ
+00:37 kazuya https://www.tiktok.com/@mizuki_live123?_t=ZS-90d1aDrYt0L&_r=1
+00:37 kazuya https://www.tiktok.com/@mizuki_tenshoku?_t=ZS-90d1bVPVdKa&_r=1
+20:07 kazuya 画像
+2025.10.19 日曜日
+06:29 kazuya 画像
+09:16 kazuya 画像
+2025.10.20 月曜日
+12:27 kazuya https://only-u-1020-japan643.replit.app
+2025.10.22 水曜日
+09:53 kazuya only-u プロト版
+https://only-u.replit.app
+
+only-u admin プロト版
+https://only-u.replit.app/admin/login
+
+ID info@sinjapan.jp
+PASS Kazuya8008
+09:56 動画
+12:08 kazuya SIN JAPAN MANAGER プロト版
+https://SIN-JAPAN-MANAGER.replit.app
+
+ID info@sinjapan.jp
+PASS Kazuya8008
+14:34 kazuya SIN JAPAN LOGI MATCH プロト版
+https://SIN-JAPAN-LOGIMATCH.replit.app
+
+ID info@sinjapan.jp
+Kazuya8008
+17:35 メッセージの送信を取り消しました
+17:41 kazuya SIN JAPAN ONLINE SCHOOL プロト版
+https://SIN-JAPAN-ONLINE-SCHOOL.replit.app
+
+SIN JAPAN ONLINE SCHOOL プロト版 admin
+https://SIN-JAPAN-ONLINE-SCHOOL.replit.app/admin/login
+
+
+ID info@sinjapan.jp
+PASS Kazuya8008
+18:02 画像
+2025.10.23 木曜日
+10:53 kazuya https://github.com/CragonGame/CasinosClient.git
+11:59 kazuya https://app.lepoker.io/cl
+11:59 kazuya https://kkpoker.net/
+2025.10.24 金曜日
+04:21 kazuya https://lin.ee/xhbt1lF7
+04:35 kazuya SIN JAPAN POKER プロト版
+https://SIN-JAPAN-POKER.replit.app
+
+SIN JAPAN POKER プロト版
+https://SIN-JAPAN-POKER.replit.app/admin/login
+
+ID info@sinjapan.jp
+PASS Kazuya8008
+2025.10.25 土曜日
+09:45 kazuya 画像
+2025.10.26 日曜日
+11:51 kazuya 榎本翔太
+s.enomoto@sinjapan.jp
+4541690062421637
+03 2030
+945
+UPSIDERMEMBER
+0592
+11:55 kazuya 安富　勝鳳
+s.yasutomi@sinjapan.jp
+@yasutomi1234
+4541690001785654
+03 2030
+142
+UPSIDERMEMBER
+8915
+11:55 kazuya 基本　入金した次の日の朝に決済
+土日祝除く
+14:56 kazuya 画像
+14:57 kazuya 画像
+2025.10.27 月曜日
+00:49 kazuya https://only--u.replit.app
+15:00 kazuya 画像
+20:18 kazuya https://only-u.fun/
+2025.10.28 火曜日
+15:10 kazuya https://webmail1009.onamae.ne.jp/
+15:10 kazuya 画像
+22:21 kazuya ♠️AA♠️-NLH 72o🐷/ボム💣 (NLH 0.1/0.2, 9-Max)に空席あり！一緒にプレイしよう！
+https://pppoker.club/poker/api/share.php?share_type=share_2_table_player&uid=13019060&lang=jp&lan=jp&time=1761657713&type=46&id=98621127_4661666_5_511_0_False&club_id=4661666&club_name=%E2%99%A0%EF%B8%8FAA%E2%99%A0%EF%B8%8F&room_id=98621127&room_name=NLH%2072o%F0%9F%90%B7%2F%E3%83%9C%E3%83%A0%F0%9F%92%A3&room_mode=3&game_mode=511&room_type=5&blind=10&player_nums=9
+22:21 kazuya 画像
+22:22 kazuya ♠️AA♠️-NLH 72o🐷/ボム💣 (NLH 0.1/0.2, 9-Max)に空席あり！一緒にプレイしよう！
+https://pppoker.club/poker/api/share.php?share_type=share_2_table_player&uid=13019060&lang=jp&lan=jp&time=1761657724&type=46&id=98621127_4661666_5_511_0_False&club_id=4661666&club_name=%E2%99%A0%EF%B8%8FAA%E2%99%A0%EF%B8%8F&room_id=98621127&room_name=NLH%2072o%F0%9F%90%B7%2F%E3%83%9C%E3%83%A0%F0%9F%92%A3&room_mode=3&game_mode=511&room_type=5&blind=10&player_nums=9
+22:22 kazuya 画像
+2025.10.29 水曜日
+00:00 kazuya 画像
+00:00 kazuya 動画
+00:00 kazuya 動画
+00:00 kazuya 動画
+00:00 kazuya 動画
+00:00 kazuya 動画
+18:09 kazuya https://docs.google.com/forms/d/e/1FAIpQLSd78Mk9xpZ244PtirwwAF0hrtFqOtqbzpUcW3BCxe_GKxqtlg/viewform
+18:20 kazuya https://docs.google.com/forms/d/e/1FAIpQLSdXh2QhxmOwV_tSdAWhqPuD0aB2C1selr0XWcM5mFr_PeviCQ/viewform?fbzx=-1778907671715471588
+2025.10.30 木曜日
+12:16 kazuya https://lin.ee/6Cuy2N5
+12:17 kazuya https://lin.ee/kxQf5dD
+15:46 kazuya アプリ開発　フロー　最新
+
+① 要件定義（Googleスプレッドシート）
+
+② デザイン（Figma）
+
+③ 雛形開発（Cosor）
+④ API設計（Cosor）
+⑤ データベース設計（Cosor）
+⑥ バックエンド・管理画面（Admin）（Cosor）
+⑦ 決済処理（Cosor）
+⑧ 通知機能（Cosor）
+⑨ ストレージ設計（Cosor）
+⑩ セキュリティ設計（全層）（Cosor）
+
+⑪ 実装・検証（Replit）
+⑫ コード管理（Git / GitHub）
+⑬ サーバー構築・公開（AWS）
+⑭ ドメイン接続（AWS Route53 / CloudFront）
+⑮ 運用・監視・改善（AWS / Sentry / UptimeRobot）
+20:46 kazuya https://lin.ee/uZmfwt2
+21:10 kazuya https://lin.ee/1SH8FQu
+2025.10.31 金曜日
+02:17 kazuya 既存の only-u.fun プロジェクトをベースに、動画を高速かつ安全に再生できる構成へリファクタリングしてください。
+
+【目的】
+Firebase Storage にアップロードした動画を CDN 経由で最適化配信し、Hostinger 側の帯域負荷を軽減。将来的に BunnyCDN または Cloudflare へ切替できる設計にしたい。
+
+【要件】
+- /api/proxy 経由で RangeRequest (部分再生) に対応
+- 動画URLは署名付き一時URL化（不正DL防止）
+- HLS(.m3u8)形式で再生（FFmpeg変換スクリプト含む）
+- CDNキャッシュヘッダー設定（Cache-Control, ETag）
+- Cloudflare または BunnyCDN に対応できる構成（今はHostinger上でOK）
+- Firebase Storage との連携を維持
+- Firebase Functions or Cloud Scheduler で定期バックアップ自動化
+- APIログとエラーを Slack_WEBHOOK_URL に送信
+- HTTP/3, Brotli, WAF 有効化
+- .env の環境変数管理：
+    SESSION_SECRET
+    STRIPE_SECRET_KEY
+    WEBHOOK_SECRET
+    ALLOWED_ORIGIN
+    SLACK_WEBHOOK_URL
+
+【出力】
+- index.ts / api/proxy.ts 更新コード
+- CDN連携設定 (cloudflare.conf 例)
+- Firebase Storage 署名付きURL生成関数
+- FFmpeg 変換コマンド例
+- 動作確認手順
+02:26 kazuya 🎯【目的】
+既存の「only-u.fun」プロジェクト（Hostinger + Firebase + Stripe構成）で、
+Firebase Storage に依存している動画アップロード・表示部分を
+Bunny Storage + BunnyCDN に完全移行し、
+動画配信を高速化・安定化・Firebaseキー依存を排除したい。
+
+📦【前提】
+・Firebase Auth / Firestore / Stripe / Slack Webhook は既に接続済み。
+・動画/画像の保存・表示に Firebase Storage を利用中。
+・Hostinger で Next.js / React ベースのアプリをデプロイ中。
+
+🔧【要件】
+1️⃣ Firebase Storage 関連コードをすべて削除またはコメントアウト。
+2️⃣ Bunny Storage API を利用してアップロード・取得・削除を実装。
+3️⃣ CDN (BunnyCDN) 経由で動画・画像を配信。
+4️⃣ CDN署名付きURL（有効期限付きリンク）を生成して不正DLを防止。
+5️⃣ .env に以下を追加：
+    BUNNY_STORAGE_NAME=onlyu-videos
+    BUNNY_API_KEY=（ダッシュボードで発行）
+    BUNNY_CDN_URL=https://cdn.only-u.fun
+    BUNNY_TOKEN=（署名URL用トークン）
+6️⃣ Firestore 構造（ユーザーID、投稿情報、動画URL等）は維持。
+7️⃣ 既存の `/api/proxy` 経由でアップロードAPIを中継可能に。
+8️⃣ Cloudflare または Hostinger ドメインから直接動画を再生できるように。
+9️⃣ 新しい構成で CORS、Content-Type、Cache-Control ヘッダーを最適化。
+
+💾【実装内容】
+- `uploadVideo.ts` を新規作成または既存関数を以下に置き換える：
+```js
+import axios from "axios";
+
+export const uploadToBunny = async (file, filename) => {
+  const url = `https://storage.bunnycdn.com/${process.env.BUNNY_STORAGE_NAME}/${filename}`;
+  await axios.put(url, file, {
+    headers: {
+      AccessKey: process.env.BUNNY_API_KEY,
+      "Content-Type": file.type,
+    },
+  });
+  return `${process.env.BUNNY_CDN_URL}/${filename}`;
+};
+2025.11.01 土曜日
+19:57 kazuya 
+日本、〒734-0055 広島県広島市南区向洋新町４丁目１２−９ : https://maps.google.com/maps?q=34.36055035635465,132.501782964902
+2025.11.02 日曜日
+12:49 kazuya https://lin.ee/itQ5B7l
+13:00 kazuya {応募者の氏名}様
+この度は合同会社SIN JAPANの求人にご応募頂き誠にありがとうございます。
+下記公式LINEを追加して頂いた後、担当者よりお仕事の説明を致します。
+
+物流案内はこちら↓↓↓
+https://lin.ee/6Cuy2N5
+
+フードデリバリーはこちら↓↓↓
+https://lin.ee/itQ5B7l
+
+ライバー・在宅ワークの案内はこちら↓↓↓
+https://lin.ee/kxQf5dD
+
+会社概要
+https://sinjapan.work
+13:32 kazuya コインランドリー
+13:32 kazuya 
+日本、〒734-0051 広島県広島市南区東青崎町２−４３ : https://maps.google.com/maps?q=34.37506120810625,132.5093414180831
+2025.11.03 月曜日
+01:24 kazuya 「動画ストレージをFirebaseからBunny（https://only-u.fun/public/…）に変更したので、
+フロントで全ての動画読み込みURLを新ドメインに置き換えて。
+<video>タグと環境変数の両方を修正して、再ビルド後に動作確認できるようにして。」
+01:24 kazuya 現在、動画ファイルは Firebase Storage ではなく Bunny CDN（https://only-u.fun/public/...）に移行しました。
+
+以下の修正を行ってください：
+
+1. すべての動画URL参照を
+   「firebasestorage.googleapis.com」→「only-u.fun/public」に書き換えてください。
+
+2. 環境変数や config ファイルで旧ストレージURLを使用している場合も同様に更新します。
+   例：
+   REACT_APP_STORAGE_URL=https://only-u.fun/public/
+
+3. <video> タグで参照している部分を以下のように修正してください。
+   旧：
+   <video src={video.url} controls />
+   新：
+   <video src={`https://only-u.fun/public/${video.filename}`} controls preload="metadata" playsInline />
+
+4. CORSエラー防止のため、fetchやaxiosで動画を取得する処理がある場合は、
+   リクエストヘッダーに以下を追加してください：
+   {
+     "Access-Control-Allow-Origin": "*"
+   }
+
+5. ビルド後にブラウザで https://only-u.fun/public/test.mp4 を開いて
+   直接再生できることを確認した上で、
+   フロントでも動画が読み込めることを確認してください。

@@ -15,7 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { auth, db } from '../../firebase';
-import { sendEmailVerification, updateProfile } from 'firebase/auth';
+import { sendEmailVerification, updateEmail } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 
@@ -29,6 +29,9 @@ const EmailVerificationPage = () => {
   const [checkingInterval, setCheckingInterval] = useState(null);
 
   useEffect(() => {
+    // 言語コードを日本語に設定
+    auth.languageCode = 'ja';
+    
     if (currentUser) {
       setEmail(currentUser.email || '');
       // ユーザーが既に認証済みかチェック
@@ -69,17 +72,23 @@ const EmailVerificationPage = () => {
     setError('');
     
     try {
+      console.log('📧 メール認証を開始:', email);
+      console.log('👤 現在のメール:', currentUser.email);
+      
       // メールアドレスが変更されている場合は更新
       if (currentUser.email !== email) {
-        await updateProfile(currentUser, { email });
+        console.log('📝 メールアドレスを更新中...');
+        await updateEmail(currentUser, email);
       }
 
       // 認証メールを送信
+      console.log('📮 認証メールを送信中...');
       await sendEmailVerification(currentUser, {
-        url: window.location.origin + '/email-verification',
+        url: window.location.origin + '/settings/email-verification',
         handleCodeInApp: false
       });
       
+      console.log('✅ 認証メール送信成功');
       setStep(2);
       
       // 認証状態を定期的にチェック
@@ -88,9 +97,12 @@ const EmailVerificationPage = () => {
         if (currentUser.emailVerified) {
           clearInterval(interval);
           
+          console.log('✅ メール認証完了');
+          
           // Firestoreのユーザー情報を更新
           try {
             await updateDoc(doc(db, 'users', currentUser.uid), {
+              email: currentUser.email,
               emailVerified: true,
               verifiedAt: new Date()
             });
@@ -104,13 +116,22 @@ const EmailVerificationPage = () => {
       
       setCheckingInterval(interval);
     } catch (err) {
-      console.error('認証メール送信エラー:', err);
+      console.error('❌ 認証メール送信エラー:', err);
+      console.error('エラーコード:', err.code);
+      console.error('エラーメッセージ:', err.message);
+      
       if (err.code === 'auth/too-many-requests') {
         setError('リクエストが多すぎます。しばらく待ってから再度お試しください。');
       } else if (err.code === 'auth/invalid-email') {
         setError('無効なメールアドレスです。');
+      } else if (err.code === 'auth/requires-recent-login') {
+        setError('セキュリティのため、再度ログインしてからお試しください。');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('このメールアドレスは既に使用されています。');
+      } else if (err.code === 'auth/quota-exceeded') {
+        setError('⚠️ メール送信の上限に達しました。しばらく待ってから再度お試しください。');
       } else {
-        setError('認証メールの送信に失敗しました。もう一度お試しください。');
+        setError(`認証メールの送信に失敗しました: ${err.message || err.code || '不明なエラー'}`);
       }
     } finally {
       setIsLoading(false);
@@ -125,7 +146,7 @@ const EmailVerificationPage = () => {
     
     try {
       await sendEmailVerification(currentUser, {
-        url: window.location.origin + '/email-verification',
+        url: window.location.origin + '/settings/email-verification',
         handleCodeInApp: false
       });
       alert('認証メールを再送信しました');
@@ -147,6 +168,7 @@ const EmailVerificationPage = () => {
         // Firestoreのユーザー情報を更新
         try {
           await updateDoc(doc(db, 'users', currentUser.uid), {
+            email: currentUser.email,
             emailVerified: true,
             verifiedAt: new Date()
           });

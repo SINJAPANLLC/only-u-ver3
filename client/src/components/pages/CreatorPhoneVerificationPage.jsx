@@ -50,10 +50,13 @@ const CreatorPhoneVerificationPage = () => {
 
     // Initialize reCAPTCHA
     useEffect(() => {
+        // 言語コードを日本語に設定
+        auth.languageCode = 'ja';
+        
         if (!recaptchaVerifierRef.current) {
             try {
                 recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                    'size': 'invisible',
+                    'size': 'normal', // 'normal' = 可視化（デバッグ用）, 'invisible' = 非表示（本番用）
                     'callback': (response) => {
                         console.log('reCAPTCHA solved');
                     },
@@ -64,6 +67,7 @@ const CreatorPhoneVerificationPage = () => {
                 });
             } catch (error) {
                 console.error('reCAPTCHA initialization error:', error);
+                setError('認証システムの初期化に失敗しました。ページをリロードしてください。');
             }
         }
 
@@ -158,7 +162,7 @@ const CreatorPhoneVerificationPage = () => {
                 try {
                     recaptchaVerifierRef.current.clear();
                     recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                        'size': 'invisible',
+                        'size': 'normal', // 'normal' = 可視化（デバッグ用）, 'invisible' = 非表示（本番用）
                         'callback': (response) => {
                             console.log('reCAPTCHA solved');
                         }

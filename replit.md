@@ -1,114 +1,70 @@
 # Only-U Fans Platform
 
 ## Overview
-Only-U is a social media platform designed to connect creators and fans, providing robust tools for content monetization and audience engagement. Its core features include post management, real-time messaging, a comprehensive payment system, and a dynamic ranking system. The platform's business vision is to become a leading hub for creator-fan interaction by offering advanced functionalities for content monetization and audience engagement.
+Only-U is a social media platform connecting creators and fans, focusing on content monetization and audience engagement. It offers post management, real-time messaging, a comprehensive payment system with recurring billing, and dynamic ranking. The platform aims to be a leading hub for creator-fan interaction, providing advanced tools for content creators to monetize their work effectively.
 
 ## User Preferences
 I prefer iterative development with clear communication on changes. Please ask before making major architectural changes or introducing new dependencies. For UI/UX, maintain the consistent pink gradient design. Ensure all interactive elements have `data-testid` attributes for testing purposes.
 
 ## System Architecture
-The platform utilizes a modern web architecture comprising a React frontend built with Vite, styled using Tailwind CSS, and animated with Framer Motion. Internationalization is managed via i18next. The backend is powered by Express.js. Firebase serves as the backbone for user authentication, real-time messaging, and Firestore as the primary NoSQL database. Replit Object Storage (built on Google Cloud Storage) is used for scalable video and image uploads, supporting adult content and ACL-based access controls.
-
-**Key Features:**
-*   **User Management**: Authentication and KYC/identity verification for creators.
-*   **Content Management**: Tools for image/video posting, likes, comments, subscriber-only content, and administrative content moderation.
-*   **Communication**: Real-time messaging and push/email notifications.
-*   **Monetization & Payments**: Subscription management, creator monetization, and flexible payment options integrated with Stripe, including detailed payment calculations and withdrawal processes.
-*   **Ranking System**: Creator and post rankings with period-based filtering and real-time updates.
-*   **Admin Dashboard**: Comprehensive interface for managing users, content, revenue, reports, and analytics.
-*   **Creator Dashboard**: Provides analytics, post performance metrics, and marketing tools for creators.
+The platform features a modern web architecture: a React frontend built with Vite, styled with Tailwind CSS, and animated with Framer Motion, with i18next for internationalization. The backend uses Express.js. Firebase provides user authentication, real-time messaging, and Firestore as the NoSQL database. Bunny CDN is the primary storage solution for scalable video and image uploads, supporting adult content and ACL-based access controls.
 
 **UI/UX Decisions:**
-*   A consistent pink gradient design is applied across all interactive elements and visual components.
-*   The UI incorporates simplified header designs and smooth animations using Framer Motion.
-*   The platform is fully responsive and includes `data-testid` attributes for all interactive components to facilitate testing.
-*   Enhanced designs are implemented for creator cards and subscription displays.
-*   Full internationalization support is provided, with a focus on Japanese language.
+*   A consistent pink gradient design is applied across all interactive elements.
+*   The UI incorporates simplified header designs, smooth animations, and is fully responsive.
+*   All interactive components include `data-testid` attributes for testing.
+*   The platform features a comprehensive 3D design system with Glassmorphism and Neumorphism aesthetics, including global design tokens for buttons, cards, and shadows.
+*   A complete dark mode implementation is available across all pages and components, with theme persistence and a dedicated toggle.
+*   Full internationalization support is provided, with a focus on the Japanese language.
+*   **Chat Layout Optimization** (November 2025): Fixed gap between message input and bottom navigation by changing main container from `min-h-screen` to `h-screen` with proper flex positioning, ensuring consistent viewport height across all device sizes.
 
 **Technical Implementations:**
-*   Dynamic data display and management from Firestore with real-time listeners (`onSnapshot`).
-*   Replit Object Storage is used for large file uploads via server-side processing with presigned URLs and ACL policies.
-*   Stripe SDK is integrated for secure payment processing, including embedded Stripe Elements.
-*   Firebase handles user authentication, real-time messaging, and data storage.
-*   Optimized Firestore queries utilize `limit`, `orderBy`, and batching to avoid N+1 issues and composite index errors by performing client-side sorting where necessary.
-*   Robust error handling with user-friendly Japanese error messages.
-*   A KYC approval workflow for creators includes status tracking and conditional UI rendering.
-*   Video playback is supported with range requests for efficient streaming, and server-side processing for object storage downloads.
-*   Notification system leverages Firestore for real-time updates and includes client-side filtering and read-state synchronization.
-*   Featured pickup and creator management allow administrators to curate content and creators with dedicated interfaces and real-time updates.
-*   Payment calculations include detailed breakdowns for platform fees, taxes, and creator earnings, both for user subscriptions and creator withdrawals.
-*   **Performance Optimizations (October 29, 2025)**:
-    - **LRU Cache System**: Implemented `lru-cache` library for file metadata caching (1-hour TTL) to reduce Firebase Storage API calls
-    - **Streaming Optimization**: Range request support using `createReadStream` for efficient video streaming with 206 Partial Content responses
-    - **Proxy URL Conversion**: Firebase Storage URLs automatically converted to optimized proxy endpoints (`/api/proxy/:folder/:filename`)
-    - **iOS Safari Mobile Video Fix (Critical)**: Fixed mobile video playback failure by preventing 304 Not Modified responses when Range header is present. Mobile Safari sends both Range and If-None-Match headers; returning 304 causes Safari to never receive requested byte range, breaking playback. Now always returns 206 Partial Content for Range requests regardless of ETag match.
-    - **React Performance Optimizations**:
-      - Applied `useCallback`, `useMemo` to RomanticRanking component to minimize re-renders
-      - **VideoPage.jsx**: All event handlers (toggleVideoPlayback, toggleMute, handleShare, handleAccountClick, handleVideoClick) memoized with useCallback
-      - **feed.jsx**: Navigation handlers (goToNextPost, goToPreviousPost), touch handlers (handleTouchStart, handleTouchMove, handleTouchEnd), and interaction handlers memoized with useCallback
-      - **Memory Leak Prevention**: Cleanup functions properly separated - auto-play management runs on post change, video resource cleanup runs only on component unmount
-      - **Bug Fix**: Fixed feed.jsx video playback issue by separating cleanup into unmount-only useEffect with empty dependency array
-    - **Files**: `server/objectStorage.ts` (LRU cache + streaming + iOS Safari fix), `server/routes.ts` (proxy endpoint), `client/src/components/RomanticRanking.jsx`, `client/src/components/pages/VideoPage.jsx`, `client/src/components/pages/feed.jsx` (React optimization + memory leak prevention)
-*   **Deployment Configuration (Autoscale)**:
-    - **Changed from Reserved VM to Autoscale** (October 27, 2025): Autoscale is recommended for web applications with HTTP/WebSocket traffic and provides better uptime (99.95% vs 99.9%)
-    - Build: `npm run build` (Vite frontend + esbuild backend bundling to dist/)
-    - Start: `npm start` (NODE_ENV=production node dist/index.js)
-    - **Critical Fix for Production Health Checks**: 
-      - serveStatic function updated to use `process.cwd() + "/dist/public"` instead of `import.meta.dirname + "/public"` for reliable path resolution in esbuild-bundled code
-      - Root endpoint (`/`) serves index.html via express.static (200 status) for deployment health checks
-      - Fallback route properly handles SPA routing by serving index.html for all unmatched routes
-    - **Port Configuration Requirement**: Autoscale deployments support only a single external port
-      - .replit file must have only ONE [[ports]] entry (localPort 5000 → externalPort 80)
-      - Multiple port entries cause deployment failures
-      - Manual edit required: Remove all [[ports]] entries except the first one (5000→80)
-    - Health check endpoint: `/api/health` for monitoring
-    - Deployment target optimized for web applications with variable traffic and automatic scaling
+*   User management includes authentication and KYC/identity verification for creators.
+    - **Phone Number Verification** (implemented): Firebase Phone Authentication with PhoneAuthProvider for existing users, reCAPTCHA verification, SMS code confirmation, updatePhoneNumber to link phone number to authenticated account, Japanese language setting, available for both account settings (`/settings/phone-verification`) and creator registration (`/creator-phone-verification`). **Production Setup Required**: Add Replit domain to Firebase Console → Authentication → Settings → Authorized domains for real SMS delivery.
+    - **Email Verification** (implemented): Firebase Email Verification with updateEmail for existing users, automatic verification status checking via polling, email resend functionality, Firestore integration for verification tracking (`/settings/email-verification`)
+    - **Authentication Security**: Firebase Auth with reCAPTCHA v2 (configurable: 'normal' for debugging, 'invisible' for production), 3-attempt tracking for code verification, comprehensive error handling for invalid codes/expired sessions/re-authentication requirements
+*   Content management supports image/video posting, likes, comments, subscriber-only content, and administrative moderation.
+    - **Subscription Content Display** (November 2025): Home page displays subscription-only content with blur filter (`blur-md`) and subscription badge overlay. Locked icon and plan-level badge (VIP/Premium/Basic) indicate required subscription level. Edit Profile page shows plan level information for each subscription plan.
+*   Communication features real-time messaging with image sharing (Bunny CDN integration), push/email notifications, and complete tip sending with Stripe Payment Intent integration.
+    - **Image Messaging** (November 2025): Users can send images in chat via file selection button, images are uploaded to Bunny CDN with 10MB size limit, preview and cancel functionality, images displayed in chat with click-to-expand, automatic proxy URL conversion for proper rendering
+    - **Tip Sending** (November 2025): Full Stripe Payment Intent integration with interactive tip modal (preset amounts ¥500-¥10,000 + custom input), optional message attachment, Stripe Elements for secure card collection, 10% platform fee + 10% tax calculation, backend APIs (`/api/create-tip-payment-intent`, `/api/confirm-tip-payment`), Firestore transaction tracking, creator balance updates
+*   Monetization and payments include subscription management with true recurring billing via Stripe Subscriptions, flexible payment options, detailed payment calculations, and subscription-based video quality restrictions. Stripe webhooks are used for secure and automated subscription lifecycle management.
+    - **Stripe Recurring Subscriptions** (implemented): Checkout Session API (`mode: 'subscription'`), automatic monthly billing, webhook processing for payment events, subscription cancellation
+    - **Modal-Based Subscription Payments** (November 2025): Converted from redirect-based checkout to in-page modal flow using Stripe Subscriptions API. Endpoint `/api/create-subscription-payment-intent` creates/reuses Stripe Subscriptions with `payment_behavior: 'default_incomplete'`, returns client_secret for Stripe Elements integration. Implements incomplete subscription reuse logic to prevent duplicate subscriptions on modal reopen. Requires both `userId` (Firebase UID) and `userEmail` (valid email) for Stripe Customer creation. Webhooks handle subscription lifecycle (invoice.payment_succeeded, customer.subscription.deleted, customer.subscription.updated) with subscriptionID tracking in Firestore for sync.
+    - **Subscription-Based Video Quality** (implemented): 720p for free users, 1080p for premium, 4K for VIP/high-quality plan; quality restriction API `/api/video-url/:creatorId/:videoGuid`; Bunny CDN multi-resolution encoding
+    - **iFrame Checkout Fix** (November 2025): Stripe Checkout opens in centered popup window (600x800px) with synchronous `window.open()` before async fetch to preserve user activation and avoid popup blockers. Window handle is reused to navigate to Stripe URL on success or closed on error, resolving iframe security restrictions and popup blocking issues in Replit preview environment.
+*   A dynamic ranking system for creators and posts includes period-based filtering and real-time updates with optimized Firestore queries.
+*   Admin and Creator Dashboards provide comprehensive management, analytics, and marketing tools.
+*   Dynamic data display and management from Firestore with real-time listeners.
+*   **Bunny CDN Storage** (ACTIVE): Primary storage provider for production, automatically used when BUNNY_STORAGE_API_KEY and BUNNY_STORAGE_ZONE_NAME are set. All new uploads are stored in Bunny CDN (zone: onlyu-videos, region: de). Existing Firebase Storage data remains accessible for backward compatibility.
+    - **Upload API** (November 2025): POST `/api/upload` endpoint uploads files directly to Bunny Storage using storageAdapter. Supports multipart/form-data with multer middleware, Firebase authentication required, returns proxy URL for immediate playback.
+    - **Storage Zone Direct Access** (November 2025): Uses Bunny Storage API (storage.bunnycdn.com) with AccessKey authentication for reliable file delivery. Proxy route automatically handles authentication and CORS headers for all media files.
+    - **Filename Sanitization** (November 2025): All uploaded files are automatically sanitized to ASCII-safe filenames with timestamp prefix, preventing URL encoding issues with non-ASCII characters (e.g., Japanese filenames → `1762100000000-filename.mp4`)
+    - **Video Streaming** (November 2025): Proxy route supports HTTP Range requests with 206 Partial Content responses, enabling efficient video streaming from Bunny Storage API
+    - **URL Path Correction** (November 2025): Automatic detection and correction of duplicate path segments (e.g., `/api/proxy/public/public/` → `/api/proxy/public/`)
+    - **Automatic Migration** (November 2025): Legacy Firebase Storage files are automatically migrated to Bunny CDN on first access via proxy route
+*   **Firestore Query Optimization**: Composite indexes created for ranking queries (visibility + isExclusiveContent + createdAt, with optional tags filter). Queries utilize `limit`, `orderBy`, and batching for efficient data retrieval.
+*   Unified API error handling is implemented with middleware, an `AppError` hierarchy, and consistent JSON responses.
+*   Enhanced security includes authentication middleware, XSS protection with input sanitization, and DoS protection with rate limiting.
+    - **Admin Route Protection** (November 2025): All admin endpoints (`/api/admin/*`, `/api/notifications/*`, `/api/featured-*/*`) protected with `verifyAdminToken` middleware using HttpOnly cookies and cryptographic session signing
+    - **Initial Admin Setup** (November 2025): One-time admin initialization endpoint (`/api/admin/initialize`) protected by INITIAL_ADMIN_SECRET environment variable, creates first admin user with role='admin' in Firestore
+*   Firebase Storage authentication supports service account credentials for secure access.
+*   A KYC approval workflow for creators manages status tracking and UI rendering.
+*   Video playback is supported with range requests for efficient streaming.
+*   **Performance Optimization** (November 2025): React warning fixes, video duration extraction optimization (stored in Firestore), server-side filtering and pagination for RankingPosts with score-based re-sorting, Creators page optimization (limit 100, pagination), UserManagement immediate UI updates after mutations. HOME page vertical cards and creator icons now display actual Firestore data with creator information caching. Ranking posts thumbnail display improved with comprehensive fallback logic (thumbnailUrl/secure_url/url/storageUri) and automatic `/objects/` to `/api/proxy/public/` URL conversion for proper image and video thumbnail rendering. Video thumbnails use first frame display when dedicated thumbnail images are unavailable (video element with preload="metadata").
+    - **CDN Direct Delivery** (November 2025): Public files (`public/` prefix) are now served directly from Bunny CDN (`https://{cdnHostname}/{encodedKey}`) bypassing the proxy for maximum performance. Private files continue using `/api/proxy/` for access control. Special characters in filenames are URI-encoded automatically.
+    - **Enhanced Cache Strategy** (November 2025): Proxy routes include `Cache-Control: public, max-age=31536000, stale-while-revalidate=86400` headers, allowing browsers to serve stale content while revalidating in the background (24-hour window), improving perceived performance.
+    - **Video Thumbnail Optimization** (November 2025): Home page and Ranking page now use Bunny Stream's auto-generated thumbnail images (`thumbnail.jpg`) when available, otherwise display video first frame with `#t=0.001` fragment. Unified thumbnail loading logic prioritizes `thumbnailUrl` (if image file) over video URLs for all content types. HOME page includes automatic fallback from thumbnail images to video elements on error (403/load failures), using `data-video-url` attribute for reliable fallback handling. Ranking page uses `<video>` elements with `preload="metadata"` to display video thumbnails efficiently.
+*   Deployment is configured for Autoscale with `npm run build` and `npm start`, ensuring reliable path resolution, a single external port (80), and an `/api/health` endpoint.
 
 ## External Dependencies
-*   **Firebase**: Authentication, Realtime Database, Firestore.
-*   **Replit Object Storage**: Scalable cloud storage for media files (Google Cloud Storage-based). For production deployment to Hostinger or other platforms, migrate to Cloudflare R2, AWS S3, or Google Cloud Storage.
-*   **Stripe**: Payment gateway for processing subscriptions and transactions.
-*   **React**: Core library for building the user interface.
-*   **Vite**: Fast development build tool for the frontend.
-*   **Tailwind CSS**: Utility-first CSS framework for styling.
-*   **Framer Motion**: Library for declarative animations and gestures.
-*   **i18next**: Framework for internationalization and localization.
-*   **Express.js**: Backend web application framework for API services.
+*   **Firebase**: Authentication, Realtime Database, Firestore. Firebase Storage is used for legacy data only (existing uploads before Bunny CDN activation).
+*   **Bunny CDN**: **ACTIVE** - Primary storage and CDN solution for all new uploads (zone: onlyu-videos, region: de, hostname: only-u.fun). Supports adult content, multi-resolution video encoding, and automatic thumbnail generation via Bunny Stream.
+*   **Stripe**: Payment gateway for subscriptions and transactions.
+*   **React**: Frontend UI library.
+*   **Vite**: Frontend build tool.
+*   **Tailwind CSS**: Styling framework.
+*   **Framer Motion**: Animation library.
+*   **i18next**: Internationalization framework.
+*   **Express.js**: Backend web framework.
 *   **Radix UI**: Unstyled, accessible UI component library.
-
-## Hostinger Deployment Guide
-Comprehensive deployment documentation is available in `DEPLOYMENT_GUIDE.md`. Key points:
-
-**Firebase Storage Authentication (October 27, 2025):**
-- Firebase Admin SDK now uses service account key (`firebase-admin-key.json`)
-- Service account key required for both development and production
-- File excluded from Git via `.gitignore` for security
-- Must be manually transferred to VPS during deployment
-- Resolves 404 errors for thumbnail/video loading
-
-**Production Deployment Options:**
-1. **Hostinger VPS/Cloud Hosting** (Recommended for adult content)
-   - Full Node.js 20 support
-   - Custom domain configuration
-   - SSL certificates included
-   - $4-15/month pricing
-   - Firebase Storage authentication configured
-
-**Storage Migration:**
-- Replit Object Storage → Cloudflare R2 (recommended, cost-effective)
-- See `scripts/migrate-storage.md` for detailed migration steps
-- Storage adapter implemented in `server/storage-adapter.ts` for easy switching
-
-**Deployment Checklist:**
-1. Run `scripts/deploy-check.sh` to verify build
-2. Set environment variables (see `.env.production.example`)
-3. Build production bundle: `npm run build`
-4. Upload to Hostinger via FTP/Git
-5. Configure Node.js application in hPanel
-6. Set up custom domain and SSL
-
-**Important Notes:**
-- Replit's Terms of Service prohibit adult content
-- Hostinger and similar VPS providers allow adult content (verify ToS)
-- Firebase, Stripe integrations work seamlessly on any platform
-- All media files must be migrated from Replit Object Storage to alternative storage (R2/S3/GCS)

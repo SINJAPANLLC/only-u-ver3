@@ -157,7 +157,7 @@ const FeaturedAdminPage = () => {
                             id: postSnap.id,
                             userId: userId,
                             title: postData.title || postData.explanation || 'Untitled',
-                            duration: postData.duration || '00:00',
+                            duration: postData.files?.[0]?.duration || postData.duration || '00:00',
                             thumbnail: postData.thumbnailUrl || postData.files?.[0]?.thumbnailUrl || '/genre-1.png',
                             files: postData.files || [],
                             user: {
@@ -185,8 +185,13 @@ const FeaturedAdminPage = () => {
                 .slice(0, 10);
             setFeaturedPosts(validPosts);
             
-            // 各投稿の動画の再生時間を取得
+            // ✅ 最適化: Firestoreにdurationがない動画のみ、動画の再生時間を取得
             validPosts.forEach(async (post) => {
+                // 既にFirestoreからdurationを取得している場合はスキップ
+                if (post.duration && post.duration !== '00:00') {
+                    return;
+                }
+                
                 if (post.files && post.files.length > 0) {
                     const firstFile = post.files[0];
                     if (firstFile.type?.includes('video') || firstFile.resourceType === 'video') {
@@ -194,7 +199,12 @@ const FeaturedAdminPage = () => {
                         
                         // Replit Object Storageの場合はプロキシURLに変換
                         if (videoUrl.includes('replit-objstore')) {
-                            videoUrl = `/api/proxy/public/${videoUrl.split('/public/')[1]}`;
+                            // 最後の /public/ 以降を取得
+                            const lastPublicIndex = videoUrl.lastIndexOf('/public/');
+                            if (lastPublicIndex !== -1) {
+                                const filename = videoUrl.substring(lastPublicIndex + '/public/'.length);
+                                videoUrl = `/api/proxy/public/${filename}`;
+                            }
                         }
                         
                         const duration = await getVideoDuration(videoUrl);
@@ -365,7 +375,7 @@ const FeaturedAdminPage = () => {
     if (isLoading) {
         return (
             <div className="mb-12">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center">
                     <motion.div
                         whileHover={{ scale: 1.1, rotate: 180 }}
                         transition={{ duration: 0.3 }}
@@ -388,7 +398,7 @@ const FeaturedAdminPage = () => {
         <div className="mb-12">
             {/* 運営Pickup投稿セクション */}
             <div className="mb-8">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center">
                     <motion.div
                         whileHover={{ scale: 1.1, rotate: 180 }}
                         transition={{ duration: 0.3 }}
@@ -419,7 +429,7 @@ const FeaturedAdminPage = () => {
                                 whileHover={{ y: -8, scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => navigate(`/video/${post.id}`)}
-                                className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+                                className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group"
                                 data-testid={`featured-card-${post.id}`}
                             >
                                 {/* サムネイル */}
@@ -429,9 +439,14 @@ const FeaturedAdminPage = () => {
                                         const isVideo = firstFile?.type?.includes('video') || firstFile?.resourceType === 'video';
                                         
                                         if (isVideo && firstFile?.url) {
-                                            const proxyUrl = firstFile.url.includes('replit-objstore')
-                                                ? `/api/proxy/public/${firstFile.url.split('/public/')[1]}`
-                                                : firstFile.url;
+                                            let proxyUrl = firstFile.url;
+                                            if (firstFile.url.includes('replit-objstore')) {
+                                                const lastPublicIndex = firstFile.url.lastIndexOf('/public/');
+                                                if (lastPublicIndex !== -1) {
+                                                    const filename = firstFile.url.substring(lastPublicIndex + '/public/'.length);
+                                                    proxyUrl = `/api/proxy/public/${filename}`;
+                                                }
+                                            }
                                             
                                             return (
                                                 <motion.video
@@ -528,7 +543,7 @@ const FeaturedAdminPage = () => {
                                 {/* カード情報 */}
                                 <div className="p-3">
                                     {/* タイトル */}
-                                    <h3 className="text-sm font-medium line-clamp-2 mb-2 text-gray-800 leading-snug" data-testid={`title-${post.id}`}>
+                                    <h3 className="text-sm font-medium line-clamp-2 mb-2 text-gray-800 dark:text-gray-100 leading-snug" data-testid={`title-${post.id}`}>
                                         {post.title}
                                     </h3>
 
@@ -641,7 +656,7 @@ const FeaturedAdminPage = () => {
                                 key={user.id}
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.005 }}
-                                className="bg-white rounded-xl p-3 border border-gray-200 hover:shadow-sm transition-all"
+                                className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-all"
                                 data-testid={`user-list-card-${user.id}`}
                             >
                                 <div className="flex items-center gap-2.5">
@@ -691,7 +706,7 @@ const FeaturedAdminPage = () => {
                                     {/* ユーザー情報 */}
                                     <div className="flex-1 min-w-0">
                                         <h3 
-                                            className="font-medium text-gray-800 text-sm truncate mb-0.5 leading-tight cursor-pointer hover:text-pink-500 transition-colors" 
+                                            className="font-medium text-gray-800 dark:text-gray-100 text-sm truncate mb-0.5 leading-tight cursor-pointer hover:text-pink-500 transition-colors" 
                                             data-testid={`username-user-${user.id}`}
                                             onClick={(e) => {
                                                 e.stopPropagation();

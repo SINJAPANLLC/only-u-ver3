@@ -30,9 +30,9 @@ export function AdminPageHeader({ title, description, actions, icon: Icon }) {
           </div>
         )}
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{title}</h1>
           {description && (
-            <p className="text-sm text-gray-600 mt-1">{description}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{description}</p>
           )}
         </div>
       </div>
@@ -60,7 +60,7 @@ export function AdminStatsCard({ title, value, icon: Icon, trend, trendValue, co
   return (
     <motion.div
       whileHover={{ y: -4, shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}
-      className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-200"
+      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-200"
     >
       <div className="flex items-center justify-between mb-4">
         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses[color]} flex items-center justify-center shadow-md`}>
@@ -72,8 +72,8 @@ export function AdminStatsCard({ title, value, icon: Icon, trend, trendValue, co
           </div>
         )}
       </div>
-      <h3 className="text-sm font-medium text-gray-600 mb-1">{title}</h3>
-      <p className="text-3xl font-bold text-gray-900">{value}</p>
+      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</h3>
+      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
     </motion.div>
   );
 }
@@ -83,10 +83,10 @@ export function AdminStatsCard({ title, value, icon: Icon, trend, trendValue, co
  */
 export function AdminContentCard({ title, children, className = '', headerActions }) {
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm ${className}`}>
       {title && (
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
           {headerActions && <div className="flex items-center space-x-2">{headerActions}</div>}
         </div>
       )}
@@ -102,7 +102,7 @@ export function AdminContentCard({ title, children, className = '', headerAction
  */
 export function AdminTableContainer({ children }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         {children}
       </div>
@@ -117,13 +117,13 @@ export function AdminEmptyState({ icon: Icon, title, description, action }) {
   return (
     <div className="text-center py-12">
       {Icon && (
-        <div className="w-16 h-16 rounded-full bg-pink-100 flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center mx-auto mb-4">
           <Icon className="w-8 h-8 text-pink-500" />
         </div>
       )}
-      <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
+      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
       {description && (
-        <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">{description}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">{description}</p>
       )}
       {action && action}
     </div>
@@ -138,10 +138,10 @@ export function AdminLoadingState({ message = '読み込み中...' }) {
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
         <div className="relative w-16 h-16 mx-auto mb-4">
-          <div className="absolute inset-0 rounded-full border-4 border-pink-200"></div>
-          <div className="absolute inset-0 rounded-full border-4 border-pink-500 border-t-transparent animate-spin"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-pink-200 dark:border-pink-900/50"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-pink-500 dark:border-pink-400 border-t-transparent animate-spin"></div>
         </div>
-        <p className="text-gray-600 font-medium">{message}</p>
+        <p className="text-gray-600 dark:text-gray-400 font-medium">{message}</p>
       </div>
     </div>
   );

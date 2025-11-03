@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronRight, Star } from 'lucide-react';
-import { genreData, getGenreVideoCount, updateGenreVideoCount } from '../data/constants';
+import { genreData, genreNameMapping } from '../data/constants';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 import squirtingImage from '@assets/S__23355436_1761458269036.jpg';
 import abnormalImage from '@assets/S__23355435_1761458437613.jpg';
 
@@ -30,29 +32,40 @@ const RecommendedGenres = ({ likedItems, toggleLike }) => {
         navigate(`/genre/${encodeURIComponent(translatedName)}`);
     };
 
-    // ジャンル別動画数を取得
+    // ✅ 最適化: 全ジャンルの動画数を一度に取得
     useEffect(() => {
         const fetchGenreCounts = async () => {
-            const counts = {};
-            for (const genre of genreData) {
-                const count = await getGenreVideoCount(genre.nameKey);
-                counts[genre.nameKey] = count;
+            try {
+                const postsRef = collection(db, 'posts');
+                const querySnapshot = await getDocs(postsRef);
+                
+                const counts = {};
+                
+                // 全投稿を一度走査して、各ジャンルの数をカウント
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.genres && Array.isArray(data.genres)) {
+                        data.genres.forEach(genreName => {
+                            // ジャンル名からnameKeyを逆引き
+                            const nameKey = Object.keys(genreNameMapping).find(
+                                key => genreNameMapping[key] === genreName
+                            );
+                            if (nameKey) {
+                                counts[nameKey] = (counts[nameKey] || 0) + 1;
+                            }
+                        });
+                    }
+                });
+                
+                console.log('📊 Genre counts loaded:', counts);
+                setGenreCounts(counts);
+            } catch (error) {
+                console.error('Error loading genre counts:', error);
             }
-            setGenreCounts(counts);
         };
 
         fetchGenreCounts();
     }, []);
-
-    // 動画数を更新する関数（他のコンポーネントから呼び出し可能）
-    const refreshGenreCounts = async () => {
-        const counts = {};
-        for (const genre of genreData) {
-            const count = await getGenreVideoCount(genre.nameKey);
-            counts[genre.nameKey] = count;
-        }
-        setGenreCounts(counts);
-    };
 
     return (
         <motion.div
@@ -61,7 +74,7 @@ const RecommendedGenres = ({ likedItems, toggleLike }) => {
             transition={{ delay: 0.7 }}
             className="mb-12"
         >
-            <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 sm:mb-6 flex items-center">
                 <motion.div
                     whileHover={{ scale: 1.1, rotate: 180 }}
                     transition={{ duration: 0.3 }}
@@ -87,7 +100,7 @@ const RecommendedGenres = ({ likedItems, toggleLike }) => {
                             whileHover={{ scale: 1.05, y: -5 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => handleGenreClick(genre.nameKey)}
-                            className="bg-white border border-gray-200 rounded-lg overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all group aspect-square flex flex-col"
+                            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all group aspect-square flex flex-col"
                             data-testid={`genre-card-${genre.nameKey}`}
                         >
                             {/* Thumbnail */}
@@ -95,6 +108,8 @@ const RecommendedGenres = ({ likedItems, toggleLike }) => {
                                 <motion.img 
                                     src={imageUrl}
                                     alt={t(`genres.${genre.nameKey}`)}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-full h-full object-cover"
                                     animate={{ 
                                         scale: [1, 1.08, 1],
@@ -122,11 +137,11 @@ const RecommendedGenres = ({ likedItems, toggleLike }) => {
                             </div>
                             
                             {/* Content */}
-                            <div className="p-3 flex-shrink-0 bg-white">
-                                <h3 className="font-semibold text-gray-800 text-sm text-center mb-1">
+                            <div className="p-3 flex-shrink-0 bg-white dark:bg-gray-800">
+                                <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm text-center mb-1">
                                     {t(`genres.${genre.nameKey}`)}
                                 </h3>
-                                <p className="text-xs text-gray-500 text-center">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                                     {(genreCounts[genre.nameKey] || genre.count).toLocaleString()} Videos
                                 </p>
                             </div>

@@ -119,8 +119,10 @@ const UserContentPage = () => {
                 }
 
                 // Firestoreから投稿データを取得
+                // Note: userInteractionsには投稿のpostIdフィールドの値が保存されているため、
+                // ドキュメントID(__name__)ではなくpostIdフィールドでクエリする
                 const postsRef = collection(db, 'posts');
-                const q = query(postsRef, where('__name__', 'in', validPostIds));
+                const q = query(postsRef, where('postId', 'in', validPostIds));
                 const querySnapshot = await getDocs(q);
                 
                 const posts = [];

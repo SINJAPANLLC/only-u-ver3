@@ -82,10 +82,10 @@ const FeaturedCreators = () => {
             <div className="mb-8 sm:mb-12 mt-8 sm:mt-12">
                 <div className="hidden md:grid md:grid-cols-3 gap-6">
                     {[1, 2, 3].map((index) => (
-                        <div key={index} className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-gray-200 animate-pulse" />
+                        <div key={index} className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-800 animate-pulse" />
                     ))}
                 </div>
-                <div className="md:hidden relative aspect-[16/9] rounded-2xl overflow-hidden bg-gray-200 animate-pulse" />
+                <div className="md:hidden relative aspect-[16/9] rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-800 animate-pulse" />
             </div>
         );
     }
@@ -110,10 +110,13 @@ const FeaturedCreators = () => {
                         data-testid={`slider-desktop-${index}`}
                         onClick={() => slider.link && window.open(slider.link, '_blank')}
                     >
-                        <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100">
+                        <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800">
                             <motion.img 
                                 src={slider.imageUrl}
                                 alt={slider.title || `Featured ${index + 1}`}
+                                loading={index === 0 ? "eager" : "lazy"}
+                                fetchpriority={index === 0 ? "high" : "auto"}
+                                decoding="async"
                                 className="w-full h-full object-cover"
                                 animate={{ 
                                     scale: [1, 1.1, 1],
@@ -161,12 +164,15 @@ const FeaturedCreators = () => {
                             data-testid={`slider-mobile-${currentSlide}`}
                         >
                             <div 
-                                className="relative h-full rounded-2xl overflow-hidden bg-gray-100 cursor-pointer"
+                                className="relative h-full rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer"
                                 onClick={() => sliderImages[currentSlide]?.link && window.open(sliderImages[currentSlide].link, '_blank')}
                             >
                                 <motion.img 
                                     src={sliderImages[currentSlide]?.imageUrl}
                                     alt={sliderImages[currentSlide]?.title || `Featured ${currentSlide + 1}`}
+                                    loading={currentSlide === 0 ? "eager" : "lazy"}
+                                    fetchpriority={currentSlide === 0 ? "high" : "auto"}
+                                    decoding="async"
                                     className="w-full h-full object-cover"
                                     animate={{ 
                                         scale: [1, 1.08, 1],
@@ -205,7 +211,7 @@ const FeaturedCreators = () => {
                     data-testid="button-slider-prev"
                     whileHover={{ scale: 1.1, x: -2 }}
                     whileTap={{ scale: 0.95 }}
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/30 backdrop-blur-md rounded-full p-3 z-30 hover:bg-pink-500/80 transition-all shadow-lg"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/30 dark:bg-gray-800/50 backdrop-blur-md rounded-full p-3 z-30 hover:bg-pink-500/80 transition-all shadow-lg"
                     style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}
                     aria-label="Previous slide"
                 >
@@ -216,7 +222,7 @@ const FeaturedCreators = () => {
                     data-testid="button-slider-next"
                     whileHover={{ scale: 1.1, x: 2 }}
                     whileTap={{ scale: 0.95 }}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/30 backdrop-blur-md rounded-full p-3 z-30 hover:bg-pink-500/80 transition-all shadow-lg"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/30 dark:bg-gray-800/50 backdrop-blur-md rounded-full p-3 z-30 hover:bg-pink-500/80 transition-all shadow-lg"
                     style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}
                     aria-label="Next slide"
                 >

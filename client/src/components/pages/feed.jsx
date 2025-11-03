@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Bookmark, Share, MoreHorizontal, Play, Pause, Volume2, VolumeX, ArrowLeft, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Film, Maximize, Minimize, User } from 'lucide-react';
@@ -22,6 +22,17 @@ const SocialFeedScreen = () => {
     if (url.startsWith('/objects/')) {
       const filename = url.replace('/objects/', '');
       return `/api/proxy/public/${filename}`;
+    }
+    
+    // Handle Bunny CDN direct URLs (convert to proxy for CORS)
+    if (url.includes('only-u.fun/') || url.includes('b-cdn.net/')) {
+      const bunnyPattern = /https?:\/\/[^/]+\/(public|private)\/(.+)/;
+      const match = url.match(bunnyPattern);
+      if (match) {
+        const folder = match[1];
+        const filename = match[2];
+        return `/api/proxy/${folder}/${filename}`;
+      }
     }
     
     // Check if URL is from Object Storage
@@ -82,7 +93,7 @@ const SocialFeedScreen = () => {
   const [error, setError] = useState(null);
   const [currentPostIndex, setCurrentPostIndex] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [localLikedPosts, setLocalLikedPosts] = useState(new Set());
   const [localSavedPosts, setLocalSavedPosts] = useState(new Set());
   const [touchStartY, setTouchStartY] = useState(0);
@@ -95,8 +106,13 @@ const SocialFeedScreen = () => {
   const [loadingComments, setLoadingComments] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [isVerticalVideo, setIsVerticalVideo] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekTime, setSeekTime] = useState(0);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
+  const progressRef = useRef(null);
   const { currentUser } = useAuth();
 
   // サンプルデータ（Firebaseが利用できない場合のフォールバック）
@@ -505,7 +521,7 @@ const SocialFeedScreen = () => {
   };
 
   // Handle video play/pause
-  const toggleVideoPlayback = useCallback(() => {
+  const toggleVideoPlayback = () => {
     if (videoRef.current) {
       try {
         if (isVideoPlaying) {
@@ -530,10 +546,10 @@ const SocialFeedScreen = () => {
         setIsVideoPlaying(false);
       }
     }
-  }, [isVideoPlaying]);
+  };
 
   // Handle mute toggle
-  const toggleMute = useCallback(() => {
+  const toggleMute = () => {
     if (videoRef.current) {
       try {
         videoRef.current.muted = !isMuted;
@@ -542,7 +558,76 @@ const SocialFeedScreen = () => {
         console.error("Error in toggleMute:", error);
       }
     }
-  }, [isMuted]);
+  };
+
+  // Seek bar handlers
+  const formatTime = (time) => {
+    if (!time || isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleSeekStart = (e) => {
+    e.preventDefault();
+    setIsSeeking(true);
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
+    }
+  };
+
+  const handleSeekMove = (e) => {
+    if (!isSeeking || !progressRef.current) return;
+
+    const rect = progressRef.current.getBoundingClientRect();
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clickX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    const newTime = (clickX / rect.width) * duration;
+
+    setSeekTime(newTime);
+  };
+
+  const handleSeekEnd = () => {
+    if (!isSeeking) return;
+
+    const video = videoRef.current;
+    if (video) {
+      video.currentTime = seekTime;
+      if (isVideoPlaying) {
+        video.play().catch(console.error);
+      }
+    }
+
+    setIsSeeking(false);
+  };
+
+  const handleProgressClick = (e) => {
+    if (!videoRef.current || !progressRef.current) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const newTime = (clickX / rect.width) * duration;
+    videoRef.current.currentTime = newTime;
+  };
+
+  // Seek bar drag listeners
+  useEffect(() => {
+    if (isSeeking) {
+      const handleMove = (e) => handleSeekMove(e);
+      const handleEnd = () => handleSeekEnd();
+
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('mouseup', handleEnd);
+      document.addEventListener('touchmove', handleMove);
+      document.addEventListener('touchend', handleEnd);
+
+      return () => {
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', handleEnd);
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('touchend', handleEnd);
+      };
+    }
+  }, [isSeeking, seekTime, duration, isVideoPlaying]);
 
   // Auto-play video when post changes
   useEffect(() => {
@@ -550,17 +635,6 @@ const SocialFeedScreen = () => {
       setIsVideoPlaying(true);
     }
   }, [currentPostIndex, posts]);
-  
-  // Cleanup: Stop video when component unmounts to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.src = '';
-        videoRef.current.load();
-      }
-    };
-  }, []); // Empty dependency array = only runs on unmount
 
   // Handle navigation
   const handleBottomNavClick = (path) => {
@@ -571,32 +645,32 @@ const SocialFeedScreen = () => {
   };
 
   // Handle post navigation
-  const goToNextPost = useCallback(() => {
+  const goToNextPost = () => {
     if (currentPostIndex < posts.length - 1 && !isTransitioning) {
       setIsTransitioning(true);
       setCurrentPostIndex(currentPostIndex + 1);
       setTimeout(() => setIsTransitioning(false), 300);
     }
-  }, [currentPostIndex, posts.length, isTransitioning]);
+  };
 
-  const goToPreviousPost = useCallback(() => {
+  const goToPreviousPost = () => {
     if (currentPostIndex > 0 && !isTransitioning) {
       setIsTransitioning(true);
       setCurrentPostIndex(currentPostIndex - 1);
       setTimeout(() => setIsTransitioning(false), 300);
     }
-  }, [currentPostIndex, isTransitioning]);
+  };
 
   // Touch handlers for swipe
-  const handleTouchStart = useCallback((e) => {
+  const handleTouchStart = (e) => {
     setTouchStartY(e.targetTouches[0].clientY);
-  }, []);
+  };
 
-  const handleTouchMove = useCallback((e) => {
+  const handleTouchMove = (e) => {
     setTouchEndY(e.targetTouches[0].clientY);
-  }, []);
+  };
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = () => {
     if (!touchStartY || !touchEndY) return;
     
     const distance = touchStartY - touchEndY;
@@ -614,25 +688,25 @@ const SocialFeedScreen = () => {
     // タッチ位置をリセット
     setTouchStartY(null);
     setTouchEndY(null);
-  }, [touchStartY, touchEndY, goToNextPost, goToPreviousPost]);
+  };
 
   // Handle video click to navigate to creator profile
-  const handleVideoClick = useCallback(() => {
+  const handleVideoClick = () => {
     try {
       navigate(`/profile/${posts[currentPostIndex].userId}`);
     } catch (error) {
       console.error('Error navigating to profile:', error);
     }
-  }, [navigate, posts, currentPostIndex]);
+  };
 
   // Handle account click to navigate to profile
-  const handleAccountClick = useCallback((post) => {
+  const handleAccountClick = (post) => {
     try {
       navigate(`/profile/${post.userId}`);
     } catch (error) {
       console.error('Error navigating to profile:', error);
     }
-  }, [navigate]);
+  };
 
   // Handle fullscreen toggle
   const handleFullscreen = async (e) => {
@@ -942,7 +1016,7 @@ const SocialFeedScreen = () => {
                     ref={videoRef}
                     src={posts[currentPostIndex].videoUrl}
                     poster={posts[currentPostIndex].thumbnail || posts[currentPostIndex].imageUrl}
-                    className="w-full h-full object-contain"
+                    className={`w-full h-full ${isVerticalVideo ? 'object-cover' : 'object-contain'}`}
                     playsInline
                     loop
                     muted={isMuted}
@@ -951,6 +1025,12 @@ const SocialFeedScreen = () => {
                     onLoadedMetadata={(e) => {
                       const video = e.target;
                       setIsVerticalVideo(video.videoHeight > video.videoWidth);
+                      setDuration(video.duration);
+                    }}
+                    onTimeUpdate={(e) => {
+                      if (!isSeeking) {
+                        setCurrentTime(e.target.currentTime);
+                      }
                     }}
                     onLoadedData={() => {
                       setVideoLoaded(true);
@@ -975,7 +1055,6 @@ const SocialFeedScreen = () => {
                 <img
                   src={posts[currentPostIndex].thumbnail || posts[currentPostIndex].imageUrl}
                   alt={posts[currentPostIndex].title}
-                  loading="lazy"
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     console.error('Image load error:', e);
@@ -1003,7 +1082,7 @@ const SocialFeedScreen = () => {
             )}
 
             {/* Right Side Actions */}
-            <div className="absolute right-4 bottom-28 z-30 flex flex-col items-center space-y-5">
+            <div className="absolute right-4 bottom-40 z-30 flex flex-col items-center space-y-5">
               {/* Swipe Indicator */}
               <motion.div 
                 className="flex flex-col items-center cursor-pointer"
@@ -1039,7 +1118,6 @@ const SocialFeedScreen = () => {
                   <motion.img
                     src={posts[currentPostIndex].userAvatar}
                     alt={posts[currentPostIndex].userName}
-                    loading="lazy"
                     className="w-12 h-12 rounded-full border-2 border-white shadow-lg object-cover"
                     animate={{ 
                       boxShadow: [
@@ -1228,7 +1306,7 @@ const SocialFeedScreen = () => {
 
             {/* Bottom Content */}
             <motion.div 
-              className="absolute bottom-16 left-0 right-0 z-20 p-4 pb-4 bg-gradient-to-t from-black via-black/95 to-transparent"
+              className="absolute bottom-32 left-0 right-0 z-20 p-4 pb-4"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
@@ -1309,6 +1387,64 @@ const SocialFeedScreen = () => {
 
       </div>
 
+      {/* Seek Bar - Above Bottom Navigation */}
+      {posts[currentPostIndex]?.type === 'video' && duration > 0 && (
+        <motion.div 
+          className="fixed bottom-20 left-0 right-0 z-30 px-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-3">
+            {/* Progress Bar with Draggable Thumb */}
+            <div 
+              ref={progressRef}
+              className="relative w-full h-2 bg-white/20 rounded-full cursor-pointer group/progress mb-2"
+              onClick={handleProgressClick}
+            >
+              {/* Progress Fill */}
+              <div 
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-pink-500 to-purple-600 rounded-full transition-all"
+                style={{ width: `${((isSeeking ? seekTime : currentTime) / duration) * 100}%` }}
+              />
+              
+              {/* Draggable Thumb */}
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full cursor-grab active:cursor-grabbing transform transition-all group-hover/progress:scale-125 hover:scale-150"
+                style={{ 
+                  left: `${((isSeeking ? seekTime : currentTime) / duration) * 100}%`,
+                  marginLeft: '-8px'
+                }}
+                onMouseDown={handleSeekStart}
+                onTouchStart={handleSeekStart}
+              >
+                {/* Inner gradient */}
+                <div className="absolute inset-0.5 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full" />
+              </div>
+
+              {/* Time tooltip on seeking */}
+              {isSeeking && (
+                <div 
+                  className="absolute -top-10 bg-black/80 text-white text-xs px-2 py-1 rounded backdrop-blur-sm"
+                  style={{ 
+                    left: `${(seekTime / duration) * 100}%`,
+                    transform: 'translateX(-50%)'
+                  }}
+                >
+                  {formatTime(seekTime)}
+                </div>
+              )}
+            </div>
+
+            {/* Time Display */}
+            <div className="flex items-center justify-between text-white text-xs">
+              <span className="font-medium">{formatTime(currentTime)}</span>
+              <span className="text-white/60">{formatTime(duration)}</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       <BottomNavigationWithCreator active="feed" onNavClick={handleBottomNavClick} />
 
       {/* Comment Modal */}
@@ -1326,15 +1462,15 @@ const SocialFeedScreen = () => {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="w-full bg-white rounded-t-3xl max-h-[80vh] flex flex-col"
+              className="w-full bg-white dark:bg-gray-900 rounded-t-3xl max-h-[80vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 border-b">
-                <h3 className="text-lg font-bold">コメント {comments.length}</h3>
+              <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 className="text-lg font-bold dark:text-gray-100">コメント {comments.length}</h3>
                 <button
                   onClick={() => setShowCommentModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   data-testid="button-close-comments"
                 >
                   <MoreHorizontal size={24} className="rotate-90" />
@@ -1344,9 +1480,9 @@ const SocialFeedScreen = () => {
               {/* Comments List */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {loadingComments ? (
-                  <div className="text-center text-gray-500 py-8">読み込み中...</div>
+                  <div className="text-center text-gray-500 dark:text-gray-400 py-8">読み込み中...</div>
                 ) : comments.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
+                  <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                     まだコメントがありません<br />最初のコメントを投稿しましょう！
                   </div>
                 ) : (
@@ -1361,17 +1497,16 @@ const SocialFeedScreen = () => {
                       <img
                         src={comment.userAvatar}
                         alt={comment.userName}
-                        loading="lazy"
                         className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                       />
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
-                          <span className="font-semibold text-sm">{comment.userName}</span>
-                          <span className="text-xs text-gray-500">
+                          <span className="font-semibold text-sm dark:text-gray-200">{comment.userName}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             {comment.createdAt && new Date(comment.createdAt.seconds * 1000).toLocaleDateString('ja-JP')}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-800 mt-1">{comment.text}</p>
+                        <p className="text-sm text-gray-800 dark:text-gray-300 mt-1">{comment.text}</p>
                       </div>
                     </motion.div>
                   ))
@@ -1380,12 +1515,11 @@ const SocialFeedScreen = () => {
 
               {/* Comment Input */}
               {currentUser ? (
-                <div className="p-4 border-t bg-white">
+                <div className="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-900">
                   <div className="flex space-x-3">
                     <img
                       src={currentUser.photoURL || 'https://via.placeholder.com/150'}
                       alt={currentUser.displayName || 'You'}
-                      loading="lazy"
                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                     />
                     <div className="flex-1 flex space-x-2">
@@ -1399,7 +1533,7 @@ const SocialFeedScreen = () => {
                           }
                         }}
                         placeholder="コメントを入力..."
-                        className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        className="flex-1 px-4 py-2 border dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500"
                         data-testid="input-comment"
                       />
                       <button
@@ -1414,8 +1548,8 @@ const SocialFeedScreen = () => {
                   </div>
                 </div>
               ) : (
-                <div className="p-4 border-t bg-gray-50 text-center">
-                  <p className="text-gray-600 text-sm">コメントするにはログインしてください</p>
+                <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-center">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">コメントするにはログインしてください</p>
                 </div>
               )}
             </motion.div>

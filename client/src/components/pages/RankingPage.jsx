@@ -23,9 +23,9 @@ const RankingPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50 dark:bg-black pb-20">
             {/* ---------------- Header Tabs ---------------- */}
-            <div className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+            <div className="bg-white dark:bg-black border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50 shadow-sm dark:shadow-gray-900">
                 <div className="max-w-6xl mx-auto px-4 py-3">
                     <div className="flex items-center justify-center space-x-8">
                         {tabs.map((tab) => (
@@ -36,7 +36,7 @@ const RankingPage = () => {
                                 className={`relative text-base sm:text-lg font-bold transition-all pb-2 ${
                                     activeTab === tab.id 
                                         ? 'bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent' 
-                                        : 'text-gray-500 hover:text-gray-700'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                                 }`}
                             >
                                 {tab.label}
@@ -54,7 +54,7 @@ const RankingPage = () => {
             </div>
 
             {/* ---------------- Time Filter Tabs ---------------- */}
-            <div className="bg-white border-b border-gray-100 sticky top-14 z-40 shadow-sm">
+            <div className="bg-white dark:bg-black border-b border-gray-100 dark:border-gray-800 sticky top-14 z-40 shadow-sm dark:shadow-gray-900">
                 <div className="max-w-6xl mx-auto px-4 py-3">
                     <div className="flex items-center justify-center space-x-2 overflow-x-auto">
                         {timeFilters.map((filter, index) => (
@@ -69,7 +69,7 @@ const RankingPage = () => {
                                 className={`flex-shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${
                                     activeTimeFilter === filter.id
                                         ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-200'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                                 }`}
                             >
                                 {filter.label}

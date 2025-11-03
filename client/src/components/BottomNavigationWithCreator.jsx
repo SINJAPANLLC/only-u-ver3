@@ -31,9 +31,9 @@ const BottomNavigationWithCreator = ({ active = "Home" }) => {
     const items = canCreatePosts ? [...baseItems, ...creatorItems] : baseItems;
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-sm">
+        <nav className="fixed bottom-0 left-0 right-0 glass-effect dark:bg-black/95 border-t border-white/30 dark:border-gray-800/50 z-50 shadow-elevated transition-colors duration-200 pb-safe">
             <div className="max-w-6xl mx-auto">
-                <div className="flex items-center justify-around py-3 px-2">
+                <div className="flex items-center justify-around py-2 px-1">
                     {items.map((item) => {
                         const isActive = active.toLowerCase() === item.key;
                         
@@ -42,16 +42,16 @@ const BottomNavigationWithCreator = ({ active = "Home" }) => {
                                 key={item.key}
                                 onClick={item.onClick}
                                 whileTap={{ scale: 0.9 }}
-                                className="flex flex-col items-center justify-center transition-all duration-200 relative min-w-[60px]"
+                                className="flex flex-col items-center justify-center transition-all duration-200 relative min-w-[50px]"
                                 data-testid={`nav-${item.key}`}
                             >
                                 <motion.div 
-                                    className="relative mb-1"
+                                    className="relative mb-0.5"
                                     whileHover={{ scale: 1.1 }}
                                     transition={{ duration: 0.2 }}
                                 >
                                     <motion.div
-                                        className={`p-2 rounded-full transition-all duration-300 ${
+                                        className={`p-1.5 rounded-full transition-all duration-300 ${
                                             isActive 
                                                 ? "bg-gradient-to-r from-pink-400 to-pink-500" 
                                                 : "bg-transparent"
@@ -61,7 +61,7 @@ const BottomNavigationWithCreator = ({ active = "Home" }) => {
                                         } : {}}
                                     >
                                         <item.icon 
-                                            size={24} 
+                                            size={20} 
                                             strokeWidth={2} 
                                             className={`${
                                                 isActive ? "text-white" : "text-gray-400"
@@ -96,7 +96,7 @@ const BottomNavigationWithCreator = ({ active = "Home" }) => {
                                     )}
                                 </motion.div>
                                 <span 
-                                    className={`${item.key === 'dashboard' ? 'text-[6px]' : 'text-[10px]'} font-medium text-center transition-colors duration-200 whitespace-nowrap ${
+                                    className={`text-[9px] font-medium text-center transition-colors duration-200 whitespace-nowrap ${
                                         isActive ? "text-pink-500" : "text-gray-400"
                                     }`}
                                 >

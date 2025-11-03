@@ -500,9 +500,14 @@ export default function FeaturedPickupManagement() {
                               const isVideo = firstFile?.type?.includes('video') || firstFile?.resourceType === 'video';
                               
                               if (isVideo && firstFile?.url) {
-                                const proxyUrl = firstFile.url.includes('replit-objstore')
-                                  ? `/api/proxy/public/${firstFile.url.split('/public/')[1]}`
-                                  : firstFile.url;
+                                let proxyUrl = firstFile.url;
+                                if (firstFile.url.includes('replit-objstore')) {
+                                  const lastPublicIndex = firstFile.url.lastIndexOf('/public/');
+                                  if (lastPublicIndex !== -1) {
+                                    const filename = firstFile.url.substring(lastPublicIndex + '/public/'.length);
+                                    proxyUrl = `/api/proxy/public/${filename}`;
+                                  }
+                                }
                                 
                                 return (
                                   <>

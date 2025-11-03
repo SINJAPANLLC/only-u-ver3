@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -15,76 +15,57 @@ import {
   Edit3,
   Eye,
   Clock,
-  Sparkles
+  Sparkles,
+  Info
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 
 const SwitchAccountPage = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState(null);
 
-  const [accounts, setAccounts] = useState([
-    {
-      id: 1,
-      name: '田中 太郎',
-      email: 'tanaka@example.com',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-      isActive: true,
-      lastLogin: '2024-01-20T10:30:00Z',
-      accountType: 'creator',
-      followers: 12500,
-      isVerified: true,
-      status: 'online'
-    },
-    {
-      id: 2,
-      name: '佐藤 花子',
-      email: 'sato@example.com',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-      isActive: false,
-      lastLogin: '2024-01-18T15:45:00Z',
-      accountType: 'fan',
-      followers: 0,
-      isVerified: false,
-      status: 'offline'
-    },
-    {
-      id: 3,
-      name: '山田 次郎',
-      email: 'yamada@example.com',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-      isActive: false,
-      lastLogin: '2024-01-15T09:20:00Z',
-      accountType: 'creator',
-      followers: 8900,
-      isVerified: true,
-      status: 'away'
-    }
-  ]);
+  // 現在のユーザー情報を取得
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
 
-  const filteredAccounts = accounts.filter(account => 
-    account.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    account.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUserData({
+            id: currentUser.uid,
+            name: userDoc.data().name || currentUser.displayName || 'ユーザー',
+            email: currentUser.email || '',
+            avatar: userDoc.data().avatar || currentUser.photoURL || '',
+            accountType: userDoc.data().isCreator ? 'creator' : 'fan',
+            followers: userDoc.data().followers || 0,
+            isVerified: userDoc.data().kycStatus === 'approved',
+            status: 'online',
+            isActive: true
+          });
+        }
+      } catch (error) {
+        console.error('ユーザー情報の取得エラー:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleSwitchAccount = (accountId) => {
-    setAccounts(prev => prev.map(account => ({
-      ...account,
-      isActive: account.id === accountId
-    })));
-    console.log('Switching to account:', accountId);
-    alert(`アカウントを切り替えました: ${accounts.find(acc => acc.id === accountId)?.name}`);
-  };
+    fetchUserData();
+  }, [currentUser]);
 
   const handleAddAccount = () => {
-    navigate('/login');
-  };
-
-  const handleRemoveAccount = (accountId) => {
-    if (window.confirm('このアカウントを削除しますか？')) {
-      setAccounts(prev => prev.filter(account => account.id !== accountId));
-    }
+    alert('この機能は現在開発中です。別のアカウントでログインする場合は、一度ログアウトしてください。');
   };
 
   const formatLastLogin = (dateString) => {
@@ -114,6 +95,21 @@ const SwitchAccountPage = () => {
       default: return User;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 pb-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-pink-500 border-r-transparent mb-4"></div>
+          <p className="text-pink-600 font-medium">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 現在のユーザー情報を配列として扱う
+  const accounts = userData ? [userData] : [];
+  const filteredAccounts = accounts;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 pb-20">
@@ -152,18 +148,16 @@ const SwitchAccountPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-4 shadow-xl border-2 border-pink-100"
+          className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6"
         >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-pink-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="アカウントを検索..."
-              className="w-full pl-12 pr-4 py-3 border-2 border-pink-100 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent font-semibold"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              data-testid="input-search"
-            />
+          <div className="flex items-start space-x-4">
+            <Info className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
+            <div>
+              <h3 className="font-bold text-blue-900 mb-2 text-lg">開発中の機能</h3>
+              <p className="text-base text-blue-800">
+                複数アカウントの切り替え機能は現在開発中です。別のアカウントでログインする場合は、一度ログアウトしてから再度ログインしてください。
+              </p>
+            </div>
           </div>
         </motion.div>
 

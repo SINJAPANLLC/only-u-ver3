@@ -109,7 +109,7 @@ const CreatorPage = () => {
             <div className="mb-12">
                 <div className="max-w-4xl mx-auto space-y-3">
                     {[1, 2, 3].map((i) => (
-                        <div key={i} className="bg-white rounded-xl p-3 border border-gray-200 animate-pulse">
+                        <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 animate-pulse">
                             <div className="flex items-center gap-2.5">
                                 <div className="w-11 h-11 rounded-full bg-gray-200" />
                                 <div className="w-11 h-11 rounded-full bg-gray-200" />
@@ -129,7 +129,7 @@ const CreatorPage = () => {
     if (creators.length === 0) {
         return (
             <div className="mb-12">
-                <div className="max-w-4xl mx-auto text-center py-8 text-gray-500">
+                <div className="max-w-4xl mx-auto text-center py-8 text-gray-500 dark:text-gray-400">
                     承認されたクリエイターがいません
                 </div>
             </div>
@@ -154,7 +154,7 @@ const CreatorPage = () => {
                                 key={creator.id}
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.005 }}
-                                className="bg-white rounded-xl p-3 border border-gray-200 hover:shadow-sm transition-all"
+                                className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-all"
                                 data-testid={`creator-card-${creator.id}`}
                             >
                                 <div className="flex items-center gap-2.5">
@@ -199,7 +199,7 @@ const CreatorPage = () => {
                                     {/* クリエイター情報 */}
                                     <div className="flex-1 min-w-0">
                                         <h3 
-                                            className="font-medium text-gray-800 text-sm truncate mb-0.5 leading-tight cursor-pointer hover:text-pink-600 transition-colors"
+                                            className="font-medium text-gray-800 dark:text-gray-100 text-sm truncate mb-0.5 leading-tight cursor-pointer hover:text-pink-600 transition-colors"
                                             onClick={() => navigate(`/creator-profile/${creator.id}`)}
                                         >
                                             {creator.name}

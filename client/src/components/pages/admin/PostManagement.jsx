@@ -114,8 +114,13 @@ const PostManagement = () => {
           
           // Object Storageの場合、プロキシURLに変換
           if (originalUrl.includes('replit-objstore')) {
-            const pathPart = originalUrl.split('/public/')[1];
-            proxyUrl = pathPart ? `/api/proxy/public/${pathPart}` : originalUrl;
+            const lastPublicIndex = originalUrl.lastIndexOf('/public/');
+            if (lastPublicIndex !== -1) {
+              const filename = originalUrl.substring(lastPublicIndex + '/public/'.length);
+              proxyUrl = `/api/proxy/public/${filename}`;
+            } else {
+              proxyUrl = originalUrl;
+            }
           } else if (originalUrl.startsWith('/objects/')) {
             const filename = originalUrl.replace('/objects/', '');
             proxyUrl = `/api/proxy/public/${filename}`;

@@ -140,9 +140,7 @@ const GenrePage = () => {
                         likes: data.likes || 0,
                         bookmarks: data.bookmarks || 0,
                         type: data.files && data.files.length > 0 ? data.files[0].resourceType : 'image',
-                        thumbnail: data.files && data.files.length > 0 
-                            ? (data.files[0].thumbnailUrl || data.files[0].url) 
-                            : null,
+                        thumbnail: data.files && data.files.length > 0 ? data.files[0].thumbnailUrl : null,
                         user: {
                             id: data.userId,
                             name: data.userName || '匿名',

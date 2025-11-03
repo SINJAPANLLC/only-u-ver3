@@ -555,6 +555,14 @@ const EditProfilePage = () => {
                                             </h3>
                                             <p className="text-sm text-pink-700 mt-1">{plan.price} • {plan.posts}投稿</p>
                                             <p className="text-sm text-pink-600 mt-2">{plan.description}</p>
+                                            <div className="mt-2 text-xs text-pink-500">
+                                                📌 プランレベル: {
+                                                    plan.planLevel === 1 || plan.planLevel === 'basic' || plan.planLevel === 'ベーシック' ? 'ベーシック' :
+                                                    plan.planLevel === 2 || plan.planLevel === 'premium' || plan.planLevel === 'プレミアム' ? 'プレミアム' :
+                                                    plan.planLevel === 3 || plan.planLevel === 'vip' || plan.planLevel === 'VIP' ? 'VIP' :
+                                                    '未設定'
+                                                }
+                                            </div>
                                         </div>
                                         <div className="flex space-x-2 ml-4">
                                             <motion.button

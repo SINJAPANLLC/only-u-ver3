@@ -24,7 +24,7 @@ const MyPostsPage = () => {
 
     const postsQuery = query(
       collection(db, 'posts'),
-      where('userId', '==', currentUser.uid),
+      where('creatorId', '==', currentUser.uid),
       orderBy('createdAt', 'desc')
     );
 

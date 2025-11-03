@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Plus, Eye, Heart, Users, UserPlus, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -70,12 +70,12 @@ const Creator = ({ activeTimeFilter }) => {
 
                 const startDate = getDateRange();
 
-                // 期間内の投稿を取得
+                // 期間内の投稿を取得（limit削減でFirestore読み取りを最適化）
                 const postsQuery = query(
                     collection(db, 'posts'),
                     where('createdAt', '>=', startDate),
                     orderBy('createdAt', 'desc'),
-                    limit(500)
+                    limit(100)
                 );
 
                 const postsSnapshot = await getDocs(postsQuery);
@@ -222,7 +222,7 @@ const Creator = ({ activeTimeFilter }) => {
         return (
             <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 animate-pulse">
+                    <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 animate-pulse">
                         <div className="flex items-center gap-4">
                             <div className="w-24 h-24 rounded-full bg-gray-200" />
                             <div className="flex-1 space-y-3">
@@ -244,23 +244,23 @@ const Creator = ({ activeTimeFilter }) => {
                 <div className="text-gray-400 mb-4">
                     <Users className="w-16 h-16 mx-auto" />
                 </div>
-                <p className="text-gray-500 text-lg">
+                <p className="text-gray-500 dark:text-gray-400 text-lg">
                     この期間に承認されたクリエイターがいません
                 </p>
             </div>
         );
     }
 
-    const TopCreatorCard = ({ creator, categoryTitle }) => {
+    const TopCreatorCard = memo(({ creator, categoryTitle }) => {
         const isFollowing = followedCreators.has(creator.id);
         
         return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ y: -5 }}
+            whileHover={{ y: -8 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl border border-gray-100 mb-4 relative"
+            className="card-3d overflow-hidden mb-4 relative"
             data-testid="card-top-creator"
         >
             {/* Ranking Badge */}
@@ -310,7 +310,7 @@ const Creator = ({ activeTimeFilter }) => {
             {/* Profile Content */}
             <div className="pt-4 pb-4 px-4 text-center">
                 <motion.h3 
-                    className="text-xl sm:text-2xl font-bold text-gray-900 mb-2"
+                    className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
@@ -345,7 +345,7 @@ const Creator = ({ activeTimeFilter }) => {
                 </motion.div>
 
                 <motion.p 
-                    className="text-sm text-gray-600 mb-4 px-2"
+                    className="text-sm text-gray-600 dark:text-gray-400 mb-4 px-2"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
@@ -354,7 +354,7 @@ const Creator = ({ activeTimeFilter }) => {
                     {creator.description}
                 </motion.p>
 
-                {/* Follow Button */}
+                {/* Follow Button - 3D Neumorphic */}
                 <motion.button
                     whileHover={{ scale: 1.05, y: -2 }}
                     whileTap={{ scale: 0.95 }}
@@ -362,10 +362,10 @@ const Creator = ({ activeTimeFilter }) => {
                         e.stopPropagation();
                         toggleFollow(creator.id);
                     }}
-                    className={`w-full py-3 rounded-xl text-base font-bold transition-all shadow-lg flex items-center justify-center space-x-2 ${
+                    className={`w-full py-3 rounded-xl text-base font-bold transition-all flex items-center justify-center space-x-2 ${
                         isFollowing
-                            ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            : 'bg-gradient-to-r from-pink-500 to-pink-600 text-white hover:from-pink-600 hover:to-pink-700 shadow-pink-200'
+                            ? 'btn-secondary'
+                            : 'btn-primary'
                     }`}
                     data-testid={`button-follow-${creator.id}`}
                 >
@@ -384,9 +384,9 @@ const Creator = ({ activeTimeFilter }) => {
             </div>
         </motion.div>
         );
-    };
+    });
 
-    const CreatorListItem = ({ creator, rank }) => {
+    const CreatorListItem = memo(({ creator, rank }) => {
         const isFollowing = followedCreators.has(creator.id);
         
         return (
@@ -395,7 +395,7 @@ const Creator = ({ activeTimeFilter }) => {
             animate={{ opacity: 1, x: 0 }}
             whileHover={{ scale: 1.02, x: 5 }}
             transition={{ duration: 0.2 }}
-            className="flex items-center space-x-3 p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md mb-2"
+            className="flex items-center space-x-3 p-4 card hover-lift mb-2"
             data-testid={`card-creator-${creator.id}`}
         >
             <motion.div 
@@ -454,10 +454,10 @@ const Creator = ({ activeTimeFilter }) => {
                     e.stopPropagation();
                     toggleFollow(creator.id);
                 }}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all shadow-md flex items-center space-x-1 ${
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center space-x-1 ${
                     isFollowing
-                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        : 'bg-gradient-to-r from-pink-500 to-pink-600 text-white hover:from-pink-600 hover:to-pink-700 shadow-pink-200'
+                        ? 'btn-secondary'
+                        : 'btn-primary'
                 }`}
                 data-testid={`button-follow-${creator.id}`}
             >
@@ -475,7 +475,7 @@ const Creator = ({ activeTimeFilter }) => {
             </motion.button>
         </motion.div>
         );
-    };
+    });
 
     return (
         <div className="space-y-6 pb-6">

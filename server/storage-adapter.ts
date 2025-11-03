@@ -4,12 +4,16 @@
  */
 
 // Replit Object Storageは削除し、Firebase Storageを使用
+import { storage } from './firebase.js';
 
 // ストレージプロバイダーのタイプ
-type StorageProvider = 'firebase' | 'r2' | 's3' | 'gcs';
+type StorageProvider = 'firebase' | 'bunny' | 'r2' | 's3' | 'gcs';
 
 // 環境変数からストレージプロバイダーを判定
 const getStorageProvider = (): StorageProvider => {
+  if (process.env.BUNNY_STORAGE_API_KEY && process.env.BUNNY_STORAGE_ZONE_NAME) {
+    return 'bunny';
+  }
   if (process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID) {
     return 'r2';
   }
@@ -29,6 +33,141 @@ export interface StorageAdapter {
   download(key: string): Promise<Buffer>;
   delete(key: string): Promise<void>;
   getPublicUrl(key: string): string;
+  generateThumbnail?(key: string): Promise<string | null>;
+}
+
+// Bunny CDN アダプター（推奨：アダルトコンテンツ対応、高速CDN）
+class BunnyCDNStorageAdapter implements StorageAdapter {
+  private storageApiKey: string;
+  private storageZoneName: string;
+  private cdnHostname: string;
+  private streamApiKey?: string;
+  private streamLibraryId?: string;
+  private storageRegion: string;
+
+  constructor() {
+    this.storageApiKey = process.env.BUNNY_STORAGE_API_KEY || '';
+    this.storageZoneName = process.env.BUNNY_STORAGE_ZONE_NAME || '';
+    this.cdnHostname = process.env.BUNNY_CDN_HOSTNAME || `${this.storageZoneName}.b-cdn.net`;
+    this.streamApiKey = process.env.BUNNY_STREAM_API_KEY;
+    this.streamLibraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
+    this.storageRegion = process.env.BUNNY_STORAGE_REGION || 'de';
+
+    if (!this.storageApiKey || !this.storageZoneName) {
+      throw new Error('Bunny CDN configuration missing. Set BUNNY_STORAGE_API_KEY and BUNNY_STORAGE_ZONE_NAME');
+    }
+  }
+
+  private getStorageEndpoint(): string {
+    const regionMap: Record<string, string> = {
+      'de': 'storage.bunnycdn.com',
+      'ny': 'ny.storage.bunnycdn.com',
+      'la': 'la.storage.bunnycdn.com',
+      'sg': 'sg.storage.bunnycdn.com',
+      'sydney': 'syd.storage.bunnycdn.com',
+      'uk': 'uk.storage.bunnycdn.com',
+    };
+    return regionMap[this.storageRegion] || 'storage.bunnycdn.com';
+  }
+
+  async upload(key: string, data: Buffer, contentType?: string): Promise<string> {
+    const endpoint = this.getStorageEndpoint();
+    const url = `https://${endpoint}/${this.storageZoneName}/${key}`;
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'AccessKey': this.storageApiKey,
+        'Content-Type': contentType || 'application/octet-stream',
+        'Content-Length': data.length.toString(),
+      },
+      body: data,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Bunny CDN upload failed: ${response.status} - ${errorText}`);
+    }
+
+    console.log(`✅ Bunny CDN: Uploaded ${key}`);
+    return this.getPublicUrl(key);
+  }
+
+  async download(key: string): Promise<Buffer> {
+    const endpoint = this.getStorageEndpoint();
+    const url = `https://${endpoint}/${this.storageZoneName}/${key}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'AccessKey': this.storageApiKey,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Bunny CDN download failed: ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }
+
+  async delete(key: string): Promise<void> {
+    const endpoint = this.getStorageEndpoint();
+    const url = `https://${endpoint}/${this.storageZoneName}/${key}`;
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'AccessKey': this.storageApiKey,
+      },
+    });
+
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`Bunny CDN delete failed: ${response.status}`);
+    }
+
+    console.log(`🗑️  Bunny CDN: Deleted ${key}`);
+  }
+
+  getPublicUrl(key: string): string {
+    // 公開ファイル（public/で始まる）は直接Bunny CDNから配信（高速）
+    // 非公開ファイル（private/で始まる）はプロキシ経由でアクセス制御
+    if (key.startsWith('public/')) {
+      // ファイル名部分のみをURLエンコード（special charactersに対応）
+      const parts = key.split('/');
+      const encodedKey = parts.map((part, index) => 
+        index === parts.length - 1 ? encodeURIComponent(part) : part
+      ).join('/');
+      // 直接Bunny CDNのURLを返す（エッジキャッシュ活用、低レイテンシ）
+      return `https://${this.cdnHostname}/${encodedKey}`;
+    }
+    // 非公開ファイルはプロキシ経由（認証・アクセス制御）
+    return `/api/proxy/${key}`;
+  }
+
+  async generateThumbnail(videoKey: string): Promise<string | null> {
+    if (!this.streamApiKey || !this.streamLibraryId) {
+      console.warn('⚠️  Bunny Stream not configured for thumbnail generation');
+      return null;
+    }
+
+    try {
+      const videoId = videoKey.split('/').pop()?.replace(/\.[^/.]+$/, '');
+      const thumbnailUrl = `https://vz-${this.streamLibraryId}.b-cdn.net/${videoId}/thumbnail.jpg`;
+      
+      const response = await fetch(thumbnailUrl, { method: 'HEAD' });
+      if (response.ok) {
+        return thumbnailUrl;
+      }
+
+      console.log(`📸 Generating thumbnail for ${videoKey}...`);
+      return thumbnailUrl;
+    } catch (error) {
+      console.error('Thumbnail generation error:', error);
+      return null;
+    }
+  }
 }
 
 // Firebase Storage アダプター
@@ -36,32 +175,38 @@ class FirebaseStorageAdapter implements StorageAdapter {
   private bucket: any;
 
   constructor() {
-    const { storage } = require('./firebase');
-    this.bucket = storage().bucket();
+    this.bucket = storage.bucket();
   }
 
   async upload(key: string, data: Buffer, contentType?: string): Promise<string> {
-    const file = this.bucket.file(`public/${key}`);
+    // key already includes visibility folder (public/ or private/)
+    const file = this.bucket.file(key);
     await file.save(data, {
       metadata: contentType ? { contentType } : undefined,
     });
-    await file.makePublic();
+    
+    // Only make public if key starts with 'public/'
+    if (key.startsWith('public/')) {
+      await file.makePublic();
+    }
+    
     return this.getPublicUrl(key);
   }
 
   async download(key: string): Promise<Buffer> {
-    const file = this.bucket.file(`public/${key}`);
+    const file = this.bucket.file(key);
     const [buffer] = await file.download();
     return buffer;
   }
 
   async delete(key: string): Promise<void> {
-    const file = this.bucket.file(`public/${key}`);
+    const file = this.bucket.file(key);
     await file.delete();
   }
 
   getPublicUrl(key: string): string {
-    return `/api/proxy/public/${key}`;
+    // Return proxy URL with full key path (public/filename or private/filename)
+    return `/api/proxy/${key}`;
   }
 }
 
@@ -118,7 +263,8 @@ class R2StorageAdapter implements StorageAdapter {
   }
 
   getPublicUrl(key: string): string {
-    return `${this.publicUrl}/${key}`;
+    // Return proxy URL with full key path (public/filename or private/filename)
+    return `/api/proxy/${key}`;
   }
 }
 
@@ -149,7 +295,8 @@ class S3StorageAdapter implements StorageAdapter {
   }
 
   getPublicUrl(key: string): string {
-    return `${this.publicUrl}/${key}`;
+    // Return proxy URL with full key path (public/filename or private/filename)
+    return `/api/proxy/${key}`;
   }
 }
 
@@ -179,7 +326,8 @@ class GCSStorageAdapter implements StorageAdapter {
   }
 
   getPublicUrl(key: string): string {
-    return `${this.publicUrl}/${key}`;
+    // Return proxy URL with full key path (public/filename or private/filename)
+    return `/api/proxy/${key}`;
   }
 }
 
@@ -190,6 +338,8 @@ export const createStorageAdapter = (): StorageAdapter => {
   console.log(`📦 Using storage provider: ${provider}`);
   
   switch (provider) {
+    case 'bunny':
+      return new BunnyCDNStorageAdapter();
     case 'r2':
       return new R2StorageAdapter();
     case 's3':

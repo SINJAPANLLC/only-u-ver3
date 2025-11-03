@@ -14,7 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { auth, db } from '../../firebase';
-import { RecaptchaVerifier, signInWithPhoneNumber, updatePhoneNumber, PhoneAuthProvider } from 'firebase/auth';
+import { RecaptchaVerifier, PhoneAuthProvider, updatePhoneNumber } from 'firebase/auth';
 import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 
@@ -28,7 +28,7 @@ const PhoneVerificationPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [attempts, setAttempts] = useState(0);
-  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [verificationId, setVerificationId] = useState(null);
   const [recaptchaVerifier, setRecaptchaVerifier] = useState(null);
 
   useEffect(() => {
@@ -39,6 +39,9 @@ const PhoneVerificationPage = () => {
   }, [countdown]);
 
   useEffect(() => {
+    // 言語コードを日本語に設定
+    auth.languageCode = 'ja';
+
     // reCAPTCHAの初期化
     if (!recaptchaVerifier && step === 1) {
       try {
@@ -55,6 +58,7 @@ const PhoneVerificationPage = () => {
         setRecaptchaVerifier(verifier);
       } catch (err) {
         console.error('reCAPTCHA初期化エラー:', err);
+        setError('認証システムの初期化に失敗しました。ページをリロードしてください。');
       }
     }
 
@@ -83,6 +87,11 @@ const PhoneVerificationPage = () => {
   };
 
   const handleSendCode = async () => {
+    if (!currentUser) {
+      setError('ログインが必要です');
+      return;
+    }
+
     const cleanedPhone = phoneNumber.replace(/\D/g, '');
     if (!cleanedPhone || cleanedPhone.length < 10) {
       setError('有効な電話番号を入力してください');
@@ -103,22 +112,38 @@ const PhoneVerificationPage = () => {
         ? `+81${cleanedPhone.substring(1)}`
         : `+81${cleanedPhone}`;
 
-      // SMSを送信
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier);
-      setConfirmationResult(confirmation);
+      console.log('📱 電話番号認証を開始:', formattedPhone);
+      console.log('🔐 reCAPTCHA状態:', recaptchaVerifier ? '初期化済み' : '未初期化');
+
+      // SMSを送信（既存ユーザーに電話番号をリンクするための認証コードを取得）
+      const provider = new PhoneAuthProvider(auth);
+      const verId = await provider.verifyPhoneNumber(formattedPhone, recaptchaVerifier);
+      
+      console.log('✅ SMS送信成功 - Verification ID:', verId);
+      
+      setVerificationId(verId);
       setStep(2);
       setCountdown(300);
       setAttempts(0);
     } catch (err) {
-      console.error('SMS送信エラー:', err);
+      console.error('❌ SMS送信エラー:', err);
+      console.error('エラーコード:', err.code);
+      console.error('エラーメッセージ:', err.message);
+      
       if (err.code === 'auth/invalid-phone-number') {
         setError('無効な電話番号です。正しい形式で入力してください。');
       } else if (err.code === 'auth/too-many-requests') {
         setError('リクエストが多すぎます。しばらく待ってから再度お試しください。');
       } else if (err.code === 'auth/captcha-check-failed') {
         setError('reCAPTCHAの検証に失敗しました。ページをリロードしてください。');
+      } else if (err.code === 'auth/quota-exceeded') {
+        setError('⚠️ Firebase SMS送信の上限に達しました。Firebaseコンソールで課金プランを確認してください。');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('⚠️ このドメインは承認されていません。Firebaseコンソールで承認済みドメインを確認してください。');
+      } else if (err.code === 'auth/missing-phone-number') {
+        setError('電話番号が正しく設定されていません。');
       } else {
-        setError('認証コードの送信に失敗しました。もう一度お試しください。');
+        setError(`認証コードの送信に失敗しました: ${err.message || err.code || '不明なエラー'}`);
       }
     } finally {
       setIsLoading(false);
@@ -126,12 +151,17 @@ const PhoneVerificationPage = () => {
   };
 
   const handleVerifyCode = async () => {
+    if (!currentUser) {
+      setError('ログインが必要です');
+      return;
+    }
+
     if (!verificationCode || verificationCode.length !== 6) {
       setError('6桁の認証コードを入力してください');
       return;
     }
 
-    if (!confirmationResult) {
+    if (!verificationId) {
       setError('認証コードが送信されていません');
       return;
     }
@@ -140,21 +170,22 @@ const PhoneVerificationPage = () => {
     setError('');
     
     try {
-      // 認証コードを確認
-      const result = await confirmationResult.confirm(verificationCode);
+      // 認証コードから認証情報を作成
+      const credential = PhoneAuthProvider.credential(verificationId, verificationCode);
+      
+      // 既存ユーザーに電話番号を更新
+      await updatePhoneNumber(currentUser, credential);
       
       // Firestoreにユーザー情報を保存/更新
-      if (result.user) {
-        try {
-          await setDoc(doc(db, 'users', result.user.uid), {
-            phoneNumber: result.user.phoneNumber,
-            phoneVerified: true,
-            verifiedAt: new Date(),
-            updatedAt: new Date()
-          }, { merge: true });
-        } catch (firestoreError) {
-          console.error('Firestore更新エラー:', firestoreError);
-        }
+      try {
+        await setDoc(doc(db, 'users', currentUser.uid), {
+          phoneNumber: currentUser.phoneNumber,
+          phoneVerified: true,
+          verifiedAt: new Date(),
+          updatedAt: new Date()
+        }, { merge: true });
+      } catch (firestoreError) {
+        console.error('Firestore更新エラー:', firestoreError);
       }
 
       setStep(3);
@@ -170,7 +201,7 @@ const PhoneVerificationPage = () => {
             setPhoneNumber('');
             setVerificationCode('');
             setAttempts(0);
-            setConfirmationResult(null);
+            setVerificationId(null);
           }, 2000);
         } else {
           setError(`認証コードが正しくありません。残り${3 - attempts - 1}回`);
@@ -182,7 +213,7 @@ const PhoneVerificationPage = () => {
         setPhoneNumber('');
         setVerificationCode('');
         setAttempts(0);
-        setConfirmationResult(null);
+        setVerificationId(null);
       } else {
         setError('認証に失敗しました。もう一度お試しください。');
         setVerificationCode('');
@@ -199,7 +230,7 @@ const PhoneVerificationPage = () => {
     setStep(1);
     setVerificationCode('');
     setAttempts(0);
-    setConfirmationResult(null);
+    setVerificationId(null);
   };
 
   return (

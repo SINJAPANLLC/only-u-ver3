@@ -1,0 +1,781 @@
+VM691 injected.js:27 Warning: React does not recognize the `fetchPriority` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `fetchpriority` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at img
+    at MotionComponent (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=56502d7b:945:40)
+    at div
+    at div
+    at MotionComponent (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=56502d7b:945:40)
+    at div
+    at div
+    at MotionComponent (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=56502d7b:945:40)
+    at FeaturedCreators (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/components/FeaturedCreators.jsx:28:43)
+    at div
+    at div
+    at Home (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/components/pages/Home.jsx:34:20)
+    at ProtectedRoute (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/App.jsx:220:27)
+    at RenderedRoute (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=56502d7b:5624:26)
+    at Routes (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=56502d7b:6518:3)
+    at Suspense
+    at AppRoutes (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/App.jsx:254:31)
+    at div
+    at Router (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=56502d7b:6461:13)
+    at BrowserRouter (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=56502d7b:9563:3)
+    at NotificationProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/NotificationContext.jsx:28:40)
+    at CreatorProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/CreatorContext.jsx:29:35)
+    at UserStatsProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/UserStatsContext.jsx:31:37)
+    at UnreadMessagesProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/UnreadMessagesContext.jsx:39:42)
+    at AuthProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/AuthContext.jsx:63:32)
+    at ThemeProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/ThemeContext.jsx:29:33)
+    at App
+    at ErrorBoundary (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/components/ErrorBoundary.jsx:8:5)
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+printWarning @ VM703 chunk-RPCDYKBN.js:521
+error @ VM703 chunk-RPCDYKBN.js:505
+validateProperty$1 @ VM703 chunk-RPCDYKBN.js:3427
+warnUnknownProperties @ VM703 chunk-RPCDYKBN.js:3459
+validateProperties$2 @ VM703 chunk-RPCDYKBN.js:3478
+validatePropertiesInDevelopment @ VM703 chunk-RPCDYKBN.js:7346
+setInitialProperties @ VM703 chunk-RPCDYKBN.js:7535
+finalizeInitialChildren @ VM703 chunk-RPCDYKBN.js:8345
+completeWork @ VM703 chunk-RPCDYKBN.js:16293
+completeUnitOfWork @ VM703 chunk-RPCDYKBN.js:19224
+performUnitOfWork @ VM703 chunk-RPCDYKBN.js:19206
+workLoopSync @ VM703 chunk-RPCDYKBN.js:19137
+renderRootSync @ VM703 chunk-RPCDYKBN.js:19116
+performConcurrentWorkOnRoot @ VM703 chunk-RPCDYKBN.js:18678
+workLoop @ VM703 chunk-RPCDYKBN.js:197
+flushWork @ VM703 chunk-RPCDYKBN.js:176
+performWorkUntilDeadline @ VM703 chunk-RPCDYKBN.js:384Understand this error
+VM691 injected.js:27 ✅ Fetched 6 ranking posts with user info
+VM691 injected.js:27 ✅ Fetched 10 posts with creators
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM749 RomanticRanking.jsx:509
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM749 RomanticRanking.jsx:509
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM749 RomanticRanking.jsx:509
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM749 RomanticRanking.jsx:509
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM749 RomanticRanking.jsx:509
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM749 RomanticRanking.jsx:509
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Error loading duration for Fema0qUsAXBfNWvNgY4n: Error: Failed to load video metadata
+    at video.onerror (VM749 RomanticRanking.jsx:335:16)
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+loadVideoDurations @ VM749 RomanticRanking.jsx:313
+await in loadVideoDurations
+(anonymous) @ VM749 RomanticRanking.jsx:323
+commitHookEffectListMount @ VM703 chunk-RPCDYKBN.js:16915
+commitPassiveMountOnFiber @ VM703 chunk-RPCDYKBN.js:18156
+commitPassiveMountEffects_complete @ VM703 chunk-RPCDYKBN.js:18129
+commitPassiveMountEffects_begin @ VM703 chunk-RPCDYKBN.js:18119
+commitPassiveMountEffects @ VM703 chunk-RPCDYKBN.js:18109
+flushPassiveEffectsImpl @ VM703 chunk-RPCDYKBN.js:19490
+flushPassiveEffects @ VM703 chunk-RPCDYKBN.js:19447
+(anonymous) @ VM703 chunk-RPCDYKBN.js:19328
+workLoop @ VM703 chunk-RPCDYKBN.js:197
+flushWork @ VM703 chunk-RPCDYKBN.js:176
+performWorkUntilDeadline @ VM703 chunk-RPCDYKBN.js:384Understand this error
+VM691 injected.js:27 Error loading duration for urw7UxBmqzULw3J5S97n: Error: Failed to load video metadata
+    at video.onerror (VM749 RomanticRanking.jsx:335:16)
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+loadVideoDurations @ VM749 RomanticRanking.jsx:313
+await in loadVideoDurations
+(anonymous) @ VM749 RomanticRanking.jsx:323
+commitHookEffectListMount @ VM703 chunk-RPCDYKBN.js:16915
+commitPassiveMountOnFiber @ VM703 chunk-RPCDYKBN.js:18156
+commitPassiveMountEffects_complete @ VM703 chunk-RPCDYKBN.js:18129
+commitPassiveMountEffects_begin @ VM703 chunk-RPCDYKBN.js:18119
+commitPassiveMountEffects @ VM703 chunk-RPCDYKBN.js:18109
+flushPassiveEffectsImpl @ VM703 chunk-RPCDYKBN.js:19490
+flushPassiveEffects @ VM703 chunk-RPCDYKBN.js:19447
+(anonymous) @ VM703 chunk-RPCDYKBN.js:19328
+workLoop @ VM703 chunk-RPCDYKBN.js:197
+flushWork @ VM703 chunk-RPCDYKBN.js:176
+performWorkUntilDeadline @ VM703 chunk-RPCDYKBN.js:384Understand this error
+VM691 injected.js:27 Error loading duration for knNlV8wGiWLyVNSgOegv: Error: Failed to load video metadata
+    at video.onerror (VM749 RomanticRanking.jsx:335:16)
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+loadVideoDurations @ VM749 RomanticRanking.jsx:313
+await in loadVideoDurations
+(anonymous) @ VM749 RomanticRanking.jsx:323
+commitHookEffectListMount @ VM703 chunk-RPCDYKBN.js:16915
+commitPassiveMountOnFiber @ VM703 chunk-RPCDYKBN.js:18156
+commitPassiveMountEffects_complete @ VM703 chunk-RPCDYKBN.js:18129
+commitPassiveMountEffects_begin @ VM703 chunk-RPCDYKBN.js:18119
+commitPassiveMountEffects @ VM703 chunk-RPCDYKBN.js:18109
+flushPassiveEffectsImpl @ VM703 chunk-RPCDYKBN.js:19490
+flushPassiveEffects @ VM703 chunk-RPCDYKBN.js:19447
+(anonymous) @ VM703 chunk-RPCDYKBN.js:19328
+workLoop @ VM703 chunk-RPCDYKBN.js:197
+flushWork @ VM703 chunk-RPCDYKBN.js:176
+performWorkUntilDeadline @ VM703 chunk-RPCDYKBN.js:384Understand this error
+VM691 injected.js:27 Error loading duration for BXjU5j7fjw2S7XrkrZBE: Error: Failed to load video metadata
+    at video.onerror (VM749 RomanticRanking.jsx:335:16)
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+loadVideoDurations @ VM749 RomanticRanking.jsx:313
+await in loadVideoDurations
+(anonymous) @ VM749 RomanticRanking.jsx:323
+commitHookEffectListMount @ VM703 chunk-RPCDYKBN.js:16915
+commitPassiveMountOnFiber @ VM703 chunk-RPCDYKBN.js:18156
+commitPassiveMountEffects_complete @ VM703 chunk-RPCDYKBN.js:18129
+commitPassiveMountEffects_begin @ VM703 chunk-RPCDYKBN.js:18119
+commitPassiveMountEffects @ VM703 chunk-RPCDYKBN.js:18109
+flushPassiveEffectsImpl @ VM703 chunk-RPCDYKBN.js:19490
+flushPassiveEffects @ VM703 chunk-RPCDYKBN.js:19447
+(anonymous) @ VM703 chunk-RPCDYKBN.js:19328
+workLoop @ VM703 chunk-RPCDYKBN.js:197
+flushWork @ VM703 chunk-RPCDYKBN.js:176
+performWorkUntilDeadline @ VM703 chunk-RPCDYKBN.js:384Understand this error
+VM691 injected.js:27 Error loading duration for Il4PQRS9SgkT3y8IUdhR: Error: Failed to load video metadata
+    at video.onerror (VM749 RomanticRanking.jsx:335:16)
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+loadVideoDurations @ VM749 RomanticRanking.jsx:313
+await in loadVideoDurations
+(anonymous) @ VM749 RomanticRanking.jsx:323
+commitHookEffectListMount @ VM703 chunk-RPCDYKBN.js:16915
+commitPassiveMountOnFiber @ VM703 chunk-RPCDYKBN.js:18156
+commitPassiveMountEffects_complete @ VM703 chunk-RPCDYKBN.js:18129
+commitPassiveMountEffects_begin @ VM703 chunk-RPCDYKBN.js:18119
+commitPassiveMountEffects @ VM703 chunk-RPCDYKBN.js:18109
+flushPassiveEffectsImpl @ VM703 chunk-RPCDYKBN.js:19490
+flushPassiveEffects @ VM703 chunk-RPCDYKBN.js:19447
+(anonymous) @ VM703 chunk-RPCDYKBN.js:19328
+workLoop @ VM703 chunk-RPCDYKBN.js:197
+flushWork @ VM703 chunk-RPCDYKBN.js:176
+performWorkUntilDeadline @ VM703 chunk-RPCDYKBN.js:384Understand this error
+only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4:1  GET https://only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4 net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin 206 (Partial Content)Understand this error
+only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4:1  GET https://only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4 net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin 206 (Partial Content)Understand this error
+only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4:1  GET https://only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4 net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin 206 (Partial Content)Understand this error
+VM691 injected.js:27 🖼️ Post 1 Thumbnail: original: https://only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4 proxy: /api/proxy/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4
+VM691 injected.js:27 🖼️ Post 2 Thumbnail: original: /objects/f0f7442f-0229-4f44-8c42-e9fffac47799.mp4 proxy: /api/proxy/public/f0f7442f-0229-4f44-8c42-e9fffac47799.mp4
+VM691 injected.js:27 📊 Top 6 posts by score: (6) [{…}, {…}, {…}, {…}, {…}, {…}]
+VM691 injected.js:27 ✅ Fetched 6 ranking posts with user info
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM766 RomanticRanking.jsx:484
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM766 RomanticRanking.jsx:484
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM766 RomanticRanking.jsx:484
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM766 RomanticRanking.jsx:484
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM766 RomanticRanking.jsx:484
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 Video thumbnail error: SyntheticBaseEvent {_reactName: 'onError', _targetInst: null, type: 'error', nativeEvent: Event, target: video.w-full.h-full.object-cover, …}
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+(anonymous) @ VM691 injected.js:27
+onError @ VM766 RomanticRanking.jsx:484
+callCallback2 @ VM703 chunk-RPCDYKBN.js:3674
+invokeGuardedCallbackDev @ VM703 chunk-RPCDYKBN.js:3699
+invokeGuardedCallback @ VM703 chunk-RPCDYKBN.js:3733
+invokeGuardedCallbackAndCatchFirstError @ VM703 chunk-RPCDYKBN.js:3736
+executeDispatch @ VM703 chunk-RPCDYKBN.js:7014
+processDispatchQueueItemsInOrder @ VM703 chunk-RPCDYKBN.js:7034
+processDispatchQueue @ VM703 chunk-RPCDYKBN.js:7043
+dispatchEventsForPlugins @ VM703 chunk-RPCDYKBN.js:7051
+(anonymous) @ VM703 chunk-RPCDYKBN.js:7174
+batchedUpdates$1 @ VM703 chunk-RPCDYKBN.js:18913
+batchedUpdates @ VM703 chunk-RPCDYKBN.js:3579
+dispatchEventForPluginEventSystem @ VM703 chunk-RPCDYKBN.js:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ VM703 chunk-RPCDYKBN.js:5478
+dispatchEvent @ VM703 chunk-RPCDYKBN.js:5472Understand this error
+VM691 injected.js:27 🖼️ Post 1 Thumbnail: original: https://only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4 proxy: /api/proxy/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4
+VM691 injected.js:27 🖼️ Post 2 Thumbnail: original: /objects/f0f7442f-0229-4f44-8c42-e9fffac47799.mp4 proxy: /api/proxy/public/f0f7442f-0229-4f44-8c42-e9fffac47799.mp4
+VM691 injected.js:27 📊 Top 6 posts by score: (6) [{…}, {…}, {…}, {…}, {…}, {…}]
+VM691 injected.js:27 ✅ Fetched 6 ranking posts with user info
+VM691 injected.js:27 [vite] server connection lost. Polling for restart...
+VM691 injected.js:204  GET https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/ 502 (Bad Gateway)
+apply @ VM691 injected.js:204
+ping @ VM695 client:736
+waitForSuccessfulPing @ VM695 client:749
+(anonymous) @ VM695 client:561Understand this error
+  GET https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/ 502 (Bad Gateway)
+apply @ 32097a0a-30e6-457b-9…ols/injected.js:204
+ping @ 32097a0a-30e6-457b-9…ev/@vite/client:736
+waitForSuccessfulPing @ 32097a0a-30e6-457b-9…ev/@vite/client:749
+(anonymous) @ 32097a0a-30e6-457b-9…ev/@vite/client:561Understand this error
+  GET https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/ 502 (Bad Gateway)
+apply @ 32097a0a-30e6-457b-9…ols/injected.js:204
+ping @ 32097a0a-30e6-457b-9…ev/@vite/client:736
+waitForSuccessfulPing @ 32097a0a-30e6-457b-9…ev/@vite/client:749
+(anonymous) @ 32097a0a-30e6-457b-9…ev/@vite/client:561Understand this error
+VM695 client:562  GET https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/home 502 (Bad Gateway)
+(anonymous) @ VM695 client:562Understand this error
+  GET https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/home 502 (Bad Gateway)
+(anonymous) @ 32097a0a-30e6-457b-9…ev/@vite/client:562Understand this error
+  GET https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/home 502 (Bad Gateway)
+(anonymous) @ 32097a0a-30e6-457b-9…ev/@vite/client:562Understand this error
+injected.js:27 🔥 Firebase Config: {projectId: 'onlyu1020-c6696', authDomain: 'onlyu1020-c6696.firebaseapp.com', apiKeyLength: 39}
+injected.js:27 ✅ Firebase Auth initialized
+injected.js:27 🎨 Theme changed to: light
+injected.js:27 ✅ Removed dark class from html element
+injected.js:27 📄 HTML classes: 
+injected.js:27 Auth state changed: _UserImpl {providerId: 'firebase', proactiveRefresh: ProactiveRefresh, reloadUserInfo: {…}, reloadListener: null, uid: 'VZg6w9CTnGZhWewtKVt3ryFW7962', …}
+injected.js:27 📊 User stats loaded: {purchased: 0, saved: 11, liked: 16, viewingHistory: 74}
+injected.js:27 📱 PWA install button enabled (development mode)
+injected.js:27 🔔 Setting up notification listener...
+injected.js:27 📦 Received 0 notifications from Firestore
+injected.js:27 📖 Read notification IDs: []
+injected.js:27 📋 All notifications: []
+injected.js:27 ✅ Displaying 0 unread notifications
+injected.js:27 📊 Genre counts loaded: {}
+injected.js:27 🖼️ Post 1 Thumbnail: original: https://only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4 proxy: /api/proxy/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4
+injected.js:27 🖼️ Post 2 Thumbnail: original: /objects/f0f7442f-0229-4f44-8c42-e9fffac47799.mp4 proxy: /api/proxy/public/f0f7442f-0229-4f44-8c42-e9fffac47799.mp4
+injected.js:27 📊 Top 6 posts by score: (6) [{…}, {…}, {…}, {…}, {…}, {…}]
+injected.js:27 ✅ Fetched 1 approved creators
+injected.js:27 Warning: React does not recognize the `fetchPriority` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `fetchpriority` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at img
+    at MotionComponent (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=56502d7b:945:40)
+    at div
+    at div
+    at MotionComponent (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=56502d7b:945:40)
+    at div
+    at div
+    at MotionComponent (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/framer-motion.js?v=56502d7b:945:40)
+    at FeaturedCreators (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/components/FeaturedCreators.jsx:28:43)
+    at div
+    at div
+    at Home (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/components/pages/Home.jsx:34:20)
+    at ProtectedRoute (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/App.jsx:220:27)
+    at RenderedRoute (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=56502d7b:5624:26)
+    at Routes (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=56502d7b:6518:3)
+    at Suspense
+    at AppRoutes (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/App.jsx:254:31)
+    at div
+    at Router (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=56502d7b:6461:13)
+    at BrowserRouter (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=56502d7b:9563:3)
+    at NotificationProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/NotificationContext.jsx:28:40)
+    at CreatorProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/CreatorContext.jsx:29:35)
+    at UserStatsProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/UserStatsContext.jsx:31:37)
+    at UnreadMessagesProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/UnreadMessagesContext.jsx:39:42)
+    at AuthProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/AuthContext.jsx:63:32)
+    at ThemeProvider (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/context/ThemeContext.jsx:29:33)
+    at App
+    at ErrorBoundary (https://32097a0a-30e6-457b-9def-2b730ccecb24-00-31adkputbtkiq.janeway.replit.dev/src/components/ErrorBoundary.jsx:8:5)
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+(anonymous) @ injected.js:27
+printWarning @ chunk-RPCDYKBN.js?v=56502d7b:521
+error @ chunk-RPCDYKBN.js?v=56502d7b:505
+validateProperty$1 @ chunk-RPCDYKBN.js?v=56502d7b:3427
+warnUnknownProperties @ chunk-RPCDYKBN.js?v=56502d7b:3459
+validateProperties$2 @ chunk-RPCDYKBN.js?v=56502d7b:3478
+validatePropertiesInDevelopment @ chunk-RPCDYKBN.js?v=56502d7b:7346
+setInitialProperties @ chunk-RPCDYKBN.js?v=56502d7b:7535
+finalizeInitialChildren @ chunk-RPCDYKBN.js?v=56502d7b:8345
+completeWork @ chunk-RPCDYKBN.js?v=56502d7b:16293
+completeUnitOfWork @ chunk-RPCDYKBN.js?v=56502d7b:19224
+performUnitOfWork @ chunk-RPCDYKBN.js?v=56502d7b:19206
+workLoopSync @ chunk-RPCDYKBN.js?v=56502d7b:19137
+renderRootSync @ chunk-RPCDYKBN.js?v=56502d7b:19116
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=56502d7b:18678
+workLoop @ chunk-RPCDYKBN.js?v=56502d7b:197
+flushWork @ chunk-RPCDYKBN.js?v=56502d7b:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=56502d7b:384Understand this error
+injected.js:27 ✅ Fetched 6 ranking posts with user info
+injected.js:27 ✅ Fetched 10 posts with creators
+only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4:1  GET https://only-u.fun/public/1762093381936-f4a67d369d024cd1961bf52fd82ba29f.mp4 net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin 206 (Partial Content)

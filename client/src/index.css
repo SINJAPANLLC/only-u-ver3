@@ -16,6 +16,8 @@
     -webkit-text-size-adjust: 100%;
     font-feature-settings: normal;
     font-variation-settings: normal;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
@@ -25,6 +27,13 @@
     -moz-osx-font-smoothing: grayscale;
     background-color: #f9fafb;
     color: #111827;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    overscroll-behavior-y: none;
+  }
+
+  .dark body {
+    background-color: #0a0a0a;
+    color: #e5e5e5;
   }
 
   /* Hide scrollbar for Chrome, Safari and Opera */
@@ -40,32 +49,211 @@
 }
 
 @layer components {
+  /* 3D立体ボタン - ニューモーフィック */
   .btn-primary {
-    @apply bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-95;
+    @apply relative bg-gradient-to-br from-pink-500 via-pink-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl overflow-hidden;
+    box-shadow: 
+      0 4px 15px rgba(236, 72, 153, 0.4),
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      inset 0 -2px 10px rgba(0, 0, 0, 0.1),
+      inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent);
+    border-radius: 0.75rem 0.75rem 0 0;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 8px 25px rgba(236, 72, 153, 0.5),
+      0 4px 10px rgba(0, 0, 0, 0.2),
+      inset 0 -2px 10px rgba(0, 0, 0, 0.1),
+      inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  }
+
+  .btn-primary:active {
+    transform: translateY(1px);
+    box-shadow: 
+      0 2px 10px rgba(236, 72, 153, 0.3),
+      inset 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  /* セカンダリボタン - ソフトニューモーフィック */
   .btn-secondary {
-    @apply bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors duration-200;
+    @apply relative bg-gradient-to-br from-gray-50 to-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg;
+    box-shadow:
+      6px 6px 12px rgba(0, 0, 0, 0.08),
+      -6px -6px 12px rgba(255, 255, 255, 0.9),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
   }
 
+  .btn-secondary:hover {
+    box-shadow:
+      8px 8px 16px rgba(0, 0, 0, 0.1),
+      -8px -8px 16px rgba(255, 255, 255, 1),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.6);
+  }
+
+  .btn-secondary:active {
+    box-shadow:
+      inset 4px 4px 8px rgba(0, 0, 0, 0.1),
+      inset -4px -4px 8px rgba(255, 255, 255, 0.5);
+  }
+
+  /* グラスモーフィズムカード - 強化版 */
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow duration-200;
+    @apply relative bg-white/90 rounded-2xl p-4 overflow-hidden;
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.04),
+      inset 0 1px 1px rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.06),
+      inset 0 1px 1px rgba(255, 255, 255, 1),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.05),
+      0 0 0 1px rgba(236, 72, 153, 0.1);
+  }
+
+  /* プレミアムグラスカード */
   .glass {
-    @apply backdrop-blur-md bg-white/80 border border-white/20;
+    @apply relative backdrop-blur-xl bg-white/70 border border-white/30 rounded-2xl;
+    box-shadow:
+      0 8px 32px rgba(31, 38, 135, 0.15),
+      inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  }
+
+  .glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* 3Dフローティングカード */
+  .card-3d {
+    @apply relative bg-white/90 rounded-2xl p-4 overflow-hidden;
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.04),
+      inset 0 1px 1px rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+
+  .card-3d::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  }
+
+  .card-3d:hover {
+    transform: translateY(-8px) rotateX(2deg);
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.06),
+      inset 0 1px 1px rgba(255, 255, 255, 1),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.05),
+      0 0 0 1px rgba(236, 72, 153, 0.1);
   }
 }
 
 @layer utilities {
+  /* グラデーションテキスト */
   .text-gradient {
     @apply bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent;
   }
 
+  .text-gradient-3d {
+    @apply bg-gradient-to-br from-pink-400 via-pink-500 to-purple-600 bg-clip-text text-transparent;
+    filter: drop-shadow(0 2px 4px rgba(236, 72, 153, 0.3));
+  }
+
+  /* 3Dシャドウエフェクト */
   .shadow-glow {
     box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
   }
 
+  .shadow-3d {
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
+  .shadow-elevated {
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.15),
+      0 8px 20px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .shadow-neumorphic {
+    box-shadow:
+      8px 8px 16px rgba(0, 0, 0, 0.1),
+      -8px -8px 16px rgba(255, 255, 255, 0.9),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.5);
+  }
+
+  /* グラスエフェクト */
+  .glass-effect {
+    backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .glass-dark {
+    backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* アニメーション */
   .animate-bounce-slow {
     animation: bounce 2s infinite;
   }
@@ -73,16 +261,77 @@
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  .animate-shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .animate-shine::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      45deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 70%
+    );
+    animation: shine 3s ease-in-out infinite;
+  }
+
+  /* ホバー3Dトランスフォーム */
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  .hover-3d {
+    transition: all 0.3s ease;
+    transform-style: preserve-3d;
+  }
+
+  .hover-3d:hover {
+    transform: translateY(-8px) rotateX(5deg) scale(1.02);
+  }
 }
 
 @keyframes float {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0px);
   }
-
   50% {
     transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(236, 72, 153, 0.6);
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
   }
 }

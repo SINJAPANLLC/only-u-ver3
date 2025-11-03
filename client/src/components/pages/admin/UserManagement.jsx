@@ -18,7 +18,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { db } from '../../../firebase';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, startAfter, getDocs, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '../../../hooks/use-toast';
 import { 
   AdminPageContainer, 
@@ -76,6 +76,11 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [banReason, setBanReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Pagination state
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const statusOptions = [
     { value: 'all', label: 'すべて' },
@@ -90,37 +95,57 @@ const UserManagement = () => {
     { value: 'creator', label: 'クリエイター' }
   ];
 
-  // Firestoreからユーザーデータをリアルタイム取得
+  // Firestoreからユーザーデータを取得（getDocs使用でページネーション安定化）
   useEffect(() => {
-    const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-    
-    const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          username: data.username || data.displayName || 'Unknown',
-          email: data.email || 'No email',
-          displayName: data.displayName || data.username || 'Unknown',
-          role: data.isCreator ? 'creator' : 'user',
-          status: data.isBanned ? 'banned' : 'active',
-          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-          lastLogin: data.lastLoginAt?.toDate ? data.lastLoginAt.toDate() : new Date(),
-          postsCount: data.postsCount || 0,
-          followersCount: data.followersCount || 0,
-          followingCount: data.followingCount || 0,
-          totalEarnings: data.totalEarnings || 0,
-          isVerified: data.isVerified || false,
-          photoURL: data.photoURL || null
-        };
-      });
-      
-      setUsers(usersData);
-      setLoading(false);
-      setIsRefreshing(false);
-    });
+    const fetchInitialUsers = async () => {
+      try {
+        const usersQuery = query(
+          collection(db, 'users'), 
+          orderBy('createdAt', 'desc'),
+          limit(100)
+        );
+        
+        const snapshot = await getDocs(usersQuery);
+        
+        const usersData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            username: data.username || data.displayName || 'Unknown',
+            email: data.email || 'No email',
+            displayName: data.displayName || data.username || 'Unknown',
+            role: data.isCreator ? 'creator' : 'user',
+            status: data.isBanned ? 'banned' : 'active',
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+            lastLogin: data.lastLoginAt?.toDate ? data.lastLoginAt.toDate() : new Date(),
+            postsCount: data.postsCount || 0,
+            followersCount: data.followersCount || 0,
+            followingCount: data.followingCount || 0,
+            totalEarnings: data.totalEarnings || 0,
+            isVerified: data.isVerified || false,
+            photoURL: data.photoURL || null
+          };
+        });
+        
+        // Check if there are more users
+        if (snapshot.docs.length < 100) {
+          setHasMore(false);
+        } else if (snapshot.docs.length > 0) {
+          setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+          setHasMore(true);
+        }
+        
+        setUsers(usersData);
+        console.log(`✅ Loaded ${usersData.length} users (limit: 100)`);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setLoading(false);
+        setIsRefreshing(false);
+      }
+    };
 
-    return () => unsubscribe();
+    fetchInitialUsers();
   }, []);
 
   // フィルタリング
@@ -158,8 +183,122 @@ const UserManagement = () => {
     setStats(newStats);
   }, [users]);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
+    
+    try {
+      const usersQuery = query(
+        collection(db, 'users'), 
+        orderBy('createdAt', 'desc'),
+        limit(100)
+      );
+      
+      const snapshot = await getDocs(usersQuery);
+      
+      const usersData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          username: data.username || data.displayName || 'Unknown',
+          email: data.email || 'No email',
+          displayName: data.displayName || data.username || 'Unknown',
+          role: data.isCreator ? 'creator' : 'user',
+          status: data.isBanned ? 'banned' : 'active',
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+          lastLogin: data.lastLoginAt?.toDate ? data.lastLoginAt.toDate() : new Date(),
+          postsCount: data.postsCount || 0,
+          followersCount: data.followersCount || 0,
+          followingCount: data.followingCount || 0,
+          totalEarnings: data.totalEarnings || 0,
+          isVerified: data.isVerified || false,
+          photoURL: data.photoURL || null
+        };
+      });
+      
+      // Reset pagination state
+      if (snapshot.docs.length < 100) {
+        setHasMore(false);
+      } else if (snapshot.docs.length > 0) {
+        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(true);
+      }
+      
+      setUsers(usersData);
+      console.log(`🔄 Refreshed ${usersData.length} users`);
+    } catch (error) {
+      console.error('Error refreshing users:', error);
+      toast({
+        title: 'エラー',
+        description: 'ユーザーデータの更新に失敗しました',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Load more users with pagination
+  const loadMoreUsers = async () => {
+    if (!hasMore || loadingMore || !lastDoc) return;
+    
+    try {
+      setLoadingMore(true);
+      
+      const usersQuery = query(
+        collection(db, 'users'),
+        orderBy('createdAt', 'desc'),
+        startAfter(lastDoc),
+        limit(100)
+      );
+      
+      const snapshot = await getDocs(usersQuery);
+      
+      if (snapshot.docs.length === 0) {
+        setHasMore(false);
+        return;
+      }
+      
+      const newUsers = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          username: data.username || data.displayName || 'Unknown',
+          email: data.email || 'No email',
+          displayName: data.displayName || data.username || 'Unknown',
+          role: data.isCreator ? 'creator' : 'user',
+          status: data.isBanned ? 'banned' : 'active',
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+          lastLogin: data.lastLoginAt?.toDate ? data.lastLoginAt.toDate() : new Date(),
+          postsCount: data.postsCount || 0,
+          followersCount: data.followersCount || 0,
+          followingCount: data.followingCount || 0,
+          totalEarnings: data.totalEarnings || 0,
+          isVerified: data.isVerified || false,
+          photoURL: data.photoURL || null
+        };
+      });
+      
+      // Update pagination state
+      if (snapshot.docs.length < 100) {
+        setHasMore(false);
+      } else {
+        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      }
+      
+      setUsers(prev => [...prev, ...newUsers]);
+      
+      console.log(`✅ Loaded ${newUsers.length} more users`);
+      
+    } catch (error) {
+      console.error('Error loading more users:', error);
+      toast({
+        title: 'エラー',
+        description: 'ユーザーの読み込みに失敗しました',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -207,6 +346,13 @@ const UserManagement = () => {
         updatedAt: serverTimestamp()
       });
 
+      // Update local state immediately
+      setUsers(prev => prev.map(u => 
+        u.id === selectedUser.id 
+          ? { ...u, status: 'banned' }
+          : u
+      ));
+
       toast({
         title: '成功',
         description: `${selectedUser.displayName}をBANしました`,
@@ -238,6 +384,13 @@ const UserManagement = () => {
         updatedAt: serverTimestamp()
       });
 
+      // Update local state immediately
+      setUsers(prev => prev.map(u => 
+        u.id === user.id 
+          ? { ...u, status: 'active' }
+          : u
+      ));
+
       toast({
         title: '成功',
         description: `${user.displayName}のBANを解除しました`,
@@ -260,6 +413,9 @@ const UserManagement = () => {
     setIsProcessing(true);
     try {
       await deleteDoc(doc(db, 'users', selectedUser.id));
+
+      // Remove user from local state immediately
+      setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
 
       toast({
         title: '成功',
@@ -330,6 +486,9 @@ const UserManagement = () => {
       />
 
       {/* 統計カード */}
+      <div className="mb-2 text-sm text-gray-500 text-center">
+        ※ 統計は読み込み済みユーザー ({users.length}人) のみを反映しています
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <AdminStatsCard
           title="総ユーザー数"
@@ -551,6 +710,29 @@ const UserManagement = () => {
           />
         )}
       </AdminTableContainer>
+
+      {/* Load More Button for Pagination */}
+      {hasMore && !loading && users.length > 0 && (
+        <div className="flex justify-center mt-6">
+          <motion.button
+            onClick={loadMoreUsers}
+            disabled={loadingMore}
+            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+            whileHover={{ scale: loadingMore ? 1 : 1.05 }}
+            whileTap={{ scale: loadingMore ? 1 : 0.95 }}
+            data-testid="button-load-more-users"
+          >
+            {loadingMore ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>読み込み中...</span>
+              </div>
+            ) : (
+              <span>さらに読み込む</span>
+            )}
+          </motion.button>
+        </div>
+      )}
 
       {/* BANモーダル */}
       <AnimatePresence>

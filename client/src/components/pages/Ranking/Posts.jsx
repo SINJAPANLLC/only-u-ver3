@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Crown, Heart, Bookmark } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../../../firebase';
-import { collection, query, where, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, startAfter } from 'firebase/firestore';
 import rankingImg1 from '@assets/00220-1604543024_0_1760917144953.png';
 import rankingImg2 from '@assets/00035-3167998813_1760917144953.png';
 import rankingImg3 from '@assets/00465-2336099699_0_1760917144954.jpg';
@@ -19,6 +19,9 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
     const [bookmarkedPosts, setBookmarkedPosts] = useState(new Set());
     const [rankingPosts, setRankingPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [lastDoc, setLastDoc] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
     const [videoDurations, setVideoDurations] = useState({});
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -102,6 +105,18 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
     const convertToProxyUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('/api/proxy/')) return url;
+        
+        // Bunny CDN直接URL（CORSエラーを防ぐためプロキシ経由に変換）
+        if (url.includes('only-u.fun/') || url.includes('b-cdn.net/')) {
+            const bunnyPattern = /https?:\/\/[^/]+\/(public|private)\/(.+)/;
+            const match = url.match(bunnyPattern);
+            if (match) {
+                const folder = match[1];
+                const filename = match[2];
+                return `/api/proxy/${folder}/${filename}`;
+            }
+        }
+        
         if (url.includes('storage.googleapis.com')) {
             const match = url.match(/\/(public|\.private)\/([^?]+)/);
             if (match) {
@@ -116,35 +131,84 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
         return url;
     };
     
-    // Fetch ranking posts from Firestore
+    // Fetch ranking posts from Firestore (initial load)
     useEffect(() => {
         const fetchRankingPosts = async () => {
             try {
                 setLoading(true);
+                setRankingPosts([]);
+                setLastDoc(null);
+                setHasMore(true);
                 
-                // 全ての公開投稿を取得（クライアント側でソート・フィルタリング）
+                // Build optimized Firestore query (client-side filtering to avoid index requirement)
                 const postsQuery = collection(db, 'posts');
+                
+                // Simple query with just ordering (no composite index needed)
                 const q = query(
                     postsQuery,
-                    where('visibility', '==', 'public'),
-                    limit(100)
+                    orderBy('createdAt', 'desc'),
+                    limit(50) // Fetch more posts since we'll filter client-side
                 );
                 
                 const querySnapshot = await getDocs(q);
                 const fetchedPosts = [];
                 const userIds = new Set();
                 
+                // Check if there are more posts to load
+                if (querySnapshot.docs.length < 20) {
+                    setHasMore(false);
+                } else {
+                    // Store the last document for pagination
+                    setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+                }
+                
                 querySnapshot.forEach((docSnap) => {
                     const data = docSnap.data();
                     
-                    // 限定コンテンツはランキングから除外
-                    if (data.isExclusiveContent === true) {
-                        return;
+                    // Client-side filtering (to avoid composite index requirement)
+                    if (data.visibility !== 'public' || data.isExclusiveContent === true) {
+                        return; // Skip non-public or exclusive posts
                     }
                     
-                    const thumbnail = data.files && data.files.length > 0 
-                        ? convertToProxyUrl(data.files[0].thumbnailUrl || data.files[0].url)
-                        : null;
+                    // Tag filtering (if specified)
+                    if (activeTagFilter && activeTagFilter !== 'all') {
+                        const postTags = Array.isArray(data.tags) ? data.tags : 
+                                       (typeof data.tags === 'string' && data.tags.trim()) ? [data.tags.trim()] : [];
+                        if (!postTags.includes(activeTagFilter)) {
+                            return; // Skip posts without the specified tag
+                        }
+                    }
+                    
+                    // サムネイルURLを決定（動画の場合は最初のフレームを使用）
+                    const firstFile = data.files && data.files.length > 0 ? data.files[0] : null;
+                    const isVideo = firstFile && firstFile.type && firstFile.type.startsWith('video/');
+                    let thumbnail = null;
+                    let videoUrl = null;
+                    
+                    if (firstFile) {
+                        if (isVideo) {
+                            // 動画の場合: まず動画URLを作成（フォールバック用）
+                            const rawVideoUrl = firstFile.secure_url || firstFile.url || (firstFile.storageUri ? `/api/proxy/${firstFile.storageUri}` : null);
+                            const proxyUrl = convertToProxyUrl(rawVideoUrl);
+                            // #t=0.001を追加して最初のフレームを表示
+                            videoUrl = proxyUrl ? `${proxyUrl}#t=0.001` : null;
+                            
+                            // Bunny Stream サムネイル（/api/bunny-stream-thumbnail/）は403エラーの可能性があるため、動画を使用
+                            // thumbnailUrlが画像ファイル（.jpg, .pngなど）であり、Bunny Streamのサムネイルでない場合のみ使用
+                            if (firstFile.thumbnailUrl && 
+                                !firstFile.thumbnailUrl.match(/\.(mp4|webm|mov|avi)$/i) &&
+                                !firstFile.thumbnailUrl.includes('/api/bunny-stream-thumbnail/')) {
+                                thumbnail = convertToProxyUrl(firstFile.thumbnailUrl);
+                            } else {
+                                // サムネイル画像がない場合、またはBunny Streamサムネイルの場合は動画URLを使用
+                                thumbnail = videoUrl;
+                            }
+                        } else {
+                            // 画像の場合: 通常通り
+                            const rawUrl = firstFile.thumbnailUrl || firstFile.secure_url || firstFile.url || (firstFile.storageUri ? `/api/proxy/${firstFile.storageUri}` : null);
+                            thumbnail = convertToProxyUrl(rawUrl);
+                        }
+                    }
                     
                     // tagsを配列に正規化（文字列または配列の可能性がある）
                     let tags = [];
@@ -165,7 +229,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                         userAvatar: data.userAvatar || null,
                         createdAt: data.createdAt ? new Date(data.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
                         tags: tags,
-                        duration: data.duration || '00:00',
+                        duration: data.files?.[0]?.duration || data.duration || '00:00',
                         score: (data.likes || 0) + (data.bookmarks || 0)
                     });
                     
@@ -174,21 +238,41 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                     }
                 });
                 
-                // ユーザー情報を取得
+                // Batch user info fetch (optimized)
                 const usersMap = {};
-                for (const userId of userIds) {
-                    try {
-                        const userDoc = await getDoc(doc(db, 'users', userId));
-                        if (userDoc.exists()) {
-                            const userData = userDoc.data();
-                            usersMap[userId] = {
-                                userName: userData.displayName || userData.username || '匿名',
-                                userAvatar: convertToProxyUrl(userData.photoURL) || null
+                const userIdsArray = Array.from(userIds);
+                
+                // Fetch users in batches of 10 to avoid overwhelming Firestore
+                for (let i = 0; i < userIdsArray.length; i += 10) {
+                    const batch = userIdsArray.slice(i, i + 10);
+                    const userPromises = batch.map(userId => 
+                        getDoc(doc(db, 'users', userId))
+                            .then(userDoc => {
+                                if (userDoc.exists()) {
+                                    const userData = userDoc.data();
+                                    return {
+                                        userId,
+                                        userName: userData.displayName || userData.username || '匿名',
+                                        userAvatar: convertToProxyUrl(userData.photoURL) || null
+                                    };
+                                }
+                                return null;
+                            })
+                            .catch(error => {
+                                console.error('Error fetching user:', error);
+                                return null;
+                            })
+                    );
+                    
+                    const batchResults = await Promise.all(userPromises);
+                    batchResults.forEach(result => {
+                        if (result) {
+                            usersMap[result.userId] = {
+                                userName: result.userName,
+                                userAvatar: result.userAvatar
                             };
                         }
-                    } catch (error) {
-                        console.error('Error fetching user:', error);
-                    }
+                    });
                 }
                 
                 // ユーザー情報を投稿に統合
@@ -199,28 +283,11 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                     userAvatar: usersMap[post.userId]?.userAvatar || post.userAvatar
                 }));
                 
-                // クライアント側で作成日時でソート（新しい順）
-                postsWithUserInfo.sort((a, b) => {
-                    const dateA = new Date(a.createdAt);
-                    const dateB = new Date(b.createdAt);
-                    return dateB - dateA;
-                });
-                
-                // クライアント側でタグフィルタリング
-                if (activeTagFilter && activeTagFilter !== 'all') {
-                    postsWithUserInfo = postsWithUserInfo.filter(post => 
-                        post.tags && post.tags.includes(activeTagFilter)
-                    );
-                }
-                
-                // スコアでソート
+                // スコアでソート（client-side sorting for ranking)
                 const sortedPosts = postsWithUserInfo.sort((a, b) => b.score - a.score);
                 
-                // 上位50件に制限
-                const limitedPosts = sortedPosts.slice(0, 50);
-                
-                setRankingPosts(limitedPosts);
-                console.log(`✅ Fetched ${limitedPosts.length} ranking posts with tag filter: ${activeTagFilter}`);
+                setRankingPosts(sortedPosts);
+                console.log(`✅ Fetched ${sortedPosts.length} ranking posts with tag filter: ${activeTagFilter}`);
                 
             } catch (error) {
                 console.error('Error fetching ranking posts:', error);
@@ -228,7 +295,10 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                 // Firestoreインデックスエラーの場合はユーザーにわかりやすいメッセージを表示
                 if (error.code === 'failed-precondition') {
                     console.error('❌ Firestore index required. Please create the composite index in Firebase Console.');
-                    console.error('Index needed: Collection: posts, Fields: visibility (ASC), tags (ASC), createdAt (DESC)');
+                    console.error('Index needed: Collection: posts, Fields: visibility (ASC), isExclusiveContent (ASC), createdAt (DESC)');
+                    if (activeTagFilter && activeTagFilter !== 'all') {
+                        console.error('With tag filter: Collection: posts, Fields: visibility (ASC), isExclusiveContent (ASC), tags (ASC), createdAt (DESC)');
+                    }
                 }
                 
                 setRankingPosts([]);
@@ -239,6 +309,163 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
         
         fetchRankingPosts();
     }, [activeTagFilter, activeTimeFilter]);
+    
+    // Load more posts (pagination)
+    const loadMoreRankingPosts = async () => {
+        if (!hasMore || loadingMore || !lastDoc) return;
+        
+        try {
+            setLoadingMore(true);
+            
+            // Build query with same conditions as initial load
+            const postsQuery = collection(db, 'posts');
+            let queryConditions = [
+                where('visibility', '==', 'public'),
+                where('isExclusiveContent', '==', false)
+            ];
+            
+            if (activeTagFilter && activeTagFilter !== 'all') {
+                queryConditions.push(where('tags', 'array-contains', activeTagFilter));
+            }
+            
+            queryConditions.push(orderBy('createdAt', 'desc'));
+            queryConditions.push(startAfter(lastDoc)); // Pagination cursor
+            queryConditions.push(limit(20));
+            
+            const q = query(postsQuery, ...queryConditions);
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.docs.length === 0) {
+                setHasMore(false);
+                return;
+            }
+            
+            const fetchedPosts = [];
+            const userIds = new Set();
+            
+            // Check if there are more posts after this batch
+            if (querySnapshot.docs.length < 20) {
+                setHasMore(false);
+            } else {
+                setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+            }
+            
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                
+                // サムネイルURLを決定（動画の場合は最初のフレームを使用）
+                const firstFile = data.files && data.files.length > 0 ? data.files[0] : null;
+                const isVideo = firstFile && firstFile.type && firstFile.type.startsWith('video/');
+                let thumbnail = null;
+                let videoUrl = null;
+                
+                if (firstFile) {
+                    if (isVideo) {
+                        // 動画の場合: まず動画URLを作成（フォールバック用）
+                        const rawVideoUrl = firstFile.secure_url || firstFile.url || (firstFile.storageUri ? `/api/proxy/${firstFile.storageUri}` : null);
+                        const proxyUrl = convertToProxyUrl(rawVideoUrl);
+                        // #t=0.001を追加して最初のフレームを表示
+                        videoUrl = proxyUrl ? `${proxyUrl}#t=0.001` : null;
+                        
+                        // thumbnailUrlが画像ファイルならそれを優先的に使用
+                        if (firstFile.thumbnailUrl && !firstFile.thumbnailUrl.match(/\.(mp4|webm|mov|avi)$/i)) {
+                            thumbnail = convertToProxyUrl(firstFile.thumbnailUrl);
+                        } else {
+                            // サムネイル画像がない場合は動画URLを使用
+                            thumbnail = videoUrl;
+                        }
+                    } else {
+                        // 画像の場合: 通常通り
+                        const rawUrl = firstFile.thumbnailUrl || firstFile.secure_url || firstFile.url || (firstFile.storageUri ? `/api/proxy/${firstFile.storageUri}` : null);
+                        thumbnail = convertToProxyUrl(rawUrl);
+                    }
+                }
+                
+                let tags = [];
+                if (Array.isArray(data.tags)) {
+                    tags = data.tags;
+                } else if (typeof data.tags === 'string' && data.tags.trim()) {
+                    tags = [data.tags.trim()];
+                }
+                
+                fetchedPosts.push({
+                    id: docSnap.id,
+                    title: data.title || 'タイトルなし',
+                    likes: data.likes || 0,
+                    bookmarks: data.bookmarks || 0,
+                    thumbnail: thumbnail,
+                    userId: data.userId,
+                    userName: data.userName || '匿名',
+                    userAvatar: data.userAvatar || null,
+                    createdAt: data.createdAt ? new Date(data.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+                    tags: tags,
+                    duration: data.files?.[0]?.duration || data.duration || '00:00',
+                    score: (data.likes || 0) + (data.bookmarks || 0)
+                });
+                
+                if (data.userId) {
+                    userIds.add(data.userId);
+                }
+            });
+            
+            // Fetch user info for new posts
+            const usersMap = {};
+            const userIdsArray = Array.from(userIds);
+            
+            for (let i = 0; i < userIdsArray.length; i += 10) {
+                const batch = userIdsArray.slice(i, i + 10);
+                const userPromises = batch.map(userId => 
+                    getDoc(doc(db, 'users', userId))
+                        .then(userDoc => {
+                            if (userDoc.exists()) {
+                                const userData = userDoc.data();
+                                return {
+                                    userId,
+                                    userName: userData.displayName || userData.username || '匿名',
+                                    userAvatar: convertToProxyUrl(userData.photoURL) || null
+                                };
+                            }
+                            return null;
+                        })
+                        .catch(error => {
+                            console.error('Error fetching user:', error);
+                            return null;
+                        })
+                );
+                
+                const batchResults = await Promise.all(userPromises);
+                batchResults.forEach(result => {
+                    if (result) {
+                        usersMap[result.userId] = {
+                            userName: result.userName,
+                            userAvatar: result.userAvatar
+                        };
+                    }
+                });
+            }
+            
+            // Integrate user info
+            let postsWithUserInfo = fetchedPosts.map(post => ({
+                ...post,
+                creator: usersMap[post.userId]?.userName || post.userName,
+                userName: usersMap[post.userId]?.userName || post.userName,
+                userAvatar: usersMap[post.userId]?.userAvatar || post.userAvatar
+            }));
+            
+            // Append new posts and re-sort entire collection by score to maintain ranking order
+            setRankingPosts(prev => {
+                const combined = [...prev, ...postsWithUserInfo];
+                return combined.sort((a, b) => b.score - a.score);
+            });
+            
+            console.log(`✅ Loaded ${postsWithUserInfo.length} more ranking posts, re-sorted by score`);
+            
+        } catch (error) {
+            console.error('Error loading more ranking posts:', error);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     // Overall ranking data by time period
     const overallRankingDataRaw = {
@@ -1096,7 +1323,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ scale: 1.05, y: -5 }}
                 transition={{ duration: 0.3 }}
-                className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl relative cursor-pointer"
+                className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md hover:shadow-2xl relative cursor-pointer"
                 data-testid={`content-card-${item.id}`}
             >
                 <div className="relative aspect-square">
@@ -1136,7 +1363,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
 
                 <div className="p-3">
                     <motion.h3 
-                        className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 leading-tight"
+                        className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 leading-tight"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.1 }}
@@ -1155,7 +1382,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                             alt="Creator"
                             className="w-6 h-6 rounded-full"
                         />
-                        <span className="text-xs text-gray-600 truncate">{item.creator}</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{item.creator}</span>
                     </motion.div>
 
                     <motion.div 
@@ -1170,7 +1397,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                             whileTap={{ scale: 0.95 }}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                toggleLike(item.id);
+                                onLike(item.id);
                             }}
                             data-testid={`button-like-${item.id}`}
                         >
@@ -1185,7 +1412,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                                 className={`font-bold ${
                                     isLiked 
                                         ? 'bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent' 
-                                        : 'text-gray-600'
+                                        : 'text-gray-600 dark:text-gray-400'
                                 }`}
                                 data-testid={`count-likes-${item.id}`}
                             >
@@ -1198,7 +1425,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                             whileTap={{ scale: 0.95 }}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                toggleBookmark(item.id);
+                                onBookmark(item.id);
                             }}
                             data-testid={`button-bookmark-${item.id}`}
                         >
@@ -1213,7 +1440,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                                 className={`font-bold ${
                                     isBookmarked 
                                         ? 'bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent' 
-                                        : 'text-gray-600'
+                                        : 'text-gray-600 dark:text-gray-400'
                                 }`}
                                 data-testid={`count-bookmarks-${item.id}`}
                             >
@@ -1226,13 +1453,12 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
         );
     };
 
-    // Grid card for overall ranking
-    const GridCard = ({ item, rank }) => {
-        const isLiked = likedPosts.has(item.id);
-        const isBookmarked = bookmarkedPosts.has(item.id);
+    // Grid card for overall ranking  
+    const GridCard = ({ item, rank, isLiked, isBookmarked, onLike, onBookmark, onVideoMetadata = handleVideoMetadata }) => {
         
-        // ビデオファイルかどうかをチェック
+        // ビデオファイルかどうかをチェック（#t=0.001が付いているか、拡張子で判定）
         const isVideo = item.thumbnail && (
+            item.thumbnail.includes('#t=0.001') ||
             item.thumbnail.includes('.mp4') || 
             item.thumbnail.includes('.MP4') ||
             item.thumbnail.includes('.quicktime') || 
@@ -1246,7 +1472,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ scale: 1.05, y: -5 }}
                 transition={{ duration: 0.3 }}
-                className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl relative cursor-pointer"
+                className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md hover:shadow-2xl relative cursor-pointer"
                 data-testid={`grid-card-${item.id}`}
                 onClick={() => navigate(`/video/${item.id}`)}
             >
@@ -1258,7 +1484,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                             muted
                             playsInline
                             preload="metadata"
-                            onLoadedMetadata={(e) => handleVideoMetadata(e, item.id)}
+                            onLoadedMetadata={(e) => onVideoMetadata && onVideoMetadata(e, item.id)}
                             style={{ pointerEvents: 'none' }}
                         />
                     ) : (
@@ -1297,7 +1523,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
 
                 <div className="p-3">
                     <motion.h3 
-                        className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 leading-tight"
+                        className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 leading-tight"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.1 }}
@@ -1337,7 +1563,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                             whileTap={{ scale: 0.95 }}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                toggleLike(item.id);
+                                onLike(item.id);
                             }}
                             data-testid={`button-like-${item.id}`}
                         >
@@ -1352,7 +1578,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                                 className={`font-bold ${
                                     isLiked 
                                         ? 'bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent' 
-                                        : 'text-gray-600'
+                                        : 'text-gray-600 dark:text-gray-400'
                                 }`}
                                 data-testid={`count-likes-${item.id}`}
                             >
@@ -1365,7 +1591,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                             whileTap={{ scale: 0.95 }}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                toggleBookmark(item.id);
+                                onBookmark(item.id);
                             }}
                             data-testid={`button-bookmark-${item.id}`}
                         >
@@ -1380,7 +1606,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                                 className={`font-bold ${
                                     isBookmarked 
                                         ? 'bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent' 
-                                        : 'text-gray-600'
+                                        : 'text-gray-600 dark:text-gray-400'
                                 }`}
                                 data-testid={`count-bookmarks-${item.id}`}
                             >
@@ -1418,7 +1644,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-15">
+        <div className="min-h-screen bg-gray-50 dark:bg-black pb-15">
 
             {/* Content */}
             <div className="max-w-6xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
@@ -1500,6 +1726,29 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                                     </div>
                                 )}
                             </div>
+                            
+                            {/* Load More Button for Pagination */}
+                            {hasMore && !loading && rankingPosts.length > 0 && (
+                                <div className="flex justify-center mt-6">
+                                    <motion.button
+                                        onClick={loadMoreRankingPosts}
+                                        disabled={loadingMore}
+                                        className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                                        whileHover={{ scale: loadingMore ? 1 : 1.05 }}
+                                        whileTap={{ scale: loadingMore ? 1 : 0.95 }}
+                                        data-testid="button-load-more-posts"
+                                    >
+                                        {loadingMore ? (
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                <span>読み込み中...</span>
+                                            </div>
+                                        ) : (
+                                            <span>もっと読み込む</span>
+                                        )}
+                                    </motion.button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Climax Ranking Section */}

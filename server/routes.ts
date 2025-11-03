@@ -1,10 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
+import cookieParser from "cookie-parser";
 import Stripe from "stripe";
 import crypto from "crypto";
 import multer from "multer";
 import { ObjectStorageService } from "./objectStorage";
+import { storageAdapter } from "./storage-adapter";
+import { bunnyStreamClient } from "./bunny-stream";
 
 // Initialize Stripe with secret key from environment variables
 // Reference: blueprint:javascript_stripe integration
@@ -28,6 +31,41 @@ const SESSION_SECRET = process.env.SESSION_SECRET;
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for the application
   app.use(express.json());
+  app.use(cookieParser()); // Required for reading HttpOnly cookies in verifyAdminToken
+  
+  // Admin authentication middleware (uses HttpOnly cookie with signature verification)
+  // Defined early so it can be used by all admin routes
+  async function verifyAdminToken(req: any, res: any, next: any) {
+    try {
+      // Get session token from HttpOnly cookie
+      const token = req.cookies?.adminSession;
+      
+      if (!token) {
+        return res.status(401).json({ error: "No session found" });
+      }
+
+      // Verify token signature and expiration
+      const verifiedSession = verifySecureSessionToken(token);
+      if (!verifiedSession) {
+        res.clearCookie('adminSession');
+        return res.status(401).json({ error: "Invalid or expired session" });
+      }
+
+      // Verify email matches admin email
+      const adminEmail = process.env.ADMIN_EMAIL || "info@sinjapan.jp";
+      if (verifiedSession.email !== adminEmail) {
+        res.clearCookie('adminSession');
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      // Attach admin email to request object
+      (req as any).adminEmail = verifiedSession.email;
+      next();
+    } catch (error) {
+      res.clearCookie('adminSession');
+      return res.status(401).json({ error: "Invalid session token" });
+    }
+  }
   
   // Health check endpoint (デプロイのヘルスチェック用)
   // Note: Root (/) is served by static files (index.html) in production
@@ -35,8 +73,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", message: "Server is running" });
   });
 
-  // Placeholder for user management routes
-  app.get("/api/users", async (_req, res) => {
+  // Placeholder for user management routes (Admin only)
+  app.get("/api/users", verifyAdminToken, async (_req, res) => {
     res.json({ message: "User routes placeholder - MongoDB connection required" });
   });
 
@@ -48,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== Notification Management Endpoints (Firestore-based) =====
   
   // Get all notifications (Admin用)
-  app.get("/api/notifications", async (_req, res) => {
+  app.get("/api/notifications", verifyAdminToken, async (_req, res) => {
     try {
       const { firestore } = await import('./firebase');
       
@@ -114,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new notification (admin only)
-  app.post("/api/notifications", async (req, res) => {
+  app.post("/api/notifications", verifyAdminToken, async (req, res) => {
     try {
       console.log('📬 Creating notification with data:', req.body);
       const { type, title, message, target, priority, category } = req.body;
@@ -165,8 +203,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a notification
-  app.delete("/api/notifications/:id", async (req, res) => {
+  // Delete a notification (admin only)
+  app.delete("/api/notifications/:id", verifyAdminToken, async (req, res) => {
     try {
       const { id } = req.params;
       const { firestore } = await import('./firebase');
@@ -314,8 +352,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add a post to featured pickup
-  app.post("/api/featured-pickup", async (req, res) => {
+  // Add a post to featured pickup (admin only)
+  app.post("/api/featured-pickup", verifyAdminToken, async (req, res) => {
     try {
       const { firestore } = await import('./firebase');
       const { postId, position } = req.body;
@@ -368,8 +406,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update featured pickup position
-  app.patch("/api/featured-pickup/:id", async (req, res) => {
+  // Update featured pickup position (admin only)
+  app.patch("/api/featured-pickup/:id", verifyAdminToken, async (req, res) => {
     try {
       const { firestore } = await import('./firebase');
       const { id } = req.params;
@@ -397,8 +435,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Reorder featured pickups
-  app.patch("/api/featured-pickup/reorder", async (req, res) => {
+  // Reorder featured pickups (admin only)
+  app.patch("/api/featured-pickup/reorder", verifyAdminToken, async (req, res) => {
     try {
       const { firestore } = await import('./firebase');
       const { pickupIds } = req.body;
@@ -435,8 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a featured pickup
-  app.delete("/api/featured-pickup/:id", async (req, res) => {
+  // Delete a featured pickup (admin only)
+  app.delete("/api/featured-pickup/:id", verifyAdminToken, async (req, res) => {
     try {
       const { firestore } = await import('./firebase');
       const { id } = req.params;
@@ -517,8 +555,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add a creator to featured creators
-  app.post("/api/featured-creators", async (req, res) => {
+  // Add a creator to featured creators (admin only)
+  app.post("/api/featured-creators", verifyAdminToken, async (req, res) => {
     try {
       const { firestore } = await import('./firebase');
       const { userId, position } = req.body;
@@ -568,8 +606,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update featured creator position
-  app.patch("/api/featured-creators/:id", async (req, res) => {
+  // Update featured creator position (admin only)
+  app.patch("/api/featured-creators/:id", verifyAdminToken, async (req, res) => {
     try {
       const { firestore } = await import('./firebase');
       const { id } = req.params;
@@ -597,8 +635,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a featured creator
-  app.delete("/api/featured-creators/:id", async (req, res) => {
+  // Delete a featured creator (admin only)
+  app.delete("/api/featured-creators/:id", verifyAdminToken, async (req, res) => {
     try {
       const { firestore } = await import('./firebase');
       const { id } = req.params;
@@ -639,26 +677,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve private objects with ACL check (for authenticated users)
-  // TODO: Implement Firestore-based ACL system (Google Cloud Storage API unavailable in Replit)
+  // Legacy /objects/ path - serve directly with Bunny CDN priority
   app.get("/objects/:objectPath(*)", async (req, res) => {
-    const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
-    const objectStorageService = new ObjectStorageService();
-    
     try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      
-      // TEMPORARY: Skip ACL check until Firestore-based ACL is implemented
-      // Google Cloud Storage API has no permissions in Replit environment
-      // All files in public/ folder are accessible without authentication
-      
-      objectStorageService.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error serving object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
+      // Extract filename from /objects/filename.ext
+      const parts = req.path.slice(1).split("/");
+      if (parts.length < 2) {
+        return res.status(404).json({ error: "Invalid path" });
       }
-      return res.sendStatus(500);
+      
+      const filename = parts.slice(1).join("/");
+      const folder = 'public'; // Legacy paths are always public
+      const isBunnyConfigured = !!(process.env.BUNNY_STORAGE_API_KEY && process.env.BUNNY_STORAGE_ZONE_NAME);
+      
+      console.log('🔍 Legacy /objects/ request for:', filename, 'Range:', req.headers.range);
+      
+      // Determine content type from filename
+      const ext = filename.toLowerCase().split('.').pop();
+      let contentType = 'application/octet-stream';
+      if (ext === 'mp4') contentType = 'video/mp4';
+      else if (ext === 'mov') contentType = 'video/quicktime';
+      else if (ext === 'webm') contentType = 'video/webm';
+      else if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg';
+      else if (ext === 'png') contentType = 'image/png';
+      else if (ext === 'gif') contentType = 'image/gif';
+      else if (ext === 'webp') contentType = 'image/webp';
+      
+      let fileBuffer: Buffer;
+      
+      // Strategy 1: Try Bunny CDN first (if configured)
+      if (isBunnyConfigured) {
+        const cdnHostname = process.env.BUNNY_CDN_HOSTNAME || `${process.env.BUNNY_STORAGE_ZONE_NAME}.b-cdn.net`;
+        const bunnyUrl = `https://${cdnHostname}/${folder}/${filename}`;
+        
+        console.log('🐰 Trying Bunny CDN:', bunnyUrl);
+        
+        try {
+          const bunnyResponse = await fetch(bunnyUrl);
+          if (bunnyResponse.ok) {
+            console.log('✅ Bunny CDN HIT - Fast delivery!');
+            const arrayBuffer = await bunnyResponse.arrayBuffer();
+            fileBuffer = Buffer.from(arrayBuffer);
+          } else {
+            console.log('⚠️ Bunny CDN MISS - Migrating from Firebase...');
+            throw new Error('Not in Bunny CDN yet');
+          }
+        } catch (bunnyCdnError) {
+          // File not in Bunny CDN, download from Firebase and migrate
+          const { ObjectStorageService } = await import("./objectStorage");
+          const { storage } = await import('./firebase');
+          const objectStorageService = new ObjectStorageService();
+          
+          const objectPath = `/objects/${filename}`;
+          const filePath = await objectStorageService.getObjectEntityFile(objectPath);
+          
+          console.log('📥 Downloading from Firebase:', filePath);
+          
+          const bucket = storage.bucket();
+          const file = bucket.file(filePath);
+          const [fbBuffer] = await file.download();
+          
+          if (!fbBuffer || fbBuffer.length === 0) {
+            return res.status(404).json({ error: 'File not found' });
+          }
+          
+          fileBuffer = fbBuffer;
+          console.log('✅ Firebase download complete:', fileBuffer.length, 'bytes');
+          
+          // Auto-migrate to Bunny CDN in background (don't wait)
+          (async () => {
+            try {
+              const { storageAdapter } = await import('./storage-adapter');
+              const bunnyKey = `${folder}/${filename}`;
+              await storageAdapter.upload(bunnyKey, fileBuffer, contentType);
+              console.log('🚀 Auto-migrated to Bunny CDN:', bunnyKey);
+            } catch (migrationError) {
+              console.error('⚠️ Migration to Bunny CDN failed:', migrationError);
+            }
+          })();
+        }
+      } else {
+        // No Bunny CDN, use Firebase Storage only
+        const { ObjectStorageService } = await import("./objectStorage");
+        const { storage } = await import('./firebase');
+        const objectStorageService = new ObjectStorageService();
+        
+        const objectPath = `/objects/${filename}`;
+        const filePath = await objectStorageService.getObjectEntityFile(objectPath);
+        
+        console.log('📥 Downloading from Firebase:', filePath);
+        
+        const bucket = storage.bucket();
+        const file = bucket.file(filePath);
+        const [fbBuffer] = await file.download();
+        
+        if (!fbBuffer || fbBuffer.length === 0) {
+          return res.status(404).json({ error: 'File not found' });
+        }
+        
+        fileBuffer = fbBuffer;
+        console.log('✅ Downloaded from Firebase:', fileBuffer.length, 'bytes');
+      }
+      
+      const fileSize = fileBuffer.length;
+      
+      // Handle Range requests for video streaming
+      const range = req.headers.range;
+      if (range) {
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = (end - start) + 1;
+        
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunkSize,
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=31536000, stale-while-revalidate=86400',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': 'Range',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+        });
+        
+        res.end(fileBuffer.slice(start, end + 1));
+      } else {
+        res.writeHead(200, {
+          'Content-Length': fileSize,
+          'Content-Type': contentType,
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'public, max-age=31536000, stale-while-revalidate=86400',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': 'Range',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+        });
+        
+        res.end(fileBuffer);
+      }
+    } catch (error: any) {
+      console.error("Error serving legacy object:", error);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Internal server error" });
+      }
     }
   });
 
@@ -731,26 +893,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       //   });
       // }
 
-      const { ObjectStorageService } = await import("./objectStorage");
-      const objectStorageService = new ObjectStorageService();
-      
       const { visibility = 'public' } = req.body;
+      const isVideo = req.file.mimetype.startsWith('video/');
       
-      // Upload file to Object Storage using Replit SDK with ACL
-      const uploadResult = await objectStorageService.uploadFile(
-        req.file.buffer,
-        req.file.originalname,
-        userId,
-        req.file.mimetype,
-        visibility
-      );
+      let uploadResult: any;
+      let thumbnailUrl: string | null = null;
+
+      // Check if Bunny CDN is configured
+      const isBunnyConfigured = !!(process.env.BUNNY_STORAGE_API_KEY && process.env.BUNNY_STORAGE_ZONE_NAME);
+
+      if (isBunnyConfigured) {
+        // Upload to Bunny CDN
+        // Sanitize filename: remove non-ASCII characters and special chars, keep extension
+        const originalName = req.file.originalname;
+        const ext = originalName.substring(originalName.lastIndexOf('.'));
+        const sanitizedBase = originalName
+          .substring(0, originalName.lastIndexOf('.'))
+          .replace(/[^a-zA-Z0-9_-]/g, '_')
+          .substring(0, 50);
+        const safeFileName = `${Date.now()}-${sanitizedBase}${ext}`;
+        const key = `${visibility}/${safeFileName}`;
+        
+        console.log(`📝 Sanitized filename: ${originalName} -> ${safeFileName}`);
+
+        const publicUrl = await storageAdapter.upload(
+          key,
+          req.file.buffer,
+          req.file.mimetype
+        );
+
+        // For videos, try to generate thumbnail using Bunny Stream
+        if (isVideo && bunnyStreamClient.isConfigured()) {
+          console.log('📹 Uploading video to Bunny Stream for encoding...');
+          const streamVideo = await bunnyStreamClient.uploadVideo(
+            req.file.buffer,
+            req.file.originalname
+          );
+          
+          if (streamVideo) {
+            thumbnailUrl = bunnyStreamClient.getThumbnailUrl(streamVideo.guid);
+            console.log(`✅ Video thumbnail: ${thumbnailUrl}`);
+          }
+        } else if (isVideo && storageAdapter.generateThumbnail) {
+          thumbnailUrl = await storageAdapter.generateThumbnail(key);
+        }
+
+        uploadResult = {
+          objectPath: publicUrl,
+          storageUri: `bunny-cdn://${key}`,
+          url: publicUrl,
+          secure_url: publicUrl,
+          thumbnailUrl: thumbnailUrl || publicUrl,
+          source: 'bunny-cdn',
+        };
+      } else {
+        // Fallback to existing storage (Firebase/Replit Object Storage)
+        console.log('⚠️  Bunny CDN not configured, using fallback storage');
+        const { ObjectStorageService } = await import("./objectStorage");
+        const objectStorageService = new ObjectStorageService();
+
+        const legacyResult = await objectStorageService.uploadFile(
+          req.file.buffer,
+          req.file.originalname,
+          userId,
+          req.file.mimetype,
+          visibility
+        );
+
+        uploadResult = {
+          objectPath: legacyResult.objectPath,
+          storageUri: legacyResult.storageUri,
+          source: 'replit-object-storage',
+        };
+      }
       
       res.json({ 
-        objectPath: uploadResult.objectPath,
-        storageUri: uploadResult.storageUri,
+        ...uploadResult,
         fileName: req.file.originalname,
         contentType: req.file.mimetype,
-        size: req.file.size
+        size: req.file.size,
+        resourceType: isVideo ? 'video' : 'image',
       });
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -969,48 +1191,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin authentication middleware (uses HttpOnly cookie with signature verification)
-  async function verifyAdminToken(req: any, res: any, next: any) {
-    try {
-      // Get session token from HttpOnly cookie
-      const token = req.cookies?.adminSession;
-      
-      if (!token) {
-        return res.status(401).json({ error: "No session found" });
-      }
-
-      // Verify token signature and expiration
-      const verifiedSession = verifySecureSessionToken(token);
-      if (!verifiedSession) {
-        res.clearCookie('adminSession');
-        return res.status(401).json({ error: "Invalid or expired session" });
-      }
-
-      // Verify email matches admin email
-      const adminEmail = process.env.ADMIN_EMAIL || "info@sinjapan.jp";
-      if (verifiedSession.email !== adminEmail) {
-        res.clearCookie('adminSession');
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-
-      // Attach admin email to request object
-      (req as any).adminEmail = verifiedSession.email;
-      next();
-    } catch (error) {
-      res.clearCookie('adminSession');
-      return res.status(401).json({ error: "Invalid session token" });
-    }
-  }
-
   // Verify admin session endpoint
   app.get("/api/admin/verify", verifyAdminToken, (req: any, res) => {
     res.json({ success: true, email: req.adminEmail });
   });
 
   // Admin logout endpoint
-  app.post("/api/admin/logout", (req, res) => {
+  app.post("/api/admin/logout", verifyAdminToken, (req, res) => {
     res.clearCookie('adminSession');
     res.json({ success: true });
+  });
+
+  // Initialize first admin user (one-time setup)
+  // Protected by INITIAL_ADMIN_SECRET environment variable
+  app.post("/api/admin/initialize", async (req, res) => {
+    try {
+      const { email, password, displayName, secret } = req.body;
+      
+      if (!email || !password || !displayName || !secret) {
+        return res.status(400).json({ error: "Email, password, displayName, and secret are required" });
+      }
+
+      // Verify initialization secret
+      const INITIAL_ADMIN_SECRET = process.env.INITIAL_ADMIN_SECRET;
+      if (!INITIAL_ADMIN_SECRET || secret !== INITIAL_ADMIN_SECRET) {
+        return res.status(403).json({ error: "Invalid initialization secret" });
+      }
+
+      const { auth, firestore, admin } = await import('./firebase');
+
+      // Check if any admin users already exist
+      const adminSnapshot = await firestore
+        .collection('users')
+        .where('role', '==', 'admin')
+        .limit(1)
+        .get();
+
+      if (!adminSnapshot.empty) {
+        return res.status(400).json({ error: "Admin user already exists. This endpoint can only be used once." });
+      }
+
+      // Create admin user in Firebase Authentication
+      const userRecord = await auth.createUser({
+        email,
+        password,
+        displayName,
+        emailVerified: true, // Auto-verify admin email
+      });
+
+      console.log('🔐 Admin user created in Firebase Auth:', userRecord.uid);
+
+      // Create admin profile in Firestore with admin role
+      await firestore.collection('users').doc(userRecord.uid).set({
+        displayName,
+        email,
+        photoURL: null,
+        role: 'admin', // Critical: Set admin role
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastSeen: admin.firestore.FieldValue.serverTimestamp(),
+        isOnline: false,
+        isCreator: false,
+      });
+
+      console.log('✅ Admin user profile created in Firestore with role: admin');
+
+      res.json({
+        success: true,
+        message: "Admin user initialized successfully",
+        userId: userRecord.uid,
+        email: userRecord.email,
+      });
+    } catch (error: any) {
+      console.error('❌ Error initializing admin user:', error);
+      res.status(500).json({ error: "Initialization error: " + error.message });
+    }
   });
 
   // TEMPORARY: Admin endpoint to create user account
@@ -1130,13 +1384,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe Checkout Session for Subscription
+  // Stripe Checkout Session for Subscription (Recurring Payment)
   // Reference: blueprint:javascript_stripe integration
   app.post("/api/create-subscription-checkout", async (req, res) => {
     try {
-      const { planId, planTitle, planPrice, creatorId, creatorName } = req.body;
+      const { planId, planTitle, planPrice, creatorId, creatorName, userId, userEmail } = req.body;
 
-      if (!planId || !planTitle || !planPrice || !creatorId) {
+      if (!planId || !planTitle || !planPrice || !creatorId || !userId || !userEmail) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
@@ -1156,9 +1410,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Payment system not configured" });
       }
 
-      // Create Stripe Checkout Session
+      // Check if customer exists, or create new one
+      const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+      let customerId: string;
+
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({
+          email: userEmail,
+          metadata: {
+            userId: userId,
+          },
+        });
+        customerId = customer.id;
+      }
+
+      // Create Stripe Checkout Session with recurring subscription
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
+        customer: customerId,
         line_items: [
           {
             price_data: {
@@ -1180,7 +1451,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cancel_url: `${req.headers.origin}/profile/${creatorId}?subscription=cancelled`,
         metadata: {
           planId,
+          planTitle,
           creatorId,
+          creatorName,
+          userId,
+          basePrice: basePrice.toString(),
+          tax: tax.toString(),
+          platformFee: platformFee.toString(),
         },
       });
 
@@ -1191,66 +1468,318 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create Payment Intent for in-app subscription payment
+  // Create Subscription with Payment Intent for in-app modal payment
+  // This creates a recurring subscription with the first payment
   // Reference: blueprint:javascript_stripe integration
   app.post("/api/create-subscription-payment-intent", async (req, res) => {
     try {
-      const { planId, planTitle, planPrice, creatorId, creatorName } = req.body;
+      const { planId, planTitle, planPrice, creatorId, creatorName, userId, userEmail } = req.body;
 
-      if (!planId || !planTitle || !planPrice || !creatorId) {
+      if (!planId || !planTitle || !planPrice || !creatorId || !userId || !userEmail) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
       // Extract base price (creator's net amount)
-      // planPriceはクリエイター受取額（手数料・税抜き）
-      // カンマを除去してから数値化（例：「¥1,200」→「1200」）
-      const cleanPrice = planPrice.replace(/[^\d]/g, '');
+      const priceStr = String(planPrice || '0');
+      const cleanPrice = priceStr.replace(/[^\d]/g, '');
       if (!cleanPrice) {
         return res.status(400).json({ error: 'Invalid price format' });
       }
-      const basePrice = parseInt(cleanPrice); // クリエイター受取額（例：50円）
+      const basePrice = parseInt(cleanPrice);
       
       // Calculate total amount and fees
-      // totalAmount = basePrice + platformFee + tax
-      // totalAmount = basePrice + (basePrice * 0.1) + (basePrice * 0.1)
-      // totalAmount = basePrice * 1.2
-      const platformFee = Math.floor(basePrice * 0.10); // 10% プラットフォーム手数料（例：5円）
-      const tax = Math.floor(basePrice * 0.10); // 10% 消費税（例：5円）
-      const totalAmount = basePrice + platformFee + tax; // ユーザー支払い総額（例：60円）
-      const amount = totalAmount; // Stripeに請求する金額（例：60円）
+      const platformFee = Math.floor(basePrice * 0.10);
+      const tax = Math.floor(basePrice * 0.10);
+      const totalAmount = basePrice + platformFee + tax;
 
       if (!stripe) {
         return res.status(500).json({ error: "Payment system not configured" });
       }
 
-      // Create Payment Intent for in-app payment
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
+      // Get or create Stripe customer
+      const customers = await stripe.customers.list({
+        email: userEmail,
+        limit: 1
+      });
+
+      let customer;
+      if (customers.data.length > 0) {
+        customer = customers.data[0];
+      } else {
+        customer = await stripe.customers.create({
+          email: userEmail,
+          metadata: {
+            userId,
+            firebaseUid: userId
+          }
+        });
+      }
+
+      // Check for existing incomplete subscription for this customer and plan
+      const existingSubscriptions = await stripe.subscriptions.list({
+        customer: customer.id,
+        status: 'incomplete',
+        limit: 10
+      });
+
+      const matchingSubscription = existingSubscriptions.data.find(sub => 
+        sub.metadata.planId === planId && 
+        sub.metadata.creatorId === creatorId &&
+        sub.status === 'incomplete'
+      );
+
+      // Cancel existing incomplete subscription to avoid payment_intent issues
+      if (matchingSubscription) {
+        console.log(`🗑️ Canceling existing incomplete subscription: ${matchingSubscription.id}`);
+        await stripe.subscriptions.cancel(matchingSubscription.id);
+      }
+
+      // Create Stripe Product and Price
+      const product = await stripe.products.create({
+        name: planTitle,
+        description: `${creatorName}のサブスクリプション`,
+        metadata: {
+          planId,
+          creatorId,
+          creatorName
+        }
+      });
+
+      const price = await stripe.prices.create({
         currency: 'jpy',
-        automatic_payment_methods: {
-          enabled: true,
+        unit_amount: totalAmount,
+        recurring: {
+          interval: 'month'
         },
+        product: product.id,
+      });
+
+      // Create subscription first without payment
+      console.log(`✨ Creating new subscription for ${userId} → ${creatorName}`);
+      const subscription = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [{ price: price.id }],
+        payment_behavior: 'default_incomplete',
+        payment_settings: { 
+          save_default_payment_method: 'on_subscription',
+          payment_method_types: ['card']
+        },
+        expand: ['latest_invoice'],
         metadata: {
           planId,
           planTitle,
           creatorId,
           creatorName,
+          userId,
           basePrice: basePrice.toString(),
           tax: tax.toString(),
           platformFee: platformFee.toString(),
         },
       });
 
-      res.json({ clientSecret: paymentIntent.client_secret });
+      // Get invoice ID
+      let invoiceId: string;
+      if (typeof subscription.latest_invoice === 'string') {
+        invoiceId = subscription.latest_invoice;
+      } else if (subscription.latest_invoice?.id) {
+        invoiceId = subscription.latest_invoice.id;
+      } else {
+        console.error('❌ No invoice found for subscription:', subscription.id);
+        return res.status(500).json({ 
+          error: 'Subscription created but invoice not found. Please try again.' 
+        });
+      }
+
+      // Retrieve invoice
+      let invoice = await stripe.invoices.retrieve(invoiceId);
+      console.log(`📋 Invoice status: ${invoice.status}, amount: ${invoice.amount_due}`);
+
+      // If invoice doesn't have payment_intent, create one manually
+      if (!invoice.payment_intent) {
+        console.log(`💳 Creating Payment Intent manually for invoice ${invoiceId}`);
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: invoice.amount_due,
+          currency: 'jpy',
+          customer: customer.id,
+          metadata: {
+            invoiceId: invoiceId,
+            subscriptionId: subscription.id,
+            planId,
+            creatorId,
+            userId
+          },
+          automatic_payment_methods: {
+            enabled: true,
+            allow_redirects: 'never'
+          },
+          setup_future_usage: 'off_session'
+        });
+
+        console.log(`✅ Payment Intent created: ${paymentIntent.id}`);
+        
+        res.json({ 
+          clientSecret: paymentIntent.client_secret,
+          subscriptionId: subscription.id,
+          paymentIntentId: paymentIntent.id
+        });
+      } else {
+        // Payment Intent already exists
+        const paymentIntent = await stripe.paymentIntents.retrieve(
+          typeof invoice.payment_intent === 'string' 
+            ? invoice.payment_intent 
+            : invoice.payment_intent.id
+        );
+
+        if (!paymentIntent.client_secret) {
+          console.error('❌ Client Secret not found for existing Payment Intent');
+          return res.status(500).json({ 
+            error: 'Payment configuration error. Please try again.' 
+          });
+        }
+
+        console.log(`✅ Using existing Payment Intent: ${paymentIntent.id}`);
+        res.json({ 
+          clientSecret: paymentIntent.client_secret,
+          subscriptionId: subscription.id,
+          paymentIntentId: paymentIntent.id
+        });
+      }
     } catch (error: any) {
-      console.error('Error creating payment intent:', error);
+      console.error('Error creating subscription:', error);
+      res.status(500).json({ error: 'Error creating subscription: ' + error.message });
+    }
+  });
+
+  // Create Payment Intent for tip sending
+  // Reference: blueprint:javascript_stripe integration
+  app.post("/api/create-tip-payment-intent", async (req, res) => {
+    try {
+      const { amount, recipientId, recipientName, senderId, senderName } = req.body;
+
+      if (!amount || !recipientId || !senderId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Validate amount (minimum 100 JPY)
+      const tipAmount = parseInt(amount);
+      if (isNaN(tipAmount) || tipAmount < 100) {
+        return res.status(400).json({ error: 'チップは最低100円から送信できます' });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ error: "Payment system not configured" });
+      }
+
+      // Calculate fees
+      // platformFee = 10% of tip amount
+      // tax = 10% of tip amount
+      const platformFee = Math.floor(tipAmount * 0.10);
+      const tax = Math.floor(tipAmount * 0.10);
+      const totalAmount = tipAmount + platformFee + tax; // User pays total
+      const creatorAmount = tipAmount; // Creator receives original tip amount
+
+      console.log(`💰 Creating tip payment: ¥${tipAmount} (Total: ¥${totalAmount}, Creator: ¥${creatorAmount})`);
+
+      // Create Payment Intent for one-time tip payment
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: totalAmount,
+        currency: 'jpy',
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          type: 'tip',
+          recipientId,
+          recipientName: recipientName || 'Unknown',
+          senderId,
+          senderName: senderName || 'Unknown',
+          tipAmount: tipAmount.toString(),
+          creatorAmount: creatorAmount.toString(),
+          platformFee: platformFee.toString(),
+          tax: tax.toString(),
+        },
+      });
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        totalAmount,
+        tipAmount,
+        platformFee,
+        tax
+      });
+    } catch (error: any) {
+      console.error('❌ Error creating tip payment intent:', error);
       res.status(500).json({ error: 'Error creating payment intent: ' + error.message });
     }
   });
 
+  // Confirm tip payment and save to database
+  app.post("/api/confirm-tip-payment", async (req, res) => {
+    try {
+      const { paymentIntentId, message } = req.body;
+
+      if (!paymentIntentId) {
+        return res.status(400).json({ error: 'Missing payment intent ID' });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ error: "Payment system not configured" });
+      }
+
+      // Retrieve payment intent to verify it succeeded
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({ error: '決済が完了していません' });
+      }
+
+      const { firestore } = await import('./firebase');
+      const metadata = paymentIntent.metadata;
+
+      // Save tip transaction to Firestore
+      await firestore.collection('tips').add({
+        senderId: metadata.senderId,
+        senderName: metadata.senderName,
+        recipientId: metadata.recipientId,
+        recipientName: metadata.recipientName,
+        tipAmount: parseInt(metadata.tipAmount),
+        creatorAmount: parseInt(metadata.creatorAmount),
+        platformFee: parseInt(metadata.platformFee),
+        tax: parseInt(metadata.tax),
+        totalAmount: paymentIntent.amount,
+        currency: 'JPY',
+        paymentIntentId,
+        message: message || '',
+        status: 'completed',
+        createdAt: new Date(),
+      });
+
+      // Update creator's balance
+      const creatorRef = firestore.collection('users').doc(metadata.recipientId);
+      const creatorDoc = await creatorRef.get();
+      const creatorData = creatorDoc.data() || {};
+      
+      const currentBalance = creatorData.availableBalance || 0;
+      const currentEarnings = creatorData.totalEarnings || 0;
+      const creatorAmount = parseInt(metadata.creatorAmount);
+      
+      await creatorRef.update({
+        availableBalance: currentBalance + creatorAmount,
+        totalEarnings: currentEarnings + creatorAmount,
+      });
+
+      console.log(`✅ Tip payment confirmed: ¥${metadata.tipAmount} → ${metadata.recipientName}`);
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('❌ Error confirming tip payment:', error);
+      res.status(500).json({ error: 'Error confirming payment: ' + error.message });
+    }
+  });
+
   // Upload endpoint for document submission
-  // Handles file uploads to Object Storage (private directory)
-  // Uses the upload middleware defined earlier (line 697) with 500MB limit
+  // Handles file uploads to Bunny Storage (via storageAdapter)
+  // Uses the upload middleware defined earlier with 500MB limit
   app.post("/api/upload", upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
@@ -1261,28 +1790,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = await verifyFirebaseToken(req.headers.authorization);
 
       // Get folder from body (form data) or query parameter
-      const folder = (req.body.folder || req.query.folder || '.private') as string;
-      const visibility = folder === '.private' ? 'private' : 'public';
+      const folder = (req.body.folder || req.query.folder || 'public') as string;
+      const visibility = folder === 'private' ? 'private' : 'public';
       console.log(`📁 Upload folder: ${folder}, visibility: ${visibility}, user: ${userId}`);
       
-      const objectStorageService = new ObjectStorageService();
+      // Sanitize filename (ASCII-safe, no special characters)
+      const sanitizeFilename = (filename: string): string => {
+        const timestamp = Date.now();
+        const extension = filename.split('.').pop() || 'mp4';
+        const baseName = filename.replace(/\.[^/.]+$/, '').substring(0, 50);
+        // Convert to ASCII-safe characters
+        const safeName = baseName
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .toLowerCase();
+        return `${timestamp}-${safeName}.${extension}`;
+      };
       
-      // Upload file to Object Storage using Replit SDK
-      const uploadResult = await objectStorageService.uploadFile(
+      const sanitizedFilename = sanitizeFilename(req.file.originalname);
+      const storageKey = `${visibility}/${sanitizedFilename}`;
+      
+      console.log(`🚀 Uploading to Bunny Storage: ${storageKey}`);
+      
+      // Upload directly to Bunny Storage using storageAdapter
+      const publicUrl = await storageAdapter.upload(
+        storageKey,
         req.file.buffer,
-        req.file.originalname,
-        userId,
-        req.file.mimetype,
-        visibility
+        req.file.mimetype
       );
 
-      console.log('[Upload] Uploaded to:', uploadResult.storageUri);
+      console.log('✅ Uploaded to Bunny Storage:', publicUrl);
 
       res.json({ 
-        url: uploadResult.objectPath,
-        fileName: req.file.originalname,
+        url: publicUrl,  // Returns /api/proxy/public/filename.mp4
+        fileName: sanitizedFilename,
         size: req.file.size,
-        type: req.file.mimetype
+        type: req.file.mimetype,
+        storageKey: storageKey
       });
     } catch (error: any) {
       console.error('Error uploading file:', error);
@@ -1293,75 +1839,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Legacy /objects/ URL support (redirects to /api/proxy/public/)
+  app.get("/objects/:filename(*)", async (req, res) => {
+    const { filename } = req.params;
+    console.log(`🔄 Legacy /objects/ URL redirect: ${filename} → /api/proxy/public/${filename}`);
+    res.redirect(`/api/proxy/public/${filename}`);
+  });
+
   // Proxy endpoint for Object Storage files
   // Serves files from Object Storage while respecting visibility and ACL policies
   // Supports Range requests for video streaming
-  // 🚀 画像自動リサイズ機能付き
-  app.get("/api/proxy/:folder/:filename", async (req, res) => {
+  // Auto-migrates Firebase Storage files to Bunny CDN for faster delivery
+  app.get("/api/proxy/:folder/:filename(*)", async (req, res) => {
     try {
-      const { folder, filename } = req.params;
-      const { thumbnail, w, h } = req.query;
+      let { folder, filename } = req.params;
       
-      // Construct object path in the format getObjectEntityFile expects: /objects/filename
-      const objectPath = `/objects/${filename}`;
-      
-      // Import ObjectStorageService
-      const { ObjectStorageService } = await import("./objectStorage");
-      const objectStorageService = new ObjectStorageService();
-      
-      // Get the file path from Object Storage (it will search in public/private dirs automatically)
-      const filePath = await objectStorageService.getObjectEntityFile(objectPath);
-      
-      // 🚀 画像リサイズ処理（画像ファイルのみ）
-      const isImage = filename.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-      const shouldResize = isImage && (thumbnail === 'true' || w || h);
-      
-      if (shouldResize) {
-        try {
-          // Import sharp for image processing
-          const sharp = (await import('sharp')).default;
-          
-          // Get file from Object Storage as buffer
-          const fileBuffer = await objectStorageService.getObjectBuffer(filePath);
-          
-          // リサイズ設定
-          let width = thumbnail === 'true' ? 400 : (w ? parseInt(w as string) : undefined);
-          let height = thumbnail === 'true' ? 400 : (h ? parseInt(h as string) : undefined);
-          
-          // 最大サイズ制限（セキュリティ対策）
-          if (width && width > 2000) width = 2000;
-          if (height && height > 2000) height = 2000;
-          
-          // sharpで画像をリサイズ
-          const resizedBuffer = await sharp(fileBuffer)
-            .resize(width, height, {
-              fit: 'cover',
-              position: 'center'
-            })
-            .jpeg({ quality: 85 }) // JPEGに変換して圧縮
-            .toBuffer();
-          
-          // キャッシュヘッダーを設定
-          res.set({
-            'Content-Type': 'image/jpeg',
-            'Cache-Control': 'public, max-age=31536000', // 1年間キャッシュ
-            'Content-Length': resizedBuffer.length
-          });
-          
-          return res.send(resizedBuffer);
-        } catch (resizeError) {
-          console.error('Error resizing image, falling back to original:', resizeError);
-          // リサイズ失敗時は元のファイルをストリーミング
-        }
+      // Handle duplicate 'public/public/' or 'private/private/' paths
+      if (filename.startsWith('public/') || filename.startsWith('private/')) {
+        const parts = filename.split('/');
+        folder = parts[0];
+        filename = parts.slice(1).join('/');
+        console.log(`🔧 Fixed duplicate path: ${req.params.folder}/${req.params.filename} -> ${folder}/${filename}`);
       }
       
-      // 動画または通常のファイルの場合は最適化されたストリーミング
-      // Use the optimized downloadObject method with streaming, caching, and Range support
-      // This method handles:
-      // - LRU cache for signed URLs and metadata
-      // - HTTP Range requests for efficient video streaming
-      // - Proper cache headers based on visibility
-      await objectStorageService.downloadObject(filePath, res);
+      const isBunnyConfigured = !!(process.env.BUNNY_STORAGE_API_KEY && process.env.BUNNY_STORAGE_ZONE_NAME);
+      
+      console.log('🔍 Proxy request for:', folder, filename, 'Range:', req.headers.range);
+      
+      // Determine content type from filename
+      const ext = filename.toLowerCase().split('.').pop();
+      let contentType = 'application/octet-stream';
+      if (ext === 'mp4') contentType = 'video/mp4';
+      else if (ext === 'mov') contentType = 'video/quicktime';
+      else if (ext === 'webm') contentType = 'video/webm';
+      else if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg';
+      else if (ext === 'png') contentType = 'image/png';
+      else if (ext === 'gif') contentType = 'image/gif';
+      else if (ext === 'webp') contentType = 'image/webp';
+      
+      let fileBuffer: Buffer;
+      
+      // Strategy 1: Try Bunny CDN first (if configured)
+      if (isBunnyConfigured) {
+        // Use Storage Zone Direct Access instead of Pull Zone CDN
+        // This ensures reliable access with authentication
+        const storageRegion = process.env.BUNNY_STORAGE_REGION || 'de';
+        const regionEndpoints: Record<string, string> = {
+          'de': 'storage.bunnycdn.com',
+          'ny': 'ny.storage.bunnycdn.com',
+          'la': 'la.storage.bunnycdn.com',
+          'sg': 'sg.storage.bunnycdn.com',
+          'sydney': 'syd.storage.bunnycdn.com',
+          'uk': 'uk.storage.bunnycdn.com',
+        };
+        const storageEndpoint = regionEndpoints[storageRegion] || 'storage.bunnycdn.com';
+        
+        // Encode filename for URL (Express auto-decodes params, but Bunny CDN needs encoded URLs)
+        const encodedFilename = encodeURIComponent(filename);
+        const bunnyUrl = `https://${storageEndpoint}/${process.env.BUNNY_STORAGE_ZONE_NAME}/${folder}/${encodedFilename}`;
+        
+        console.log('🐰 Trying Bunny Storage API:', bunnyUrl);
+        
+        try {
+          // Forward Range header to Bunny Storage for video streaming
+          const fetchOptions: RequestInit = {
+            headers: {
+              'AccessKey': process.env.BUNNY_STORAGE_API_KEY || '',
+            }
+          };
+          if (req.headers.range) {
+            fetchOptions.headers = {
+              ...fetchOptions.headers,
+              'Range': req.headers.range
+            };
+          }
+          
+          const bunnyResponse = await fetch(bunnyUrl, fetchOptions);
+          if (bunnyResponse.ok || bunnyResponse.status === 206) {
+            console.log(`✅ Bunny Storage HIT - Status: ${bunnyResponse.status}`);
+            
+            // If Bunny Storage returns 206 Partial Content, stream it directly
+            if (bunnyResponse.status === 206) {
+              const contentRange = bunnyResponse.headers.get('content-range');
+              const contentLength = bunnyResponse.headers.get('content-length');
+              
+              console.log(`📦 Streaming 206 Partial Content: ${contentRange}`);
+              
+              res.writeHead(206, {
+                'Content-Range': contentRange || '',
+                'Accept-Ranges': 'bytes',
+                'Content-Length': contentLength || '',
+                'Content-Type': contentType,
+                'Cache-Control': 'public, max-age=31536000, stale-while-revalidate=86400',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                'Access-Control-Allow-Headers': 'Range',
+                'Cross-Origin-Resource-Policy': 'cross-origin',
+              });
+              
+              const arrayBuffer = await bunnyResponse.arrayBuffer();
+              return res.end(Buffer.from(arrayBuffer));
+            }
+            
+            // Otherwise, handle as full file download
+            const arrayBuffer = await bunnyResponse.arrayBuffer();
+            fileBuffer = Buffer.from(arrayBuffer);
+          } else {
+            console.log('⚠️ Bunny Storage MISS - Migrating from Firebase...');
+            throw new Error('Not in Bunny Storage yet');
+          }
+        } catch (bunnyCdnError) {
+          // File not in Bunny CDN, download from Firebase and migrate
+          const { ObjectStorageService } = await import("./objectStorage");
+          const { storage } = await import('./firebase');
+          const objectStorageService = new ObjectStorageService();
+          
+          const objectPath = `/objects/${filename}`;
+          const filePath = await objectStorageService.getObjectEntityFile(objectPath);
+          
+          console.log('📥 Downloading from Firebase:', filePath);
+          
+          const bucket = storage.bucket();
+          const file = bucket.file(filePath);
+          const [fbBuffer] = await file.download();
+          
+          if (!fbBuffer || fbBuffer.length === 0) {
+            return res.status(404).json({ error: 'File not found' });
+          }
+          
+          fileBuffer = fbBuffer;
+          console.log('✅ Firebase download complete:', fileBuffer.length, 'bytes');
+          
+          // Auto-migrate to Bunny CDN in background (don't wait)
+          (async () => {
+            try {
+              const { storageAdapter } = await import('./storage-adapter');
+              const bunnyKey = `${folder}/${filename}`;
+              await storageAdapter.upload(bunnyKey, fileBuffer, contentType);
+              console.log('🚀 Auto-migrated to Bunny CDN:', bunnyKey);
+            } catch (migrationError) {
+              console.error('⚠️ Migration to Bunny CDN failed:', migrationError);
+            }
+          })();
+        }
+      } else {
+        // No Bunny CDN, use Firebase Storage only
+        const { ObjectStorageService } = await import("./objectStorage");
+        const { storage } = await import('./firebase');
+        const objectStorageService = new ObjectStorageService();
+        
+        const objectPath = `/objects/${filename}`;
+        const filePath = await objectStorageService.getObjectEntityFile(objectPath);
+        
+        console.log('📥 Downloading from Firebase:', filePath);
+        
+        const bucket = storage.bucket();
+        const file = bucket.file(filePath);
+        const [fbBuffer] = await file.download();
+        
+        if (!fbBuffer || fbBuffer.length === 0) {
+          return res.status(404).json({ error: 'File not found' });
+        }
+        
+        fileBuffer = fbBuffer;
+        console.log('✅ Downloaded from Firebase:', fileBuffer.length, 'bytes');
+      }
+      
+      const fileSize = fileBuffer.length;
+      
+      // Handle Range requests for video streaming
+      const range = req.headers.range;
+      if (range) {
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = (end - start) + 1;
+        
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunkSize,
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=31536000, stale-while-revalidate=86400',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': 'Range',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+        });
+        
+        res.end(fileBuffer.slice(start, end + 1));
+      } else {
+        res.writeHead(200, {
+          'Content-Length': fileSize,
+          'Content-Type': contentType,
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'public, max-age=31536000, stale-while-revalidate=86400',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': 'Range',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+        });
+        
+        res.end(fileBuffer);
+      }
     } catch (error: any) {
       console.error('Error proxying file:', error);
       
@@ -1370,18 +2050,379 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // For PNG/JPG avatar images, return default avatar image instead of 404
+      // Only redirect to default avatar for actual avatar images (containing 'avatar' in filename)
       const { filename } = req.params;
-      if (filename.match(/\.(png|jpg|jpeg|gif)$/i)) {
-        console.log(`⚠️ Image not found, redirecting to default avatar`);
+      if (filename.match(/\.(png|jpg|jpeg|gif)$/i) && filename.toLowerCase().includes('avatar')) {
+        console.log(`⚠️ Avatar image not found, redirecting to default avatar`);
         // Redirect to a default avatar
         const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + filename;
         return res.redirect(defaultAvatar);
       }
       
+      // For other images/videos (post thumbnails), return 404
+      console.log(`⚠️ File not found: ${filename}`);
       res.status(404).json({ error: 'File not found' });
     }
   });
+
+  // Proxy endpoint for Bunny Stream thumbnails
+  // Fetches thumbnail using Bunny Stream API with authentication
+  app.get("/api/bunny-stream-thumbnail/:videoGuid", async (req, res) => {
+    try {
+      const { videoGuid } = req.params;
+      
+      const { bunnyStreamClient } = await import('./bunny-stream');
+      
+      if (!bunnyStreamClient.isConfigured()) {
+        return res.status(503).json({ error: 'Bunny Stream not configured' });
+      }
+      
+      console.log('🖼️ Fetching Bunny Stream thumbnail for:', videoGuid);
+      
+      // Get video info from Bunny Stream API (authenticated request)
+      const videoInfo = await bunnyStreamClient.getVideo(videoGuid);
+      
+      if (!videoInfo) {
+        console.error('⚠️ Video not found:', videoGuid);
+        return res.status(404).json({ error: 'Video not found' });
+      }
+      
+      // Bunny Stream stores thumbnail URL in the video metadata
+      const thumbnailUrl = videoInfo.thumbnailUrl || bunnyStreamClient.getThumbnailUrl(videoGuid);
+      
+      console.log('🖼️ Fetching thumbnail from:', thumbnailUrl);
+      
+      // Fetch thumbnail image
+      const response = await fetch(thumbnailUrl);
+      
+      if (!response.ok) {
+        console.error('⚠️ Thumbnail fetch failed:', response.status, thumbnailUrl);
+        return res.status(response.status).json({ error: 'Thumbnail not available' });
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      // Send thumbnail with proper CORS headers
+      res.writeHead(200, {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': buffer.length,
+        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      });
+      
+      res.end(buffer);
+    } catch (error: any) {
+      console.error('Error proxying Bunny Stream thumbnail:', error);
+      res.status(500).json({ error: 'Failed to fetch thumbnail' });
+    }
+  });
+
+  // Get video URL with quality restriction based on subscription level
+  app.get("/api/video-url/:creatorId/:videoGuid", async (req, res) => {
+    try {
+      const { creatorId, videoGuid } = req.params;
+      const userId = req.query.userId as string;
+
+      if (!userId) {
+        // No user ID provided - return basic quality (720p)
+        const { bunnyStreamClient } = await import('./bunny-stream');
+        const videoUrl = bunnyStreamClient.getQualityRestrictedUrl(videoGuid, 'free');
+        return res.json({ videoUrl, quality: '720p', subscriptionLevel: 'free' });
+      }
+
+      // Check user's subscription level for this creator
+      const { firestore } = await import('./firebase');
+      const subscriptionDoc = await firestore
+        .collection('users')
+        .doc(userId)
+        .collection('subscriptions')
+        .doc(creatorId)
+        .get();
+
+      let subscriptionLevel = 'free';
+      if (subscriptionDoc.exists) {
+        const subData = subscriptionDoc.data();
+        if (subData && subData.status === 'active') {
+          // Determine subscription level from planId or planLevel
+          if (subData.planLevel === 3 || subData.planId?.toLowerCase().includes('vip')) {
+            subscriptionLevel = 'vip';
+          } else if (subData.planLevel === 2 || subData.planId?.toLowerCase().includes('premium')) {
+            subscriptionLevel = 'premium';
+          } else {
+            subscriptionLevel = 'basic';
+          }
+        }
+      }
+
+      // Get quality-restricted video URL
+      const { bunnyStreamClient } = await import('./bunny-stream');
+      const videoUrl = bunnyStreamClient.getQualityRestrictedUrl(videoGuid, subscriptionLevel);
+
+      const qualityMap: Record<string, string> = {
+        'free': '720p',
+        'basic': '720p',
+        'premium': '1080p',
+        'vip': '4K',
+        'high': '4K'
+      };
+
+      res.json({ 
+        videoUrl, 
+        quality: qualityMap[subscriptionLevel] || '720p',
+        subscriptionLevel 
+      });
+
+    } catch (error: any) {
+      console.error('Error getting video URL:', error);
+      res.status(500).json({ error: 'Failed to get video URL' });
+    }
+  });
+
+  // Cancel Subscription API
+  // Reference: blueprint:javascript_stripe integration
+  app.post("/api/cancel-subscription", async (req, res) => {
+    try {
+      const { subscriptionId, userId, creatorId } = req.body;
+
+      if (!subscriptionId || !userId || !creatorId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ error: "Payment system not configured" });
+      }
+
+      // Cancel subscription in Stripe
+      const canceledSubscription = await stripe.subscriptions.cancel(subscriptionId);
+
+      console.log(`🚫 Subscription ${subscriptionId} cancelled by user ${userId}`);
+
+      // Update subscription status in Firestore
+      const { firestore, admin } = await import('./firebase');
+      await firestore
+        .collection('users')
+        .doc(userId)
+        .collection('subscriptions')
+        .doc(creatorId)
+        .update({
+          status: 'cancelled',
+          cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+      res.json({
+        success: true,
+        subscription: canceledSubscription,
+        message: 'サブスクリプションが解約されました',
+      });
+    } catch (error: any) {
+      console.error('Error cancelling subscription:', error);
+      res.status(500).json({ error: 'サブスクリプションの解約に失敗しました: ' + error.message });
+    }
+  });
+
+  // Stripe Webhook endpoint (MUST be before express.json() middleware)
+  // Reference: blueprint:javascript_stripe integration
+  app.post("/api/webhook/stripe",
+    express.raw({ type: 'application/json' }),
+    async (req, res) => {
+      const sig = req.headers['stripe-signature'];
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+      if (!webhookSecret) {
+        console.error('STRIPE_WEBHOOK_SECRET is not set');
+        return res.status(500).send('Webhook secret not configured');
+      }
+
+      if (!stripe) {
+        console.error('Stripe is not configured');
+        return res.status(500).send('Stripe not configured');
+      }
+
+      let event;
+
+      try {
+        // Verify webhook signature
+        event = stripe.webhooks.constructEvent(req.body, sig as string, webhookSecret);
+      } catch (err: any) {
+        console.error('Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      console.log(`🔔 Webhook received: ${event.type}`);
+
+      // Handle the event
+      try {
+        const { firestore, admin } = await import('./firebase');
+
+        switch (event.type) {
+          case 'invoice.payment_succeeded': {
+            const invoice = event.data.object as any;
+            const customerId = invoice.customer as string;
+            const subscriptionId = invoice.subscription as string;
+
+            if (subscriptionId) {
+              // Retrieve subscription to get metadata
+              const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
+              const metadata = subscription.metadata;
+
+              if (subscription.status === 'active') {
+                const userId = metadata.userId;
+                const creatorId = metadata.creatorId;
+                const planId = metadata.planId;
+                const planTitle = metadata.planTitle;
+                const basePrice = parseInt(metadata.basePrice || '0');
+                const tax = parseInt(metadata.tax || '0');
+                const platformFee = parseInt(metadata.platformFee || '0');
+                const totalAmount = basePrice + tax + platformFee;
+
+                // Check billing reason
+                const billingReason = invoice.billing_reason;
+                const isInitialPayment = billingReason === 'subscription_create';
+                const isRecurring = billingReason === 'subscription_cycle';
+
+                console.log(`💰 Payment succeeded for subscription ${subscriptionId}`);
+                console.log(`   User: ${userId}, Creator: ${creatorId}`);
+                console.log(`   Type: ${isInitialPayment ? 'Initial' : isRecurring ? 'Recurring' : 'Other'}`);
+
+                // 1. Save purchase record
+                await firestore.collection('purchases').add({
+                  userId,
+                  creatorId,
+                  creatorName: metadata.creatorName,
+                  planId,
+                  planTitle,
+                  amount: totalAmount,
+                  creatorAmount: basePrice,
+                  platformFee,
+                  tax,
+                  currency: 'JPY',
+                  status: 'completed',
+                  paymentMethod: 'stripe_subscription',
+                  type: 'subscription',
+                  subscriptionId,
+                  customerId,
+                  billingReason,
+                  createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+
+                // 2. Update creator balance
+                const creatorRef = firestore.collection('users').doc(creatorId);
+                await creatorRef.update({
+                  availableBalance: admin.firestore.FieldValue.increment(basePrice),
+                  totalEarnings: admin.firestore.FieldValue.increment(basePrice),
+                });
+
+                // 3. Save/update subscription info (only on initial payment)
+                if (isInitialPayment) {
+                  // Determine plan level
+                  let planLevel = 1;
+                  if (planId.toLowerCase().includes('vip')) {
+                    planLevel = 3;
+                  } else if (planId.toLowerCase().includes('premium')) {
+                    planLevel = 2;
+                  }
+
+                  await firestore
+                    .collection('users')
+                    .doc(userId)
+                    .collection('subscriptions')
+                    .doc(creatorId)
+                    .set({
+                      creatorId,
+                      creatorName: metadata.creatorName,
+                      planId,
+                      planTitle,
+                      planLevel,
+                      price: basePrice,
+                      status: 'active',
+                      subscriptionId,
+                      customerId,
+                      startDate: admin.firestore.FieldValue.serverTimestamp(),
+                      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                      nextBillingDate: new Date(subscription.current_period_end * 1000),
+                    });
+
+                  console.log(`✅ Initial subscription activated for user ${userId}`);
+                } else {
+                  // Update next billing date for recurring payments
+                  await firestore
+                    .collection('users')
+                    .doc(userId)
+                    .collection('subscriptions')
+                    .doc(creatorId)
+                    .update({
+                      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                      nextBillingDate: new Date(subscription.current_period_end * 1000),
+                    });
+
+                  console.log(`✅ Recurring payment processed for user ${userId}`);
+                }
+              }
+            }
+            break;
+          }
+
+          case 'customer.subscription.deleted': {
+            const subscription = event.data.object;
+            const metadata = subscription.metadata;
+            const userId = metadata.userId;
+            const creatorId = metadata.creatorId;
+
+            console.log(`🚫 Subscription cancelled: User ${userId}, Creator ${creatorId}`);
+
+            // Update subscription status to cancelled
+            await firestore
+              .collection('users')
+              .doc(userId)
+              .collection('subscriptions')
+              .doc(creatorId)
+              .update({
+                status: 'cancelled',
+                cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+              });
+
+            console.log(`✅ Subscription marked as cancelled`);
+            break;
+          }
+
+          case 'customer.subscription.updated': {
+            const subscription = event.data.object as any;
+            const metadata = subscription.metadata;
+            const userId = metadata.userId;
+            const creatorId = metadata.creatorId;
+
+            console.log(`📝 Subscription updated: User ${userId}, Creator ${creatorId}`);
+
+            // Update subscription status
+            await firestore
+              .collection('users')
+              .doc(userId)
+              .collection('subscriptions')
+              .doc(creatorId)
+              .update({
+                status: subscription.status,
+                currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                nextBillingDate: new Date(subscription.current_period_end * 1000),
+              });
+
+            console.log(`✅ Subscription status updated to ${subscription.status}`);
+            break;
+          }
+
+          default:
+            console.log(`Unhandled event type: ${event.type}`);
+        }
+
+        res.json({ received: true });
+      } catch (error: any) {
+        console.error(`Error processing webhook ${event.type}:`, error);
+        res.status(500).json({ error: 'Webhook processing failed' });
+      }
+    }
+  );
 
   const httpServer = createServer(app);
 

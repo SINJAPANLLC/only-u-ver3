@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -47,7 +47,7 @@ const VideoPage = () => {
     }
     
     const [isVideoPlaying, setIsVideoPlaying] = useState(true);
-    const [isMuted, setIsMuted] = useState(false);
+    const [isMuted, setIsMuted] = useState(true);
     const [localLikedPosts, setLocalLikedPosts] = useState(new Set());
     const [localSavedPosts, setLocalSavedPosts] = useState(new Set());
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -60,7 +60,12 @@ const VideoPage = () => {
     const [showOptionsModal, setShowOptionsModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [accessDenied, setAccessDenied] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [isSeeking, setIsSeeking] = useState(false);
+    const [seekTime, setSeekTime] = useState(0);
     const containerRef = useRef(null);
+    const progressRef = useRef(null);
     const { currentUser } = useAuth();
 
     // URL変換ヘルパー関数
@@ -69,10 +74,23 @@ const VideoPage = () => {
         
         console.log('VideoPage - Original URL:', url);
         
-        // 既にプロキシURLの場合はそのまま返す
+        // 既にプロキシURLの場合はそのまま返す（エンコーディングはサーバー側で処理）
         if (url.startsWith('/api/proxy/')) {
             console.log('VideoPage - Already proxy URL:', url);
             return url;
+        }
+        
+        // Bunny CDN直接URL（CORSエラーを防ぐためプロキシ経由に変換）
+        if (url.includes('only-u.fun/') || url.includes('b-cdn.net/')) {
+            const bunnyPattern = /https?:\/\/[^/]+\/(public|private)\/(.+)/;
+            const match = url.match(bunnyPattern);
+            if (match) {
+                const folder = match[1];
+                const filename = match[2];
+                const proxyUrl = `/api/proxy/${folder}/${filename}`;
+                console.log('VideoPage - Converted Bunny CDN URL to proxy:', proxyUrl);
+                return proxyUrl;
+            }
         }
         
         // Google Storage URLの場合
@@ -309,7 +327,7 @@ const VideoPage = () => {
     };
 
     // Handle video playback
-    const toggleVideoPlayback = useCallback(() => {
+    const toggleVideoPlayback = () => {
         if (videoRef.current) {
             try {
                 if (isVideoPlaying) {
@@ -331,10 +349,10 @@ const VideoPage = () => {
                 setIsVideoPlaying(false);
             }
         }
-    }, [isVideoPlaying]);
+    };
 
     // Handle mute toggle
-    const toggleMute = useCallback(() => {
+    const toggleMute = () => {
         if (videoRef.current) {
             try {
                 videoRef.current.muted = !isMuted;
@@ -343,10 +361,59 @@ const VideoPage = () => {
                 console.error("Error in toggleMute:", error);
             }
         }
-    }, [isMuted]);
+    };
+
+    // Seek bar handlers
+    const formatTime = (time) => {
+        if (!time || isNaN(time)) return '0:00';
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    const handleSeekStart = (e) => {
+        e.preventDefault();
+        setIsSeeking(true);
+        if (videoRef.current && !videoRef.current.paused) {
+            videoRef.current.pause();
+        }
+    };
+
+    const handleSeekMove = (e) => {
+        if (!isSeeking || !progressRef.current) return;
+
+        const rect = progressRef.current.getBoundingClientRect();
+        const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        const clickX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+        const newTime = (clickX / rect.width) * duration;
+
+        setSeekTime(newTime);
+    };
+
+    const handleSeekEnd = () => {
+        if (!isSeeking) return;
+
+        const video = videoRef.current;
+        if (video) {
+            video.currentTime = seekTime;
+            if (isVideoPlaying) {
+                video.play().catch(console.error);
+            }
+        }
+
+        setIsSeeking(false);
+    };
+
+    const handleProgressClick = (e) => {
+        if (!videoRef.current || !progressRef.current) return;
+        const rect = progressRef.current.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const newTime = (clickX / rect.width) * duration;
+        videoRef.current.currentTime = newTime;
+    };
 
     // Handle like toggle
-    const handleToggleLike = useCallback(async (e) => {
+    const handleToggleLike = async (e) => {
         try {
             e.stopPropagation();
             const wasLiked = localLikedPosts.has(videoData.id);
@@ -382,10 +449,10 @@ const VideoPage = () => {
         } catch (error) {
             console.error('Error in handleToggleLike:', error);
         }
-    }, [videoData, localLikedPosts, toggleLike, updateLikedCount]);
+    };
 
     // Handle bookmark toggle
-    const handleToggleBookmark = useCallback(async (e) => {
+    const handleToggleBookmark = async (e) => {
         try {
             e.stopPropagation();
             const wasSaved = localSavedPosts.has(videoData.id);
@@ -421,19 +488,19 @@ const VideoPage = () => {
         } catch (error) {
             console.error('Error in handleToggleBookmark:', error);
         }
-    }, [videoData, localSavedPosts, toggleSave, updateSavedCount]);
+    };
 
     // Handle profile navigation
-    const handleAccountClick = useCallback(() => {
+    const handleAccountClick = () => {
         try {
             navigate(`/profile/${videoData.userId}`);
         } catch (error) {
             console.error('Error navigating to profile:', error);
         }
-    }, [navigate, videoData]);
+    };
 
     // Handle share
-    const handleShare = useCallback(async (e) => {
+    const handleShare = async (e) => {
         e.stopPropagation();
         try {
             const postUrl = window.location.href;
@@ -459,7 +526,7 @@ const VideoPage = () => {
         } catch (error) {
             console.error('Error in share action:', error);
         }
-    }, [videoData]);
+    };
 
     // Handle fullscreen
     const handleFullscreen = async () => {
@@ -476,7 +543,7 @@ const VideoPage = () => {
         }
     };
 
-    // Auto-play video on mount and cleanup on unmount
+    // Auto-play video on mount
     useEffect(() => {
         if (videoRef.current && videoData && videoData.type === 'video') {
             videoRef.current.play().catch(e => {
@@ -484,16 +551,83 @@ const VideoPage = () => {
                 setIsVideoPlaying(false);
             });
         }
-        
-        // Cleanup: Stop video when component unmounts to prevent memory leaks
+    }, [videoData]);
+
+    // Video event listeners for time tracking
+    useEffect(() => {
+        if (!videoData || videoData.type !== 'video') {
+            return;
+        }
+
+        // Use a timer to wait for videoRef to be available
+        const timer = setInterval(() => {
+            const video = videoRef.current;
+            if (!video) return;
+
+            // Clear timer once video is found
+            clearInterval(timer);
+
+            console.log('🎬 VideoPage - Setting up video listeners for:', videoData.videoUrl);
+
+            const handleTimeUpdate = () => {
+                setCurrentTime(video.currentTime);
+            };
+            
+            const handleLoadedMetadata = () => {
+                console.log('🎥 VideoPage - Loaded metadata, duration:', video.duration);
+                if (video.duration && !isNaN(video.duration)) {
+                    setDuration(video.duration);
+                }
+            };
+
+            const handleLoadedData = () => {
+                console.log('📹 VideoPage - Loaded data, duration:', video.duration);
+                if (video.duration && !isNaN(video.duration)) {
+                    setDuration(video.duration);
+                }
+            };
+
+            // Set duration immediately if already loaded
+            if (video.duration && !isNaN(video.duration)) {
+                console.log('✅ VideoPage - Duration already available:', video.duration);
+                setDuration(video.duration);
+            }
+
+            video.addEventListener('timeupdate', handleTimeUpdate);
+            video.addEventListener('loadedmetadata', handleLoadedMetadata);
+            video.addEventListener('loadeddata', handleLoadedData);
+        }, 100);
+
         return () => {
-            if (videoRef.current) {
-                videoRef.current.pause();
-                videoRef.current.src = '';
-                videoRef.current.load();
+            clearInterval(timer);
+            const video = videoRef.current;
+            if (video) {
+                video.removeEventListener('timeupdate', () => setCurrentTime(video.currentTime));
+                video.removeEventListener('loadedmetadata', () => {});
+                video.removeEventListener('loadeddata', () => {});
             }
         };
     }, [videoData]);
+
+    // Seek bar drag listeners
+    useEffect(() => {
+        if (isSeeking) {
+            const handleMove = (e) => handleSeekMove(e);
+            const handleEnd = () => handleSeekEnd();
+
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleEnd);
+            document.addEventListener('touchmove', handleMove);
+            document.addEventListener('touchend', handleEnd);
+
+            return () => {
+                document.removeEventListener('mousemove', handleMove);
+                document.removeEventListener('mouseup', handleEnd);
+                document.removeEventListener('touchmove', handleMove);
+                document.removeEventListener('touchend', handleEnd);
+            };
+        }
+    }, [isSeeking, seekTime, duration, isVideoPlaying]);
 
     if (loading) {
         return (
@@ -603,7 +737,7 @@ const VideoPage = () => {
                                 ref={videoRef}
                                 src={videoData.videoUrl}
                                 poster={videoData.thumbnail}
-                                className="w-full h-full object-contain"
+                                className={`w-full h-full ${isVerticalVideo ? 'object-cover' : 'object-contain'}`}
                                 loop
                                 playsInline
                                 autoPlay
@@ -612,6 +746,9 @@ const VideoPage = () => {
                                 onLoadedMetadata={(e) => {
                                     const video = e.target;
                                     setIsVerticalVideo(video.videoHeight > video.videoWidth);
+                                    if (video.duration && !isNaN(video.duration)) {
+                                        setDuration(video.duration);
+                                    }
                                 }}
                                 onLoadedData={(e) => {
                                     const video = e.target;
@@ -655,7 +792,7 @@ const VideoPage = () => {
                     )}
 
                     {/* Right Side Actions */}
-                    <div className="absolute right-4 bottom-28 z-30 flex flex-col items-center space-y-5">
+                    <div className="absolute right-4 bottom-40 z-30 flex flex-col items-center space-y-5">
                         {/* Swipe Indicator */}
                         <motion.div 
                             className="flex flex-col items-center cursor-pointer"
@@ -858,7 +995,7 @@ const VideoPage = () => {
 
                     {/* Bottom Content */}
                     <motion.div 
-                        className="absolute bottom-16 left-0 right-0 z-20 p-4 pb-4 bg-gradient-to-t from-black via-black/95 to-transparent"
+                        className="absolute bottom-32 left-0 right-0 z-20 p-4 pb-4"
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, ease: "easeOut" }}
@@ -941,6 +1078,64 @@ const VideoPage = () => {
                     </motion.div>
                 </div>
             </div>
+
+            {/* Seek Bar - Above Bottom Navigation */}
+            {videoData?.type === 'video' && duration > 0 && (
+                <motion.div 
+                    className="fixed bottom-20 left-0 right-0 z-30 px-4"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                >
+                    <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-3">
+                        {/* Progress Bar with Draggable Thumb */}
+                        <div 
+                            ref={progressRef}
+                            className="relative w-full h-2 bg-white/20 rounded-full cursor-pointer group/progress mb-2"
+                            onClick={handleProgressClick}
+                        >
+                            {/* Progress Fill */}
+                            <div 
+                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-pink-500 to-purple-600 rounded-full transition-all"
+                                style={{ width: `${((isSeeking ? seekTime : currentTime) / duration) * 100}%` }}
+                            />
+                            
+                            {/* Draggable Thumb */}
+                            <div
+                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full cursor-grab active:cursor-grabbing transform transition-all group-hover/progress:scale-125 hover:scale-150"
+                                style={{ 
+                                    left: `${((isSeeking ? seekTime : currentTime) / duration) * 100}%`,
+                                    marginLeft: '-8px'
+                                }}
+                                onMouseDown={handleSeekStart}
+                                onTouchStart={handleSeekStart}
+                            >
+                                {/* Inner gradient */}
+                                <div className="absolute inset-0.5 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full" />
+                            </div>
+
+                            {/* Time tooltip on seeking */}
+                            {isSeeking && (
+                                <div 
+                                    className="absolute -top-10 bg-black/80 text-white text-xs px-2 py-1 rounded backdrop-blur-sm"
+                                    style={{ 
+                                        left: `${(seekTime / duration) * 100}%`,
+                                        transform: 'translateX(-50%)'
+                                    }}
+                                >
+                                    {formatTime(seekTime)}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Time Display */}
+                        <div className="flex items-center justify-between text-white text-xs">
+                            <span className="font-medium">{formatTime(currentTime)}</span>
+                            <span className="text-white/60">{formatTime(duration)}</span>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
 
             {/* Bottom Navigation */}
             <BottomNavigationWithCreator />

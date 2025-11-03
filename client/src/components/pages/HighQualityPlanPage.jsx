@@ -154,24 +154,37 @@ const HighQualityPlanPage = () => {
 
   const handleProceedToPayment = async () => {
     setIsLoadingPayment(true);
+    
+    const user = auth.currentUser;
+    if (!user) {
+      alert('ログインが必要です');
+      setIsLoadingPayment(false);
+      navigate('/');
+      return;
+    }
+
     try {
-      // Create payment intent
-      const response = await fetch('/api/create-payment-intent', {
+      // Create Subscription with Payment Intent for recurring payment
+      const response = await fetch('/api/create-subscription-payment-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: totalAmount,
-          currency: 'jpy',
-          planId: 'monthly',
-          planName: '高画質プラン - 月額プラン',
+          planId: 'high-quality-plan',
+          planTitle: '高画質プラン（月額）',
+          planPrice: creatorPrice,
+          creatorId: 'platform',
+          creatorName: 'Only-U Platform',
+          userId: user.uid,
+          userEmail: user.email,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        alert(errorData.error || '決済の準備中にエラーが発生しました');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.error || '決済の準備中にエラーが発生しました';
+        alert(errorMsg);
         setIsLoadingPayment(false);
         return;
       }
@@ -179,16 +192,18 @@ const HighQualityPlanPage = () => {
       const data = await response.json();
       
       if (data.clientSecret) {
+        // Show payment form modal with client secret
         setClientSecret(data.clientSecret);
         setShowPaymentDetails(false);
         setShowPaymentForm(true);
+        setIsLoadingPayment(false);
       } else {
-        alert('決済の準備中にエラーが発生しました');
+        alert('Client Secretが取得できませんでした');
+        setIsLoadingPayment(false);
       }
     } catch (error) {
       console.error('Error creating payment intent:', error);
-      alert('決済の準備中にエラーが発生しました');
-    } finally {
+      alert(error.message || '決済の準備中にエラーが発生しました');
       setIsLoadingPayment(false);
     }
   };

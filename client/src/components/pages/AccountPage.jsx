@@ -75,7 +75,7 @@ const AccountPage = () => {
 
     return (
         <>
-            <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 pb-24">
+            <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 dark:from-gray-900 dark:via-black dark:to-gray-900 pb-24">
                 {/* Header with gradient */}
                 <div className="relative bg-gradient-to-r from-pink-500 to-pink-600 pt-12 pb-32 px-6 overflow-hidden">
                     <motion.div
@@ -175,7 +175,7 @@ const AccountPage = () => {
                         transition={{ delay: 0.1 }}
                         whileHover={{ scale: 1.02, y: -2 }}
                         onClick={() => navigate('/payment-methods')}
-                        className="bg-white rounded-2xl p-5 shadow-xl border-2 border-pink-100 cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-xl border-2 border-pink-100 dark:border-gray-700 cursor-pointer"
                         data-testid="banner-payment"
                     >
                         <div className="flex items-center justify-between">
@@ -193,7 +193,7 @@ const AccountPage = () => {
                                 >
                                     <CreditCard className="w-6 h-6 text-white" />
                                 </motion.div>
-                                <p className="text-base text-gray-800 font-semibold">
+                                <p className="text-base text-gray-800 dark:text-gray-200 font-semibold">
                                     {t('AccountPage.paymenttitle')}
                                 </p>
                             </div>
@@ -207,7 +207,7 @@ const AccountPage = () => {
                         transition={{ delay: 0.2 }}
                         whileHover={{ scale: 1.02, y: -2 }}
                         onClick={() => navigate('/settings/notifications')}
-                        className="bg-white rounded-2xl p-5 shadow-xl border-2 border-pink-100 cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-xl border-2 border-pink-100 dark:border-gray-700 cursor-pointer"
                         data-testid="banner-notice"
                     >
                         <div className="flex items-center justify-between">
@@ -225,7 +225,7 @@ const AccountPage = () => {
                                 >
                                     <Bell className="w-6 h-6 text-white" />
                                 </motion.div>
-                                <p className="text-base text-gray-800 font-semibold">
+                                <p className="text-base text-gray-800 dark:text-gray-200 font-semibold">
                                     {t('AccountPage.noticeterm')}
                                 </p>
                             </div>
@@ -260,13 +260,13 @@ const AccountPage = () => {
                                     {section.title}
                                 </h2>
                             </div>
-                            <div className="bg-white rounded-2xl shadow-lg border border-pink-100 overflow-hidden">
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-pink-100 dark:border-gray-700 overflow-hidden">
                                 {section.items.map((item, itemIndex) => (
                                     <motion.button
                                         key={itemIndex}
                                         whileHover={{ scale: 1.01, x: 5 }}
                                         whileTap={{ scale: 0.98 }}
-                                        className={`w-full px-6 py-4 flex justify-between items-center text-gray-800 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 transition-all duration-300 ${
+                                        className={`w-full px-6 py-4 flex justify-between items-center text-gray-800 dark:text-gray-200 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-300 ${
                                             itemIndex !== section.items.length - 1 ? 'border-b border-pink-50' : ''
                                         }`}
                                         onClick={() => navigate(item.path)}
@@ -309,11 +309,11 @@ const AccountPage = () => {
                                 その他
                             </h2>
                         </div>
-                        <div className="bg-white rounded-2xl shadow-lg border border-pink-100 overflow-hidden">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-pink-100 dark:border-gray-700 overflow-hidden">
                             <motion.button
                                 whileHover={{ scale: 1.01, x: 5 }}
                                 whileTap={{ scale: 0.98 }}
-                                className="w-full px-6 py-4 flex justify-between items-center text-gray-800 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 transition-all duration-300"
+                                className="w-full px-6 py-4 flex justify-between items-center text-gray-800 dark:text-gray-200 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 dark:hover:from-gray-700 dark:hover:to-gray-700 transition-all duration-300"
                                 onClick={() => navigate('/login')}
                                 data-testid="button-login"
                             >
@@ -432,7 +432,7 @@ const AccountPage = () => {
                             initial={{ scale: 0.9, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
-                            className="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl border-2 border-pink-100"
+                            className="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-8 shadow-2xl border-2 border-pink-100 dark:border-gray-700"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <motion.div
@@ -448,7 +448,7 @@ const AccountPage = () => {
                             >
                                 <Crown className="w-8 h-8 text-white" />
                             </motion.div>
-                            <p className="text-gray-800 font-bold mb-6 text-center text-lg leading-relaxed">
+                            <p className="text-gray-800 dark:text-gray-200 font-bold mb-6 text-center text-lg leading-relaxed">
                                 クリエイターとして投稿するには<br />登録が必要です
                             </p>
                             <motion.button

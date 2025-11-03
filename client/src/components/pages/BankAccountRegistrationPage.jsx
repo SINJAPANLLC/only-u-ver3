@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Building, CreditCard, CheckCircle, AlertCircle, Shield, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 
 const BankAccountRegistrationPage = () => {
@@ -19,12 +19,50 @@ const BankAccountRegistrationPage = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [existingAccountId, setExistingAccountId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const accountTypes = [
     { id: 'normal', name: '普通' },
     { id: 'checking', name: '当座' },
     { id: 'savings', name: '貯蓄' }
   ];
+
+  // 既存の口座情報を取得
+  useEffect(() => {
+    const fetchBankAccount = async () => {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const q = query(
+          collection(db, 'bankAccounts'),
+          where('userId', '==', currentUser.uid)
+        );
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const accountData = querySnapshot.docs[0].data();
+          setExistingAccountId(querySnapshot.docs[0].id);
+          setFormData({
+            bankName: accountData.bankName || '',
+            branchName: accountData.branchName || '',
+            accountType: accountData.accountType || 'normal',
+            accountNumber: accountData.accountNumber || '',
+            accountHolder: accountData.accountHolder || ''
+          });
+        }
+      } catch (error) {
+        console.error('口座情報の取得エラー:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBankAccount();
+  }, [currentUser]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,7 +75,7 @@ const BankAccountRegistrationPage = () => {
     setIsSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'bankAccounts'), {
+      const accountData = {
         userId: currentUser.uid,
         userName: currentUser.displayName || 'Unknown User',
         bankName: formData.bankName,
@@ -46,9 +84,19 @@ const BankAccountRegistrationPage = () => {
         accountNumber: formData.accountNumber,
         accountHolder: formData.accountHolder,
         status: 'active',
-        createdAt: new Date(),
         updatedAt: new Date()
-      });
+      };
+
+      if (existingAccountId) {
+        // 既存データを更新
+        await updateDoc(doc(db, 'bankAccounts', existingAccountId), accountData);
+      } else {
+        // 新規登録
+        await addDoc(collection(db, 'bankAccounts'), {
+          ...accountData,
+          createdAt: new Date()
+        });
+      }
 
       setIsSubmitting(false);
       setIsRegistered(true);
@@ -59,6 +107,17 @@ const BankAccountRegistrationPage = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 pb-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-pink-500 border-r-transparent mb-4"></div>
+          <p className="text-pink-600 font-medium">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (isRegistered) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 pb-20">
@@ -66,7 +125,7 @@ const BankAccountRegistrationPage = () => {
           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} className="text-white mr-4 p-2 hover:bg-white/20 rounded-full" data-testid="button-back">
             <ArrowLeft size={24} />
           </motion.button>
-          <h1 className="text-2xl font-bold text-white">登録完了</h1>
+          <h1 className="text-2xl font-bold text-white">{existingAccountId ? '更新完了' : '登録完了'}</h1>
         </motion.div>
 
         <div className="p-6">
