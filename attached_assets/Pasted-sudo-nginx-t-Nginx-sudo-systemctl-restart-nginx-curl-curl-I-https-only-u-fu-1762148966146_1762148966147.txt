@@ -1,0 +1,206 @@
+sudo nginx -t
+
+# Nginx再起動
+sudo systemctl restart nginx
+
+# ブラウザテスト用にcurlで確認
+curl -I https://only-u.fun
+2025/11/03 05:48:47 [warn] 64662#64662: conflicting server name "only-u.fun" on 0.0.0.0:80, ignored
+2025/11/03 05:48:47 [warn] 64662#64662: conflicting server name "www.only-u.fun" on 0.0.0.0:80, ignored
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+HTTP/2 404 
+date: Mon, 03 Nov 2025 05:48:48 GMT
+content-type: text/html
+vary: Accept-Encoding
+server: BunnyCDN-SG1-1272
+cdn-pullzone: 4738516
+cdn-uid: 18550f0e-e6f4-4a3b-99be-d40d9bfd6f02
+cdn-requestcountrycode: ID
+cache-control: no-cache
+cdn-storagebalancer: SG-631
+cdn-storageserver: DE-680
+cdn-proxyver: 1.39
+cdn-requestpullsuccess: True
+cdn-requestpullcode: 404
+cdn-cachedat: 11/03/2025 05:48:48
+cdn-edgestorageid: 1272
+cdn-requestid: 1103747abae4235e71c3a137388f1f5b
+cdn-cache: MISS
+cdn-status: 404
+cdn-requesttime: 0
+
+root@srv1087935:/var/www/onlyu# # Nginx設定ファイルの内容を全部表示
+cat /etc/nginx/sites-available/onlyu
+
+# 現在有効なNginx設定を確認
+sudo nginx -T | grep -A 20 "server_name only-u.fun"
+
+# curlでHTTPSアクセステスト
+curl -IL https://only-u.fun
+
+# localhostで直接HTML取得（成功するはず）
+curl http://127.0.0.1:5000 | head -20
+
+# Nginxのアクセスログをリアルタイムで見る（別ターミナルで）
+sudo tail -f /var/log/nginx/access.log
+server {
+    if ($host = www.only-u.fun) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    if ($host = only-u.fun) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    server_name only-u.fun www.only-u.fun;
+
+    client_max_body_size 500M;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        send_timeout 600;
+    }
+
+
+
+
+}
+2025/11/03 05:49:18 [warn] 64684#64684: conflicting server name "only-u.fun" on 0.0.0.0:80, ignored
+2025/11/03 05:49:18 [warn] 64684#64684: conflicting server name "www.only-u.fun" on 0.0.0.0:80, ignored
+    server_name only-u.fun www.only-u.fun;
+    root /var/www/html;
+    # 大きなファイルアップロードを許可（500MB）
+    client_max_body_size 500M;
+    # ACME challenge location - MUST come BEFORE location /
+    location ^~ /.well-known/acme-challenge/ {
+        allow all;
+        root /var/www/html;
+        default_type "text/plain";
+        try_files $uri =404;
+    }
+    # Proxy to Node.js app
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+--
+    server_name only-u.fun www.only-u.fun;
+    if ($host = www.only-u.fun) {
+        return 301 https://$host$request_uri;
+    }
+    if ($host = only-u.fun) {
+        return 301 https://$host$request_uri;
+    }
+    return 404; # managed by Certbot
+}
+
+# configuration file /etc/letsencrypt/options-ssl-nginx.conf:
+# This file contains important security parameters. If you modify this file
+# manually, Certbot will be unable to automatically provide future security
+# updates. Instead, Certbot will print and log an error message with a path to
+# the up-to-date file that you will need to refer to when manually updating
+# this file. Contents are based on https://ssl-config.mozilla.org
+
+ssl_session_cache shared:le_nginx_SSL:10m;
+ssl_session_timeout 1440m;
+ssl_session_tickets off;
+
+--
+    server_name only-u.fun www.only-u.fun;
+
+    client_max_body_size 500M;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        send_timeout 600;
+    }
+
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+HTTP/2 404 
+date: Mon, 03 Nov 2025 05:49:18 GMT
+content-type: text/html
+vary: Accept-Encoding
+server: BunnyCDN-SG1-1272
+cdn-pullzone: 4738516
+cdn-uid: 18550f0e-e6f4-4a3b-99be-d40d9bfd6f02
+cdn-requestcountrycode: ID
+cache-control: no-cache
+cdn-storagebalancer: SG-683
+cdn-storageserver: DE-1020
+cdn-proxyver: 1.39
+cdn-requestpullsuccess: True
+cdn-requestpullcode: 404
+cdn-cachedat: 11/03/2025 05:49:18
+cdn-edgestorageid: 1272
+cdn-requestid: 952ca95007919cb2f9b1d73f63f07405
+cdn-cache: MISS
+cdn-status: 404
+cdn-requesttime: 0
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  2667  100  2667    0     0   873k      0 --:--:-- --:--:-- --:--:-- 1302k
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="description" content="Only-U - クリエイターとファンをつなぐプラットフォーム" />
+    <meta name="theme-color" content="#ec4899" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Only-U" />
+    
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/webp" href="/logo.webp" />
+    <link rel="apple-touch-icon" href="/logo.webp" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fira+Code:wght@300..700&family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit:wght@100..900&family=Oxanium:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <title>Only-U Fans Platform</title>
+    <script type="module" crossorigin src="/assets/index-Bo8jWt8f.js"></script>
+205.210.31.251 - - [03/Nov/2025:00:56:20 +0000] "GET / HTTP/1.0" 301 178 "-" "Hello from Palo Alto Networks, find out more about our scans in https://docs-cortex.paloaltonetworks.com/r/1/Cortex-Xpanse/Scanning-activity"
+37.49.148.32 - - [03/Nov/2025:01:37:16 +0000] "GET /cgi-bin/luci/;stok=/locale HTTP/1.1" 404 162 "-" "-"
+172.203.234.251 - - [03/Nov/2025:01:39:41 +0000] "GET /owa/auth/logon.aspx HTTP/1.1" 200 966 "-" "Mozilla/5.0 zgrab/0.x"
+185.100.87.136 - - [03/Nov/2025:01:54:36 +0000] "GET / HTTP/1.1" 200 966 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:104.71.6212.24) Gecko/25.2.4212.671 Firefox/2.0"
+185.100.87.136 - - [03/Nov/2025:01:54:36 +0000] "POST /api/client/update?arch=amd64&commit=08059e95dacafe0bf6e5782f8e2c8ec9cd8c5a17&os=windows HTTP/1.1" 400 264 "-" "SPARK COMMIT: 08059e95dacafe0bf6e5782f8e2c8ec9cd8c5a17"
+20.64.104.237 - - [03/Nov/2025:03:20:41 +0000] "GET /developmentserver/metadatauploader HTTP/1.1" 200 966 "-" "Mozilla/5.0 zgrab/0.x"
+159.203.58.100 - - [03/Nov/2025:04:21:19 +0000] "GET /.env HTTP/1.1" 404 134 "-" "Mozilla/5.0; Keydrop.io/1.0(onlyscans.com/about);"
+159.203.58.100 - - [03/Nov/2025:04:21:19 +0000] "GET /.git/config HTTP/1.1" 404 134 "-" "Mozilla/5.0; Keydrop.io/1.0(onlyscans.com/about);"
+213.209.157.162 - - [03/Nov/2025:04:32:04 +0000] "GET /.git/HEAD HTTP/1.1" 200 966 "-" "Mozilla/5.0 (iPad; CPU OS 12_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/76.0.3809.81 Mobile/15E148 Safari/605.1"
+45.148.10.243 - - [03/Nov/2025:04:35:36 +0000] "GET /.env HTTP/1.1" 200 966 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36 OPR/62.0.3331.116 (Edition Campaign 34)"
