@@ -1,0 +1,47 @@
+pm2 logs onlyu --lines 50g.cjs
+[PM2][WARN] Applications onlyu not running, starting...
+[PM2] App [onlyu] launched (1 instances)
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ only-u             │ cluster  │ 19   │ online    │ 0%       │ 189.3mb  │
+│ 2  │ onlyu              │ fork     │ 0    │ online    │ 0%       │ 23.8mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[TAILING] Tailing last 50 lines for [onlyu] process (change the value with --lines option)
+/root/.pm2/logs/onlyu-out-2.log last 50 lines:
+/root/.pm2/logs/onlyu-error-2.log last 50 lines:
+2|onlyu  | 🔑 Initializing Firebase with service account from environment...
+2|onlyu  | ❌ Firebase initialization failed: FirebaseAppError: Failed to parse private key: Error: Invalid PEM formatted message.
+2|onlyu  |     at new ServiceAccount (/var/www/onlyu/node_modules/firebase-admin/lib/app/credential-internal.js:182:19)
+2|onlyu  |     at new ServiceAccountCredential (/var/www/onlyu/node_modules/firebase-admin/lib/app/credential-internal.js:118:15)
+2|onlyu  |     at Object.cert (/var/www/onlyu/node_modules/firebase-admin/lib/app/credential-factory.js:105:54)
+2|onlyu  |     at server/firebase.ts (file:///var/www/onlyu/dist/index.js:41:42)
+2|onlyu  |     at __init (file:///var/www/onlyu/dist/index.js:4:56)
+2|onlyu  |     at server/storage-adapter.ts (file:///var/www/onlyu/dist/index.js:75:5)
+2|onlyu  |     at __init (file:///var/www/onlyu/dist/index.js:4:56)
+2|onlyu  |     at file:///var/www/onlyu/dist/index.js:667:1
+2|onlyu  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2|onlyu  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2|onlyu  |   errorInfo: {
+2|onlyu  |     code: 'app/invalid-credential',
+2|onlyu  |     message: 'Failed to parse private key: Error: Invalid PEM formatted message.'
+2|onlyu  |   },
+2|onlyu  |   codePrefix: 'app'
+2|onlyu  | }
+2|onlyu  | FirebaseAppError: Failed to parse private key: Error: Invalid PEM formatted message.
+2|onlyu  |     at new ServiceAccount (/var/www/onlyu/node_modules/firebase-admin/lib/app/credential-internal.js:182:19)
+2|onlyu  |     at new ServiceAccountCredential (/var/www/onlyu/node_modules/firebase-admin/lib/app/credential-internal.js:118:15)
+2|onlyu  |     at Object.cert (/var/www/onlyu/node_modules/firebase-admin/lib/app/credential-factory.js:105:54)
+2|onlyu  |     at server/firebase.ts (file:///var/www/onlyu/dist/index.js:41:42)
+2|onlyu  |     at __init (file:///var/www/onlyu/dist/index.js:4:56)
+2|onlyu  |     at server/storage-adapter.ts (file:///var/www/onlyu/dist/index.js:75:5)
+2|onlyu  |     at __init (file:///var/www/onlyu/dist/index.js:4:56)
+2|onlyu  |     at file:///var/www/onlyu/dist/index.js:667:1
+2|onlyu  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2|onlyu  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+2|onlyu  |   errorInfo: {
+2|onlyu  |     code: 'app/invalid-credential',
+2|onlyu  |     message: 'Failed to parse private key: Error: Invalid PEM formatted message.'
+2|onlyu  |   },
+2|onlyu  |   codePrefix: 'app'
+2|onlyu  | }
