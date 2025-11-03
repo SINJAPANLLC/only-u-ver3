@@ -3,7 +3,7 @@
 import { Storage as FirebaseStorage } from "firebase-admin/storage";
 import { Response } from "express";
 import { randomUUID } from "crypto";
-import { LRUCache } from "lru-cache";
+import LRUCache from "lru-cache";
 
 export class ObjectNotFoundError extends Error {
   constructor() {
