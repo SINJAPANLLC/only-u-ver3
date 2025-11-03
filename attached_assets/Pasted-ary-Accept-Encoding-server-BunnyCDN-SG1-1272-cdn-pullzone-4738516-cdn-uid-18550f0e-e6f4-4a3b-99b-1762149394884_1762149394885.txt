@@ -1,0 +1,83 @@
+ary: Accept-Encoding
+server: BunnyCDN-SG1-1272
+cdn-pullzone: 4738516
+cdn-uid: 18550f0e-e6f4-4a3b-99be-d40d9bfd6f02
+cdn-requestcountrycode: ID
+cache-control: no-cache
+cdn-proxyver: 1.39
+cdn-requestpullsuccess: True
+cdn-requestpullcode: 404
+cdn-cachedat: 11/03/2025 05:55:35
+cdn-edgestorageid: 1274
+cdn-requestid: d430b59012b53e2a5c6a1af543905100
+cdn-cache: MISS
+cdn-status: 404
+cdn-requesttime: 0
+
+root@srv1087935:/var/www/onlyu# # Certbotが作成したNginx設定を確認
+cat /etc/nginx/sites-available/only-u.fun
+
+# リアルタイムでNginxアクセスログを監視（別ターミナルで）
+sudo tail -f /var/log/nginx/access.log &
+
+# Bunny CDNダッシュボードで再度「Purge Cache」をクリック後、以下を実行
+curl -H "Host: only-u.fun" http://127.0.0.1
+
+# バックグラウンドプロセスを停止
+kill %1
+server {
+    server_name only-u.fun www.only-u.fun;
+    root /var/www/html;
+    # 大きなファイルアップロードを許可（500MB）
+    client_max_body_size 500M;
+    # ACME challenge location - MUST come BEFORE location /
+    location ^~ /.well-known/acme-challenge/ {
+        allow all;
+        root /var/www/html;
+        default_type "text/plain";
+        try_files $uri =404;
+    }
+    # Proxy to Node.js app
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+    listen [::]:443 ssl ipv6only=on; # managed by Certbot
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/only-u.fun/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/only-u.fun/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+
+
+
+}
+server {
+    listen 80;
+    listen [::]:80;
+    server_name only-u.fun www.only-u.fun;
+    if ($host = www.only-u.fun) {
+        return 301 https://$host$request_uri;
+    }
+    if ($host = only-u.fun) {
+        return 301 https://$host$request_uri;
+    }
+    return 404; # managed by Certbot
+}
+[1] 64773
+<html>
+<head><title>301 Moved Permanently</title></head>
+<body>
+<center><h1>301 Moved Permanently</h1></center>
+<hr><center>nginx/1.24.0 (Ubuntu)</center>
+</body>
+</html>
+root@srv1087935:/var/www/onlyu# 
