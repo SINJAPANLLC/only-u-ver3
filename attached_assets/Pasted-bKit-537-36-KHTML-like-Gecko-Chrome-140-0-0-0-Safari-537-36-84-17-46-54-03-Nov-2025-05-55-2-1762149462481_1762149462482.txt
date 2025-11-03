@@ -1,0 +1,125 @@
+bKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+84.17.46.54 - - [03/Nov/2025:05:55:27 +0000] "GET /wordpress/wp-admin/setup-config.php HTTP/1.1" 404 564 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+138.199.46.65 - - [03/Nov/2025:05:55:35 +0000] "GET / HTTP/1.1" 404 162 "-" "curl/8.5.0"
+84.17.37.217 - - [03/Nov/2025:05:55:45 +0000] "GET / HTTP/1.1" 404 564 "https://replit.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+127.0.0.1 - - [03/Nov/2025:05:56:29 +0000] "GET / HTTP/1.1" 301 178 "-" "curl/8.5.0"
+127.0.0.1 - - [03/Nov/2025:05:56:55 +0000] "HEAD / HTTP/1.1" 200 0 "-" "curl/8.5.0"
+84.17.37.217 - - [03/Nov/2025:05:57:07 +0000] "GET / HTTP/1.1" 404 564 "https://replit.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+84.17.37.217 - - [03/Nov/2025:05:57:08 +0000] "GET / HTTP/1.1" 404 564 "https://replit.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+
+==> /var/log/nginx/error.log <==
+2025/11/03 00:09:39 [error] 16936#16936: *26904 connect() failed (111: Connection refused) while connecting to upstream, client: 164.92.163.164, server: only-u.fun, request: "GET /+CSCOE+/logon_forms.js HTTP/1.1", upstream: "http://[::1]:5000/+CSCOE+/logon_forms.js", host: "212.85.24.206"
+2025/11/03 03:20:41 [error] 16935#16935: *26930 connect() failed (111: Connection refused) while connecting to upstream, client: 20.64.104.237, server: only-u.fun, request: "GET /developmentserver/metadatauploader HTTP/1.1", upstream: "http://[::1]:5000/developmentserver/metadatauploader", host: "212.85.24.206"
+> GET / HTTP/1.1
+> Host: 212.85.24.206
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 404 Not Found
+< Server: nginx/1.24.0 (Ubuntu)
+< Date: Mon, 03 Nov 2025 05:57:33 GMT
+< 
+==> /var/log/nginx/access.log <==
+212.85.24.206 - - [03/Nov/2025:05:57:33 +0000] "GET / HTTP/1.1" 404 162 "-" "curl/8.5.0"
+Content-Type: text/html
+< Content-Length: 162
+< Connection: keep-alive
+< 
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx/1.24.0 (Ubuntu)</center>
+</body>
+</html>
+* Connection #0 to host 212.85.24.206 left intact
+*   Trying 212.85.24.206:443...
+* Connected to 212.85.24.206 (212.85.24.206) port 443
+* ALPN: curl offers h2,http/1.1
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384 / X25519 / id-ecPublicKey
+* ALPN: server accepted http/1.1
+* Server certificate:
+*  subject: CN=only-u.fun
+*  start date: Oct 27 10:18:29 2025 GMT
+*  expire date: Jan 25 10:18:28 2026 GMT
+*  issuer: C=US; O=Let's Encrypt; CN=E7
+*  SSL certificate verify result: unable to get local issuer certificate (20), continuing anyway.
+*   Certificate level 0: Public key type EC/prime256v1 (256/128 Bits/secBits), signed using ecdsa-with-SHA384
+*   Certificate level 1: Public key type EC/secp384r1 (384/192 Bits/secBits), signed using sha256WithRSAEncryption
+* using HTTP/1.x
+> GET / HTTP/1.1
+> Host: only-u.fun
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* old SSL session ID is stale, removing
+< HTTP/1.1 200 OK
+< Server: nginx/1.24.0 (Ubuntu)
+< Date: Mon, 03 Nov 2025 05:57:33 GMT
+< Content-Type: text/html; charset=UTF-8
+< Content-Length: 2667
+< Connection: keep-alive
+< Content-Security-Policy: default-src 'self';script-src 'self' https://js.stripe.com https://apis.google.com;style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;font-src 'self' https://fonts.gstatic.com;img-src 'self' data: https: blob:;connect-src 'self' https://api.stripe.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com wss:;frame-src 'self' https://js.stripe.com;base-uri 'self';form-action 'self';frame-ancestors 'self';object-src 'none';script-src-attr 'none';upgrade-insecure-requests
+< Cross-Origin-Opener-Policy: same-origin
+< Cross-Origin-Resource-Policy: same-origin
+< Origin-Agent-Cluster: ?1
+< Referrer-Policy: no-referrer
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-Content-Type-Options: nosniff
+< X-DNS-Prefetch-Control: off
+< X-Download-Options: noopen
+< X-Frame-Options: SAMEORIGIN
+< X-Permitted-Cross-Domain-Policies: none
+< X-XSS-Protection: 0
+< Accept-Ranges: bytes
+< Cache-Control: public, max-age=0
+< Last-Modified: Mon, 03 Nov 2025 05:22:49 GMT
+< ETag: W/"a6b-19a482b0249"
+< 
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="description" content="Only-U - クリエイターとファンをつなぐプラットフォーム" />
+    <meta name="theme-color" content="#ec4899" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Only-U" />
+    
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/webp" href="/logo.webp" />
+    <link rel="apple-touch-icon" href="/logo.webp" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fira+Code:wght@300..700&family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit:wght@100..900&family=Oxanium:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <title>Only-U Fans Platform</title>
+    <script type="module" crossorigin src="/assets/index-Bo8jWt8f.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-557wWGuM.css">
+  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+  </body>
+* Connection #0 to host 212.85.24.206 left intact
+</html>212.85.24.206 - - [03/Nov/2025:05:57:33 +0000] "GET / HTTP/1.1" 200 2667 "-" "curl/8.5.0"
+[TAILING] Tailing last 20 lines for [onlyu] process (change the value with --lines option)
+/root/.pm2/logs/onlyu-error-0.log last 20 lines:
+0|onlyu    | ⚠️  No Firebase credentials found - running without Storage access
+0|onlyu    | ⚠️  Set FIREBASE_SERVICE_ACCOUNT environment variable or provide firebase-admin-key.json
+
+/root/.pm2/logs/onlyu-out-0.log last 20 lines:
+0|onlyu    | ✅ Firebase initialized (Auth/Firestore only - Storage will fail)
+0|onlyu    | 📦 Using storage provider: bunny
+0|onlyu    | 5:43:59 AM [express] serving on port 5000
+
