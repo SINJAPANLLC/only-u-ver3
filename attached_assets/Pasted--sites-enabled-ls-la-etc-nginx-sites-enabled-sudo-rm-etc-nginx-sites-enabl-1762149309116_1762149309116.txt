@@ -1,0 +1,85 @@
+# sites-enabledの中身を確認
+ls -la /etc/nginx/sites-enabled/
+
+# 古い設定ファイルを削除
+sudo rm /etc/nginx/sites-enabled/only-u
+
+# SSL証明書を再設定（これが正しいHTTPS設定を作成します）
+sudo certbot --nginx -d only-u.fun -d www.only-u.fun --reinstall
+
+# 選択肢が出たら「2」を選んで証明書を更新してください
+
+# Nginx設定テスト
+sudo nginx -t
+
+# Nginx再起動
+sudo systemctl restart nginx
+
+# テスト
+curl -I http://127.0.0.1:5000
+^C
+root@srv1087935:/var/www/onlyu# # sites-enabledの中身を確認
+ls -la /etc/nginx/sites-enabled/
+
+# 古い設定ファイルを削除
+sudo rm /etc/nginx/sites-enabled/only-u
+
+# SSL証明書を再設定（これが正しいHTTPS設定を作成します）
+sudo certbot --nginx -d only-u.fun -d www.only-u.fun --reinstall
+
+# 選択肢が出たら「2」を選んで証明書を更新してください
+
+# Nginx設定テスト
+sudo nginx -t
+
+# Nginx再起動
+sudo systemctl restart nginx
+
+# テスト
+curl -I http://127.0.0.1:5000
+total 8
+drwxr-xr-x 2 root root 4096 Nov  3 05:44 .
+drwxr-xr-x 8 root root 4096 Nov  3 05:45 ..
+lrwxrwxrwx 1 root root   37 Oct 27 11:05 only-u.fun -> /etc/nginx/sites-available/only-u.fun
+lrwxrwxrwx 1 root root   32 Nov  3 05:44 onlyu -> /etc/nginx/sites-available/onlyu
+rm: cannot remove '/etc/nginx/sites-enabled/only-u': No such file or directory
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Certificate not yet due for renewal
+Deploying certificate
+Successfully deployed certificate for only-u.fun to /etc/nginx/sites-enabled/only-u.fun
+Successfully deployed certificate for www.only-u.fun to /etc/nginx/sites-enabled/only-u.fun
+Congratulations! You have successfully enabled HTTPS on https://only-u.fun and https://www.only-u.fun
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+2025/11/03 05:54:54 [warn] 64728#64728: conflicting server name "only-u.fun" on 0.0.0.0:80, ignored
+2025/11/03 05:54:54 [warn] 64728#64728: conflicting server name "www.only-u.fun" on 0.0.0.0:80, ignored
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+HTTP/1.1 200 OK
+Content-Security-Policy: default-src 'self';script-src 'self' https://js.stripe.com https://apis.google.com;style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;font-src 'self' https://fonts.gstatic.com;img-src 'self' data: https: blob:;connect-src 'self' https://api.stripe.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com wss:;frame-src 'self' https://js.stripe.com;base-uri 'self';form-action 'self';frame-ancestors 'self';object-src 'none';script-src-attr 'none';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+Accept-Ranges: bytes
+Cache-Control: public, max-age=0
+Last-Modified: Mon, 03 Nov 2025 05:22:49 GMT
+ETag: W/"a6b-19a482b0249"
+Content-Type: text/html; charset=UTF-8
+Content-Length: 2667
+Date: Mon, 03 Nov 2025 05:54:54 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+root@srv1087935:/var/www/onlyu# 
