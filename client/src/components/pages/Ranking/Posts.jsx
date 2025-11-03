@@ -170,6 +170,11 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                         return; // Skip non-public or exclusive posts
                     }
                     
+                    // Skip posts without files
+                    if (!data.files || data.files.length === 0) {
+                        return;
+                    }
+                    
                     // Tag filtering (if specified)
                     if (activeTagFilter && activeTagFilter !== 'all') {
                         const postTags = Array.isArray(data.tags) ? data.tags : 
@@ -352,6 +357,11 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
             
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
+                
+                // Skip posts without files
+                if (!data.files || data.files.length === 0) {
+                    return;
+                }
                 
                 // サムネイルURLを決定（動画の場合は最初のフレームを使用）
                 const firstFile = data.files && data.files.length > 0 ? data.files[0] : null;
