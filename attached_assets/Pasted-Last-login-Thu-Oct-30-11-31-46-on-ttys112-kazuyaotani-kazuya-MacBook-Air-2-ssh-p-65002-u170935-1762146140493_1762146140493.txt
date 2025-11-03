@@ -1,0 +1,106 @@
+Last login: Thu Oct 30 11:31:46 on ttys112
+kazuyaotani@kazuya-MacBook-Air-2 ~ % ssh -p 65002 u170935974@45.13.135.26
+u170935974@45.13.135.26's password: 
+######################################################
+
+Vendor: HPE
+Model: ProLiant DL325 Gen10 Plus v2
+
+OS Version: CloudLinux 8
+
+
+IPMI IP address: 10.7.0.97
+
+IPMI MAC address: 5c:ed:8c:ae:e0:4c
+
+######################################################
+
+   HHHH               HHHH
+   HHHHHHHH           HHHHHHHH
+   HHHHHHHH           HHHHHHHH
+   HHHHHHHH           HHHHHHHH
+   HHHHHHHHHHHHHHHHHHHH  HHHHH
+   HHHHHHHHHHHHHHHHHHHHHHHHH
+     HHHHHHHHHHHHHHHHHHHHHHHHH
+   HHHH  HHHHHHHHHHHHHHHHHHHHH
+   HHHHHHHH           HHHHHHHH
+   HHHHHHHH           HHHHHHHH
+   HHHHHHHH           HHHHHHHH
+       HHHH               HHHH
+
+Welcome back! The time now is 04:59 UTC
+Server load: 7.02, 7.46, 7.75
+
+Link to hPanel: 
+https://hpanel.hostinger.com/ 
+
+[u170935974@us-imm-web1149 ~]$ # システム更新
+[u170935974@us-imm-web1149 ~]$ sudo apt update && sudo apt upgrade -y
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ 
+[u170935974@us-imm-web1149 ~]$ # Node.js 20.x インストール
+[u170935974@us-imm-web1149 ~]$ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+-bash: sudo: command not found
+(23) Failed writing body
+[u170935974@us-imm-web1149 ~]$ sudo apt install -y nodejs git
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ 
+[u170935974@us-imm-web1149 ~]$ # PM2インストール
+[u170935974@us-imm-web1149 ~]$ sudo npm install -g pm2
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ 
+[u170935974@us-imm-web1149 ~]$ # Nginxインストール
+[u170935974@us-imm-web1149 ~]$ sudo apt install nginx -y
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ sudo systemctl enable nginx
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ sudo systemctl start nginx
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ sudo ufw allow 'Nginx Full'
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ # アプリケーション用ディレクトリ作成
+[u170935974@us-imm-web1149 ~]$ sudo mkdir -p /var/www/onlyu
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ sudo chown -R $USER:$USER /var/www/onlyu
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ cd /var/www/onlyu
+-bash: cd: /var/www/onlyu: No such file or directory
+[u170935974@us-imm-web1149 ~]$ 
+[u170935974@us-imm-web1149 ~]$ # Gitリポジトリからクローン（リポジトリURLを入力 ）
+[u170935974@us-imm-web1149 ~]$ git clone <あなたのGitリポジトリURL> .
+-bash: あなたのGitリポジトリURL: No such file or directory
+[u170935974@us-imm-web1149 ~]$ 
+[u170935974@us-imm-web1149 ~]$ # 依存パッケージインストール
+[u170935974@us-imm-web1149 ~]$ npm install
+-bash: npm: command not found
+[u170935974@us-imm-web1149 ~]$ 
+[u170935974@us-imm-web1149 ~]$ # ビルド実行
+[u170935974@us-imm-web1149 ~]$ npm run build
+-bash: npm: command not found
+[u170935974@us-imm-web1149 ~]$ 
+[u170935974@us-imm-web1149 ~]$ # 環境変数設定
+[u170935974@us-imm-web1149 ~]$ nano .env
+[u170935974@us-imm-web1149 ~]$ # アプリケーション起動
+[u170935974@us-imm-web1149 ~]$ pm2 start dist/index.js --name onlyu --env production
+-bash: pm2: command not found
+[u170935974@us-imm-web1149 ~]$ 
+[u170935974@us-imm-web1149 ~]$ # 起動確認
+[u170935974@us-imm-web1149 ~]$ pm2 status
+-bash: pm2: command not found
+[u170935974@us-imm-web1149 ~]$ pm2 logs onlyu --lines 30
+-bash: pm2: command not found
+[u170935974@us-imm-web1149 ~]$ 
+[u170935974@us-imm-web1149 ~]$ # 自動起動設定
+[u170935974@us-imm-web1149 ~]$ pm2 save
+-bash: pm2: command not found
+[u170935974@us-imm-web1149 ~]$ pm2 startup
+-bash: pm2: command not found
+[u170935974@us-imm-web1149 ~]$ # 👆 表示されたコマンドをコピーして実行
+[u170935974@us-imm-web1149 ~]$ # Nginx設定ファイル作成
+[u170935974@us-imm-web1149 ~]$ sudo nano /etc/nginx/sites-available/onlyu
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ ^C
+[u170935974@us-imm-web1149 ~]$ # Nginx設定ファイル作成
+[u170935974@us-imm-web1149 ~]$ sudo nano /etc/nginx/sites-available/onlyu
+-bash: sudo: command not found
+[u170935974@us-imm-web1149 ~]$ 
