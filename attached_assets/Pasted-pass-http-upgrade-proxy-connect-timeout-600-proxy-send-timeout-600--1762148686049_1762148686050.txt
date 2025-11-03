@@ -1,0 +1,83 @@
+pass $http_upgrade;
+        
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        send_timeout 600;
+    }
+}
+EOF
+
+# シンボリックリンク作成
+sudo ln -s /etc/nginx/sites-available/onlyu /etc/nginx/sites-enabled/
+
+# デフォルト設定削除
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Nginx設定テスト
+sudo nginx -t
+
+# Nginx再起動
+sudo systemctl restart nginx
+sudo systemctl enable nginx
+
+# SSL証明書インストール（Let's Encrypt）
+sudo apt install certbot python3-certbot-nginx -y
+
+# SSL証明書取得（メールアドレスを入力してください）
+sudo certbot --nginx -d only-u.fun -d www.only-u.fun
+^C
+root@srv1087935:/var/www/onlyu# # Nginx設定ファイル作成
+sudo tee /etc/nginx/sites-available/onlyu > /dev/null << 'EOF'
+server {
+    listen 80;
+    server_name only-u.fun www.only-u.fun;
+
+    client_max_body_size 500M;
+
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        send_timeout 600;
+    }
+sudo certbot --nginx -d only-u.fun -d www.only-u.funnx/sites-enabled/
+2025/11/03 05:44:32 [warn] 64321#64321: conflicting server name "only-u.fun" on 0.0.0.0:80, ignored
+2025/11/03 05:44:32 [warn] 64321#64321: conflicting server name "www.only-u.fun" on 0.0.0.0:80, ignored
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+Synchronizing state of nginx.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable nginx
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+certbot is already the newest version (2.9.0-1).
+python3-certbot-nginx is already the newest version (2.9.0-1).
+The following packages were automatically installed and are no longer required:
+  linux-headers-6.8.0-86 linux-headers-6.8.0-86-generic
+  linux-image-6.8.0-86-generic linux-modules-6.8.0-86-generic
+  linux-tools-6.8.0-86 linux-tools-6.8.0-86-generic
+Use 'sudo apt autoremove' to remove them.
+0 upgraded, 0 newly installed, 0 to remove and 1 not upgraded.
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Certificate not yet due for renewal
+
+You have an existing certificate that has exactly the same domains or certificate name you requested and isn't close to expiry.
+(ref: /etc/letsencrypt/renewal/only-u.fun.conf)
+
+What would you like to do?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+1: Attempt to reinstall this existing certificate
+2: Renew & replace the certificate (may be subject to CA rate limits)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Select the appropriate number [1-2] then [enter] (press 'c' to cancel): 
