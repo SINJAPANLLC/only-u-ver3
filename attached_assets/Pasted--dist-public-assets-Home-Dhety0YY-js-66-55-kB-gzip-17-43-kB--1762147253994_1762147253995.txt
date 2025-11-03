@@ -1,0 +1,31 @@
+../dist/public/assets/Home-Dhety0YY.js                                  66.55 kB │ gzip:  17.43 kB
+../dist/public/assets/index-Bo8jWt8f.js                              1,110.46 kB │ gzip: 301.86 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 9.61s
+error during build:
+Error: 
+  Configure "workbox.maximumFileSizeToCacheInBytes" to change the limit: the default value is 2 MiB.
+  Check https://vite-pwa-org.netlify.app/guide/faq.html#missing-assets-from-sw-precache-manifest for more information.
+  Assets exceeding the limit:
+  - assets/1_1761457956151-sxUpn9Sz.png is 3.24 MB, and won't be precached.
+  - assets/2_1761457956151-D6P7x4Q3.png is 3.79 MB, and won't be precached.
+  - assets/3_1761457956151-BpStuj2a.png is 3.5 MB, and won't be precached.
+  - images/lp-4.png is 3.88 MB, and won't be precached.
+
+    at logWorkboxResult (file:///var/www/onlyu/node_modules/vite-plugin-pwa/dist/chunk-G4TAN34B.js:44:13)
+    at generateServiceWorker (file:///var/www/onlyu/node_modules/vite-plugin-pwa/dist/index.js:209:3)
+    at async _generateSW (file:///var/www/onlyu/node_modules/vite-plugin-pwa/dist/index.js:234:5)
+    at async Object.handler (file:///var/www/onlyu/node_modules/vite-plugin-pwa/dist/index.js:427:13)
+    at async PluginDriver.hookParallel (file:///var/www/onlyu/node_modules/rollup/dist/es/shared/node-entry.js:20711:17)
+    at async Object.close (file:///var/www/onlyu/node_modules/rollup/dist/es/shared/node-entry.js:21686:13)
+    at async build (file:///var/www/onlyu/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:65731:17)
+    at async CAC.<anonymous> (file:///var/www/onlyu/node_modules/vite/dist/node/cli.js:829:5)
+total 12
+drwxr-xr-x  3 root root 4096 Nov  3 05:05 .
+drwxr-xr-x 11 root root 4096 Nov  3 05:20 ..
+drwxr-xr-x  4 root root 4096 Nov  3 05:20 public
+root@srv1087935:/var/www/onlyu# 
