@@ -563,7 +563,7 @@ const Ranking = () => {
                             data-testid={`ranking-card-${post.id}`}
                         >
                             {/* サムネイル */}
-                            <div className="relative aspect-square overflow-hidden bg-gray-100">
+                            <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pink-200 to-purple-200">
                                 {post.thumbnail ? (
                                     // Check if thumbnail is an image file (jpg, jpeg, png, webp, gif)
                                     post.thumbnail.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
@@ -587,7 +587,7 @@ const Ranking = () => {
                                             }}
                                             whileHover={{ scale: 1.15 }}
                                             onError={(e) => {
-                                                console.error('Image thumbnail error:', e.target.src);
+                                                console.error('Image thumbnail failed to load:', e.target.src);
                                                 e.target.src = '/genre-1.png';
                                             }}
                                         />
@@ -600,23 +600,28 @@ const Ranking = () => {
                                             muted
                                             playsInline
                                             onError={(e) => {
-                                                console.error('Video thumbnail error:', e.target.src);
+                                                console.error('Video thumbnail failed to load:', e.target.src);
                                                 // エラー時はデフォルト画像に置き換え
                                                 e.target.style.display = 'none';
-                                                e.target.nextElementSibling?.classList.remove('hidden');
+                                                const fallbackImg = document.createElement('img');
+                                                fallbackImg.src = '/genre-1.png';
+                                                fallbackImg.className = 'w-full h-full object-cover';
+                                                fallbackImg.alt = post.title || 'Fallback';
+                                                e.target.parentElement.appendChild(fallbackImg);
                                             }}
                                         />
                                     )
-                                ) : null}
-                                {/* フォールバック画像（動画エラー時に表示） */}
-                                <img 
-                                    src="/genre-1.png" 
-                                    alt={post.title}
-                                    loading={index < 4 ? "eager" : "lazy"}
-                                    fetchpriority={index < 2 ? "high" : "auto"}
-                                    decoding="async"
-                                    className={`w-full h-full object-cover ${post.thumbnail && !post.thumbnail.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? 'hidden' : ''}`}
-                                />
+                                ) : (
+                                    // サムネイルがない場合のフォールバック画像
+                                    <img 
+                                        src="/genre-1.png" 
+                                        alt={post.title}
+                                        loading={index < 4 ? "eager" : "lazy"}
+                                        fetchpriority={index < 2 ? "high" : "auto"}
+                                        decoding="async"
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
                                 
                                 {/* ランキングバッジ */}
                                 <motion.div 

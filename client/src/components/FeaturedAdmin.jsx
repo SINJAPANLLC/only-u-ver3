@@ -104,6 +104,61 @@ const FeaturedAdminPage = () => {
         return num.toString();
     };
 
+    // URLをプロキシURLに変換する関数（HOMEページと同じロジック）
+    const convertToProxyUrl = (url) => {
+        if (!url) return null;
+        
+        // すでにプロキシURLの場合、重複パスをチェック
+        if (url.startsWith('/api/proxy/')) {
+            // public/public/ または private/private/ の重複を修正
+            if (url.includes('/public/public/')) {
+                return url.replace('/public/public/', '/public/');
+            }
+            if (url.includes('/private/private/')) {
+                return url.replace('/private/private/', '/private/');
+            }
+            return url;
+        }
+        
+        if (url.startsWith('/api/bunny-stream-thumbnail/')) return url;
+        
+        // 完全URL（https://...）の場合、パス部分のみを抽出
+        if (url.startsWith('https://') || url.startsWith('http://')) {
+            try {
+                const urlObj = new URL(url);
+                const pathname = urlObj.pathname;
+                
+                // /objects/ を含む場合
+                if (pathname.includes('/objects/')) {
+                    const filename = pathname.split('/objects/')[1];
+                    return `/api/proxy/public/${filename}`;
+                }
+                
+                // /api/proxy/ を含む場合
+                if (pathname.includes('/api/proxy/')) {
+                    return pathname; // パス部分のみを返す
+                }
+                
+                // /public/ を含む場合（重複パス修正）
+                if (pathname.includes('/public/')) {
+                    const lastPublicIndex = pathname.lastIndexOf('/public/');
+                    const filename = pathname.substring(lastPublicIndex + '/public/'.length);
+                    return `/api/proxy/public/${filename}`;
+                }
+            } catch (e) {
+                console.error('URL parsing error:', e);
+            }
+        }
+        
+        // /objects/ で始まるURLは /api/proxy/public/ に変換
+        if (url.startsWith('/objects/')) {
+            return url.replace('/objects/', '/api/proxy/public/');
+        }
+        
+        // そのまま返す
+        return url;
+    };
+
     const loadFeaturedPickups = async () => {
         try {
             setIsLoading(true);
@@ -433,31 +488,40 @@ const FeaturedAdminPage = () => {
                                 data-testid={`featured-card-${post.id}`}
                             >
                                 {/* サムネイル */}
-                                <div className="relative aspect-square overflow-hidden">
+                                <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pink-200 to-purple-200">
                                     {(() => {
                                         const firstFile = post.files?.[0];
                                         const isVideo = firstFile?.type?.includes('video') || firstFile?.resourceType === 'video';
                                         
-                                        if (isVideo && firstFile?.url) {
-                                            let proxyUrl = firstFile.url;
-                                            if (firstFile.url.includes('replit-objstore')) {
-                                                const lastPublicIndex = firstFile.url.lastIndexOf('/public/');
-                                                if (lastPublicIndex !== -1) {
-                                                    const filename = firstFile.url.substring(lastPublicIndex + '/public/'.length);
-                                                    proxyUrl = `/api/proxy/public/${filename}`;
+                                        // サムネイルURLを決定
+                                        let thumbnailSrc = null;
+                                        let videoSrc = null;
+                                        
+                                        if (firstFile) {
+                                            if (isVideo) {
+                                                // 動画の場合: まず動画URLを常に作成（フォールバック用）
+                                                const rawVideoUrl = firstFile.secure_url || firstFile.url || (firstFile.storageUri ? `/api/proxy/${firstFile.storageUri}` : null);
+                                                videoSrc = convertToProxyUrl(rawVideoUrl);
+                                                if (videoSrc) videoSrc += '#t=0.001'; // 最初のフレームを表示
+                                                
+                                                // thumbnailUrlが画像ファイルならそれを優先的に使用
+                                                if (firstFile.thumbnailUrl && !firstFile.thumbnailUrl.match(/\.(mp4|webm|mov|avi)$/i)) {
+                                                    thumbnailSrc = convertToProxyUrl(firstFile.thumbnailUrl);
                                                 }
+                                            } else {
+                                                // 画像の場合: 通常通り
+                                                const rawUrl = firstFile.thumbnailUrl || firstFile.secure_url || firstFile.url || (firstFile.storageUri ? `/api/proxy/${firstFile.storageUri}` : null);
+                                                thumbnailSrc = convertToProxyUrl(rawUrl);
                                             }
-                                            
+                                        }
+                                        
+                                        // サムネイル画像がある場合（動画・画像共通）
+                                        if (thumbnailSrc) {
                                             return (
-                                                <motion.video
-                                                    src={proxyUrl}
+                                                <motion.img
+                                                    src={thumbnailSrc}
+                                                    alt={post.title}
                                                     className="w-full h-full object-cover"
-                                                    muted
-                                                    playsInline
-                                                    preload="metadata"
-                                                    onLoadedData={(e) => {
-                                                        e.target.currentTime = 0.1;
-                                                    }}
                                                     animate={{ 
                                                         scale: [1, 1.05, 1],
                                                         x: [0, -5, 0],
@@ -470,13 +534,64 @@ const FeaturedAdminPage = () => {
                                                         delay: index * 0.2
                                                     }}
                                                     whileHover={{ scale: 1.15 }}
+                                                    onError={(e) => {
+                                                        console.error('Thumbnail image failed to load:', e.target.src);
+                                                        // 動画URLにフォールバック
+                                                        if (videoSrc) {
+                                                            const container = e.target.parentElement;
+                                                            const video = document.createElement('video');
+                                                            video.src = videoSrc;
+                                                            video.className = e.target.className;
+                                                            video.preload = 'metadata';
+                                                            video.muted = true;
+                                                            video.playsInline = true;
+                                                            container.replaceChild(video, e.target);
+                                                        } else {
+                                                            e.target.src = thumbnailImages[index % thumbnailImages.length];
+                                                        }
+                                                    }}
                                                 />
                                             );
                                         }
                                         
+                                        // 動画URLのみがある場合（サムネイル画像なし）
+                                        if (videoSrc) {
+                                            return (
+                                                <motion.video
+                                                    src={videoSrc}
+                                                    className="w-full h-full object-cover"
+                                                    muted
+                                                    playsInline
+                                                    preload="metadata"
+                                                    animate={{ 
+                                                        scale: [1, 1.05, 1],
+                                                        x: [0, -5, 0],
+                                                        y: [0, 3, 0]
+                                                    }}
+                                                    transition={{ 
+                                                        duration: 8,
+                                                        repeat: Infinity,
+                                                        ease: "easeInOut",
+                                                        delay: index * 0.2
+                                                    }}
+                                                    whileHover={{ scale: 1.15 }}
+                                                    onError={(e) => {
+                                                        console.error('Video thumbnail failed to load:', videoSrc);
+                                                        e.target.style.display = 'none';
+                                                        const fallbackImg = document.createElement('img');
+                                                        fallbackImg.src = thumbnailImages[index % thumbnailImages.length];
+                                                        fallbackImg.className = 'w-full h-full object-cover';
+                                                        fallbackImg.alt = post.title || 'Fallback';
+                                                        e.target.parentElement.appendChild(fallbackImg);
+                                                    }}
+                                                />
+                                            );
+                                        }
+                                        
+                                        // フォールバック: デフォルト画像
                                         return (
                                             <motion.img
-                                                src={thumbnailUrl}
+                                                src={thumbnailImages[index % thumbnailImages.length]}
                                                 alt={post.title}
                                                 className="w-full h-full object-cover"
                                                 animate={{ 
