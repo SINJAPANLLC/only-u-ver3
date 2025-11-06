@@ -18,6 +18,7 @@ The platform features a modern web architecture: a React frontend built with Vit
 *   Full internationalization support is provided, with a focus on the Japanese language.
 *   **Chat Layout Optimization** (November 2025): Fixed gap between message input and bottom navigation by changing main container from `min-h-screen` to `h-screen` with proper flex positioning, ensuring consistent viewport height across all device sizes.
 *   **Branding & Metadata** (November 2025): Site title and description simplified to "Only-U" for clean branding. Custom pink logo favicon (white hearts with "nly U" text on pink background) applied across all sizes (16px, 32px, 192px, 512px). Open Graph and Twitter Card meta tags added for optimized SNS sharing.
+*   **Native App-like Layout** (November 2025): Implemented stable viewport with `viewport-fit=cover` and `user-scalable=no`. Dynamic `--app-height` CSS variable with resize/orientation listeners solves the 100vh mobile browser address bar issue. Added `overscroll-behavior: none` and `touch-action: pan-y` to prevent rubber-band scrolling. Safe area utilities (`.safe-top`, `.safe-bottom`, etc.) using `env(safe-area-inset-*)` for iPhone notch/home indicator support. Fixed positioning on html/body with scroll isolated to #root for consistent native app experience.
 
 **Technical Implementations:**
 *   User management includes authentication and KYC/identity verification for creators.

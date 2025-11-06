@@ -6,6 +6,11 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --app-height: 100vh;
+    --vh: 1vh;
+  }
+
   * {
     margin: 0;
     padding: 0;
@@ -16,8 +21,12 @@
     -webkit-text-size-adjust: 100%;
     font-feature-settings: normal;
     font-variation-settings: normal;
-    overscroll-behavior-y: none;
+    overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    height: var(--app-height);
   }
 
   body {
@@ -28,7 +37,23 @@
     background-color: #f9fafb;
     color: #111827;
     transition: background-color 0.3s ease, color 0.3s ease;
-    overscroll-behavior-y: none;
+    overscroll-behavior: none;
+    touch-action: pan-y;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    height: var(--app-height);
+    overflow: hidden;
+  }
+  
+  #root {
+    width: 100%;
+    height: 100%;
+    height: var(--app-height);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .dark body {
@@ -45,6 +70,30 @@
   * {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  
+  /* Safe Area対応（iPhoneのノッチ等） */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .safe-area-full {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
   }
 }
 
