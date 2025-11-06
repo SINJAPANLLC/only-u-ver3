@@ -17,6 +17,7 @@ The platform features a modern web architecture: a React frontend built with Vit
 *   A complete dark mode implementation is available across all pages and components, with theme persistence and a dedicated toggle.
 *   Full internationalization support is provided, with a focus on the Japanese language.
 *   **Chat Layout Optimization** (November 2025): Fixed gap between message input and bottom navigation by changing main container from `min-h-screen` to `h-screen` with proper flex positioning, ensuring consistent viewport height across all device sizes.
+*   **Branding & Metadata** (November 2025): Site title and description simplified to "Only-U" for clean branding. Custom pink logo favicon (white hearts with "nly U" text on pink background) applied across all sizes (16px, 32px, 192px, 512px). Open Graph and Twitter Card meta tags added for optimized SNS sharing.
 
 **Technical Implementations:**
 *   User management includes authentication and KYC/identity verification for creators.
