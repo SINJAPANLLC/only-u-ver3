@@ -27,10 +27,11 @@ app.use(helmet({
   contentSecurityPolicy: isDevelopment ? false : {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://js.stripe.com", "https://apis.google.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com", "https://apis.google.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:", "https://*.b-cdn.net", "https://storage.bunnycdn.com"],
+      mediaSrc: ["'self'", "blob:", "https://*.b-cdn.net", "https://storage.bunnycdn.com"],
       connectSrc: [
         "'self'", 
         "https://api.stripe.com", 
@@ -39,9 +40,14 @@ app.use(helmet({
         "https://securetoken.googleapis.com",
         "https://*.firebaseio.com",
         "wss://*.firebaseio.com",
+        "https://*.b-cdn.net",
+        "https://storage.bunnycdn.com",
+        "https://fonts.googleapis.com",
+        "https://fonts.gstatic.com",
         "wss:"
       ],
       frameSrc: ["'self'", "https://js.stripe.com"],
+      workerSrc: ["'self'", "blob:"],
     },
   },
   crossOriginEmbedderPolicy: false,
