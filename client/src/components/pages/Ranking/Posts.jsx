@@ -101,33 +101,58 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
         return diffInDays <= 3;
     };
     
-    // URL変換ヘルパー関数
+    // URLをプロキシURLに変換する関数（HOMEページと同じロジック）
     const convertToProxyUrl = (url) => {
         if (!url) return null;
-        if (url.startsWith('/api/proxy/')) return url;
         
-        // Bunny CDN直接URL（CORSエラーを防ぐためプロキシ経由に変換）
-        if (url.includes('only-u.fun/') || url.includes('b-cdn.net/')) {
-            const bunnyPattern = /https?:\/\/[^/]+\/(public|private)\/(.+)/;
-            const match = url.match(bunnyPattern);
-            if (match) {
-                const folder = match[1];
-                const filename = match[2];
-                return `/api/proxy/${folder}/${filename}`;
+        // すでにプロキシURLの場合、重複パスをチェック
+        if (url.startsWith('/api/proxy/')) {
+            // public/public/ または private/private/ の重複を修正
+            if (url.includes('/public/public/')) {
+                return url.replace('/public/public/', '/public/');
+            }
+            if (url.includes('/private/private/')) {
+                return url.replace('/private/private/', '/private/');
+            }
+            return url;
+        }
+        
+        if (url.startsWith('/api/bunny-stream-thumbnail/')) return url;
+        
+        // 完全URL（https://...）の場合、パス部分のみを抽出
+        if (url.startsWith('https://') || url.startsWith('http://')) {
+            try {
+                const urlObj = new URL(url);
+                const pathname = urlObj.pathname;
+                
+                // /objects/ を含む場合
+                if (pathname.includes('/objects/')) {
+                    const filename = pathname.split('/objects/')[1];
+                    return `/api/proxy/public/${filename}`;
+                }
+                
+                // /api/proxy/ を含む場合
+                if (pathname.includes('/api/proxy/')) {
+                    return pathname; // パス部分のみを返す
+                }
+                
+                // /public/ を含む場合（重複パス修正）
+                if (pathname.includes('/public/')) {
+                    const lastPublicIndex = pathname.lastIndexOf('/public/');
+                    const filename = pathname.substring(lastPublicIndex + '/public/'.length);
+                    return `/api/proxy/public/${filename}`;
+                }
+            } catch (e) {
+                console.error('URL parsing error:', e);
             }
         }
         
-        if (url.includes('storage.googleapis.com')) {
-            const match = url.match(/\/(public|\.private)\/([^?]+)/);
-            if (match) {
-                const [, folder, filename] = match;
-                return `/api/proxy/${folder}/${filename}`;
-            }
-        }
+        // /objects/ で始まるURLは /api/proxy/public/ に変換
         if (url.startsWith('/objects/')) {
-            const filename = url.replace('/objects/', '');
-            return `/api/proxy/public/${filename}`;
+            return url.replace('/objects/', '/api/proxy/public/');
         }
+        
+        // そのまま返す
         return url;
     };
     
@@ -1486,7 +1511,7 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                 data-testid={`grid-card-${item.id}`}
                 onClick={() => navigate(`/video/${item.id}`)}
             >
-                <div className="relative aspect-square">
+                <div className="relative aspect-square bg-gradient-to-br from-pink-200 to-purple-200">
                     {isVideo ? (
                         <video
                             src={item.thumbnail}
@@ -1495,15 +1520,28 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                             playsInline
                             preload="metadata"
                             onLoadedMetadata={(e) => onVideoMetadata && onVideoMetadata(e, item.id)}
+                            onError={(e) => {
+                                console.error('Video thumbnail failed to load:', item.thumbnail);
+                                e.target.style.display = 'none';
+                                const fallbackImg = document.createElement('img');
+                                fallbackImg.src = '/genre-1.png';
+                                fallbackImg.className = 'w-full h-full object-cover';
+                                fallbackImg.alt = item.title || 'Fallback';
+                                e.target.parentElement.appendChild(fallbackImg);
+                            }}
                             style={{ pointerEvents: 'none' }}
                         />
                     ) : (
                         <motion.img
-                            src={item.thumbnail}
+                            src={item.thumbnail || '/genre-1.png'}
                             alt={item.title}
                             className="w-full h-full object-cover"
                             whileHover={{ scale: 1.1 }}
                             transition={{ duration: 0.4 }}
+                            onError={(e) => {
+                                console.error('Image thumbnail failed to load:', e.target.src);
+                                e.target.src = '/genre-1.png';
+                            }}
                         />
                     )}
                     {/* Gradient overlay at bottom */}
