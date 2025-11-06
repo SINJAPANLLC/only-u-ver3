@@ -2067,6 +2067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Proxy endpoint for Bunny Stream thumbnails
   // Fetches thumbnail using Bunny Stream API with authentication
+  // Falls back to generated thumbnail if Bunny Stream thumbnail is not available
   app.get("/api/bunny-stream-thumbnail/:videoGuid", async (req, res) => {
     try {
       const { videoGuid } = req.params;
@@ -2083,40 +2084,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const videoInfo = await bunnyStreamClient.getVideo(videoGuid);
       
       if (!videoInfo) {
-        console.error('⚠️ Video not found:', videoGuid);
+        console.error('⚠️ Video not found in Bunny Stream:', videoGuid);
         return res.status(404).json({ error: 'Video not found' });
       }
       
-      // Bunny Stream stores thumbnail URL in the video metadata
-      const thumbnailUrl = videoInfo.thumbnailUrl || bunnyStreamClient.getThumbnailUrl(videoGuid);
-      
-      console.log('🖼️ Fetching thumbnail from:', thumbnailUrl);
-      
-      // Fetch thumbnail image
-      const response = await fetch(thumbnailUrl);
-      
-      if (!response.ok) {
-        console.error('⚠️ Thumbnail fetch failed:', response.status, thumbnailUrl);
-        return res.status(response.status).json({ error: 'Thumbnail not available' });
+      // Check if video is still processing
+      if (videoInfo.status !== 4) { // status 4 = finished processing
+        console.log(`⏱️ Video still processing (status: ${videoInfo.status}), thumbnail may not be available yet`);
       }
       
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      // Try multiple thumbnail sources in order of preference
+      const thumbnailSources = [
+        videoInfo.thumbnailUrl, // Official thumbnail from Bunny Stream metadata
+        bunnyStreamClient.getThumbnailUrl(videoGuid, 1280, 720), // High quality
+        bunnyStreamClient.getThumbnailUrl(videoGuid, 640, 360), // Medium quality
+        bunnyStreamClient.getThumbnailUrl(videoGuid), // Default size
+      ].filter(Boolean);
+      
+      let thumbnailBuffer: Buffer | null = null;
+      let successfulUrl: string | null = null;
+      
+      // Try each thumbnail source
+      for (const thumbnailUrl of thumbnailSources) {
+        try {
+          console.log('🖼️ Trying thumbnail source:', thumbnailUrl);
+          const response = await fetch(thumbnailUrl);
+          
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            thumbnailBuffer = Buffer.from(arrayBuffer);
+            successfulUrl = thumbnailUrl;
+            console.log('✅ Successfully fetched thumbnail from:', thumbnailUrl);
+            break;
+          } else {
+            console.log(`⚠️ Thumbnail fetch failed (${response.status}):`, thumbnailUrl);
+          }
+        } catch (error) {
+          console.log('⚠️ Error fetching thumbnail:', error);
+          continue;
+        }
+      }
+      
+      // If no Bunny Stream thumbnail available, return 404 to trigger frontend fallback
+      if (!thumbnailBuffer) {
+        console.log('❌ No Bunny Stream thumbnail available, letting frontend use generated thumbnail');
+        return res.status(404).json({ 
+          error: 'Thumbnail not available',
+          videoStatus: videoInfo.status,
+          message: 'Video is still processing or thumbnail not yet generated'
+        });
+      }
       
       // Send thumbnail with proper CORS headers
       res.writeHead(200, {
         'Content-Type': 'image/jpeg',
-        'Content-Length': buffer.length,
-        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+        'Content-Length': thumbnailBuffer.length,
+        'Cache-Control': videoInfo.status === 4 ? 'public, max-age=86400' : 'public, max-age=300', // 24h if processed, 5min if processing
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
         'Cross-Origin-Resource-Policy': 'cross-origin',
+        'X-Thumbnail-Source': successfulUrl || 'unknown',
       });
       
-      res.end(buffer);
+      res.end(thumbnailBuffer);
     } catch (error: any) {
       console.error('Error proxying Bunny Stream thumbnail:', error);
-      res.status(500).json({ error: 'Failed to fetch thumbnail' });
+      
+      // Return 404 to trigger frontend fallback instead of 500
+      res.status(404).json({ 
+        error: 'Failed to fetch thumbnail',
+        message: 'Thumbnail temporarily unavailable, using fallback'
+      });
     }
   });
 
