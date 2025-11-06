@@ -121,6 +121,72 @@ const CreatePostPage = () => {
         });
     };
 
+    // Helper function to generate thumbnail image from video file
+    const generateThumbnailFromVideo = (file) => {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            video.preload = 'metadata';
+            video.muted = true;
+            video.playsInline = true;
+            
+            video.onloadedmetadata = () => {
+                // Set canvas size to video dimensions (max 1280x720 for optimization)
+                const maxWidth = 1280;
+                const maxHeight = 720;
+                let width = video.videoWidth;
+                let height = video.videoHeight;
+                
+                if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = width * ratio;
+                    height = height * ratio;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Seek to 1 second (or 10% of duration, whichever is smaller)
+                const seekTime = Math.min(1, video.duration * 0.1);
+                video.currentTime = seekTime;
+            };
+            
+            video.onseeked = () => {
+                try {
+                    // Draw video frame to canvas
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // Convert canvas to blob (JPEG, 85% quality)
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const thumbnailFile = new File(
+                                [blob], 
+                                `thumb-${file.name.replace(/\.[^/.]+$/, '')}.jpg`, 
+                                { type: 'image/jpeg' }
+                            );
+                            resolve(thumbnailFile);
+                        } else {
+                            reject(new Error('Failed to generate thumbnail blob'));
+                        }
+                        URL.revokeObjectURL(video.src);
+                    }, 'image/jpeg', 0.85);
+                } catch (error) {
+                    reject(error);
+                    URL.revokeObjectURL(video.src);
+                }
+            };
+            
+            video.onerror = (error) => {
+                reject(new Error('Failed to load video for thumbnail generation'));
+                URL.revokeObjectURL(video.src);
+            };
+            
+            video.src = URL.createObjectURL(file);
+        });
+    };
+
     // Upload files to Replit Object Storage (server-side upload using @replit/object-storage)
     const uploadFilesToObjectStorage = async (files, postId) => {
         console.log(`Object Storage アップロード開始: ${files.length}個のファイル、投稿ID: ${postId}`);
@@ -139,18 +205,52 @@ const CreatePostPage = () => {
                 setCurrentStep(`${file.name}をアップロード中 (${index + 1}/${files.length})`);
                 console.log(`アップロード中 ${index + 1}/${files.length}: ${file.name}`);
 
-                // Get video duration before upload (if it's a video)
+                // Get video duration and generate thumbnail (if it's a video)
                 let videoDuration = null;
+                let uploadedThumbnailUrl = null;
+                
                 if (file.type.startsWith('video/')) {
                     try {
+                        // Get video duration
                         videoDuration = await getVideoDurationFromFile(file);
                         console.log(`動画の再生時間: ${videoDuration}`);
+                        
+                        // Generate thumbnail image from video
+                        setCurrentStep(`${file.name}のサムネイルを生成中...`);
+                        console.log(`📸 サムネイル生成開始: ${file.name}`);
+                        
+                        const thumbnailFile = await generateThumbnailFromVideo(file);
+                        console.log(`✅ サムネイル生成成功: ${thumbnailFile.name}, サイズ: ${(thumbnailFile.size / 1024).toFixed(2)}KB`);
+                        
+                        // Upload thumbnail to server
+                        setCurrentStep(`${file.name}のサムネイルをアップロード中...`);
+                        const thumbFormData = new FormData();
+                        thumbFormData.append('file', thumbnailFile);
+                        thumbFormData.append('visibility', isExclusiveContent ? 'private' : 'public');
+                        
+                        const thumbResponse = await fetch('/api/objects/upload', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${idToken}`,
+                            },
+                            body: thumbFormData,
+                        });
+                        
+                        if (thumbResponse.ok) {
+                            const thumbData = await thumbResponse.json();
+                            uploadedThumbnailUrl = thumbData.objectPath;
+                            console.log(`✅ サムネイルアップロード成功: ${uploadedThumbnailUrl}`);
+                        } else {
+                            console.error('サムネイルのアップロードに失敗しました');
+                        }
+                        
                     } catch (error) {
-                        console.error('動画の再生時間取得エラー:', error);
+                        console.error('動画処理エラー:', error);
                     }
                 }
 
-                // Upload file directly to server, which uploads to Object Storage
+                // Upload main file directly to server, which uploads to Object Storage
+                setCurrentStep(`${file.name}をアップロード中 (${index + 1}/${files.length})`);
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('visibility', isExclusiveContent ? 'private' : 'public');
@@ -177,17 +277,26 @@ const CreatePostPage = () => {
                     console.log('Thumbnail URL:', thumbnailUrl);
                 }
 
-                // Convert Bunny Stream thumbnail URL to proxy URL to avoid CORS issues
-                let proxyThumbnailUrl = thumbnailUrl;
-                if (thumbnailUrl && thumbnailUrl.includes('b-cdn.net') && thumbnailUrl.includes('/thumbnail')) {
-                    // Extract video GUID from Bunny Stream thumbnail URL
-                    // Example: https://vz-524827.b-cdn.net/1c4adc82-0ee4-4b72-9d53-f8fc634277eb/thumbnail.jpg
+                // Determine the best thumbnail URL to use
+                // Priority: 1) Generated thumbnail, 2) Bunny Stream thumbnail, 3) Video itself
+                let finalThumbnailUrl = null;
+                
+                if (uploadedThumbnailUrl) {
+                    // Use the generated thumbnail (highest priority)
+                    finalThumbnailUrl = uploadedThumbnailUrl;
+                    console.log(`✅ 生成したサムネイルを使用: ${finalThumbnailUrl}`);
+                } else if (thumbnailUrl && thumbnailUrl.includes('b-cdn.net') && thumbnailUrl.includes('/thumbnail')) {
+                    // Convert Bunny Stream thumbnail URL to proxy URL to avoid CORS issues
                     const guidMatch = thumbnailUrl.match(/\/([0-9a-f-]{36})\//i);
                     if (guidMatch) {
                         const videoGuid = guidMatch[1];
-                        proxyThumbnailUrl = `/api/bunny-stream-thumbnail/${videoGuid}`;
-                        console.log(`🔄 Converted Bunny Stream thumbnail to proxy URL: ${proxyThumbnailUrl}`);
+                        finalThumbnailUrl = `/api/bunny-stream-thumbnail/${videoGuid}`;
+                        console.log(`🔄 Bunny Streamサムネイルをプロキシ経由で使用: ${finalThumbnailUrl}`);
                     }
+                } else if (contentType.startsWith('video/')) {
+                    // Fallback to video itself for thumbnail extraction
+                    finalThumbnailUrl = objectPath;
+                    console.log(`⚠️ フォールバック: 動画ファイル自体を使用`);
                 }
 
                 // Use objectPath for API references (will be proxied through /api/proxy)
@@ -199,7 +308,7 @@ const CreatePostPage = () => {
                     size: size,
                     source: 'replit-object-storage',
                     resourceType: contentType.startsWith('video/') ? 'video' : 'image',
-                    thumbnailUrl: proxyThumbnailUrl || (contentType.startsWith('video/') ? objectPath : null),
+                    thumbnailUrl: finalThumbnailUrl,
                     objectPath: objectPath,
                     storageUri: storageUri, // Store both for reference
                 };
