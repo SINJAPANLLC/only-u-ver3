@@ -466,6 +466,38 @@ const CreatePostPage = () => {
             console.log(t('createPost.messages.creatingBasicPost'));
             setCurrentStep('投稿詳細を保存中...');
 
+            let customThumbnailUrl = null;
+
+            if (thumbnailFile) {
+                setCurrentStep('カスタムサムネイルをアップロード中...');
+                console.log('📸 カスタムサムネイルのアップロード開始:', thumbnailFile.name);
+
+                try {
+                    const idToken = await currentUser.getIdToken();
+                    const thumbFormData = new FormData();
+                    thumbFormData.append('file', thumbnailFile);
+                    thumbFormData.append('visibility', isExclusiveContent ? 'private' : 'public');
+
+                    const thumbResponse = await fetch('/api/objects/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${idToken}`,
+                        },
+                        body: thumbFormData,
+                    });
+
+                    if (thumbResponse.ok) {
+                        const thumbData = await thumbResponse.json();
+                        customThumbnailUrl = thumbData.objectPath;
+                        console.log(`✅ カスタムサムネイルアップロード成功: ${customThumbnailUrl}`);
+                    } else {
+                        console.error('カスタムサムネイルのアップロードに失敗しました');
+                    }
+                } catch (error) {
+                    console.error('カスタムサムネイルアップロードエラー:', error);
+                }
+            }
+
             const basicPostData = {
                 userId: currentUser.uid,
                 userName: currentUser.displayName || 'Anonymous',
@@ -484,6 +516,7 @@ const CreatePostPage = () => {
                 agreements,
                 fileCount: uploadedFiles.length,
                 files: [],
+                customThumbnail: customThumbnailUrl,
                 imageStorage: 'replit-object-storage',
                 dataStorage: 'firebase',
                 createdAt: serverTimestamp(),
@@ -538,6 +571,7 @@ const CreatePostPage = () => {
             setExplanation('');
             setTags('');
             setUploadedFiles([]);
+            setThumbnailFile(null);
             setSchedulePost(false);
             setPublicationPeriod(false);
             setAddPlan(false);
