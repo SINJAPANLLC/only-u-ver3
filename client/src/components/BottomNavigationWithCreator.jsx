@@ -31,7 +31,7 @@ const BottomNavigationWithCreator = ({ active = "Home" }) => {
     const items = canCreatePosts ? [...baseItems, ...creatorItems] : baseItems;
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 glass-effect dark:bg-black/95 border-t border-white/30 dark:border-gray-800/50 z-50 shadow-elevated transition-colors duration-200 pb-safe">
+        <nav className="fixed bottom-0 left-0 right-0 glass-effect dark:bg-black/95 border-t border-white/30 dark:border-gray-800/50 z-50 shadow-elevated transition-colors duration-200 pb-safe mb-2">
             <div className="max-w-6xl mx-auto">
                 <div className="flex items-center justify-around py-2 px-1">
                     {items.map((item) => {

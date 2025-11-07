@@ -22,6 +22,7 @@ const CreatePostPage = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const fileInputRef = useRef(null);
+    const thumbnailInputRef = useRef(null);
 
     const [isCreator, setIsCreator] = useState(false);
     const [creatorStatus, setCreatorStatus] = useState('');
@@ -32,6 +33,7 @@ const CreatePostPage = () => {
     const [explanation, setExplanation] = useState('');
     const [tags, setTags] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState([]);
+    const [thumbnailFile, setThumbnailFile] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -89,12 +91,29 @@ const CreatePostPage = () => {
         setUploadedFiles(prev => [...prev, ...files]);
     };
 
+    const handleThumbnailUpload = (event) => {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            setThumbnailFile(file);
+        } else {
+            alert('画像ファイルのみアップロード可能です');
+        }
+    };
+
     const handleFileButtonClick = () => {
         fileInputRef.current?.click();
     };
 
+    const handleThumbnailButtonClick = () => {
+        thumbnailInputRef.current?.click();
+    };
+
     const removeFile = (index) => {
         setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeThumbnail = () => {
+        setThumbnailFile(null);
     };
 
     // Helper function to get video duration from file
@@ -805,6 +824,97 @@ const CreatePostPage = () => {
                                         </motion.div>
                                     ))}
                                 </div>
+                            </motion.div>
+                        )}
+                    </motion.div>
+
+                    {/* Thumbnail Upload Card (Separate from Content) */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15 }}
+                        className="bg-white rounded-2xl p-6 shadow-lg border border-purple-100"
+                    >
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                                <ImageIcon className="w-5 h-5 text-white" />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-900">サムネイル画像</h2>
+                        </div>
+
+                        <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleThumbnailButtonClick}
+                            className="border-2 border-dashed border-purple-300 rounded-2xl p-6 cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all group"
+                        >
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <motion.div
+                                    animate={{ y: [0, -10, 0] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                    className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"
+                                >
+                                    <ImageIcon className="w-7 h-7 text-white" />
+                                </motion.div>
+                                <p className="text-base font-semibold text-gray-900 mb-1">
+                                    サムネイル画像をアップロード
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    投稿の表紙として表示されます（画像のみ）
+                                </p>
+                            </div>
+                        </motion.div>
+
+                        <input
+                            ref={thumbnailInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleThumbnailUpload}
+                            className="hidden"
+                        />
+
+                        {thumbnailFile && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="mt-4"
+                            >
+                                <div className="flex items-center gap-2 mb-3">
+                                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                    <p className="text-sm font-semibold text-gray-700">
+                                        サムネイルが選択されています
+                                    </p>
+                                </div>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="relative group"
+                                >
+                                    <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-md max-w-sm">
+                                        <img
+                                            src={URL.createObjectURL(thumbnailFile)}
+                                            alt="Thumbnail preview"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+
+                                    <motion.button
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={removeThumbnail}
+                                        className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                        data-testid="button-remove-thumbnail"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </motion.button>
+
+                                    <div className="mt-2">
+                                        <p className="text-xs font-medium text-gray-700 truncate">{thumbnailFile.name}</p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {(thumbnailFile.size / 1024 / 1024).toFixed(1)}MB
+                                        </p>
+                                    </div>
+                                </motion.div>
                             </motion.div>
                         )}
                     </motion.div>
