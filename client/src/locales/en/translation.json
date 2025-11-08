@@ -177,9 +177,9 @@
     },
     "navigation": {
         "home": "Home",
-        "feed": "Feed",
-        "ranking": "Ranking",
-        "messages": "Messages",
+        "feed": "Content",
+        "ranking": "Live",
+        "messages": "Matching",
         "account": "Account",
         "create": "Create",
         "dashboard": "Dashboard"

@@ -500,9 +500,9 @@
     },
     "navigation": {
         "home": "ホーム",
-        "feed": "フィード",
-        "ranking": "ランキング",
-        "messages": "メッセージ",
+        "feed": "コンテンツ",
+        "ranking": "ライブ",
+        "messages": "マッチング",
         "account": "アカウント",
         "create": "投稿",
         "dashboard": "ダッシュボード"
