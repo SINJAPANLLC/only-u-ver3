@@ -25,7 +25,7 @@ const PageLoader = () => (
 const Home = lazy(() => import('./components/pages/Home'));
 const SearchPage = lazy(() => import('./components/pages/SearchPage'));
 const SocialFeedScreen = lazy(() => import('./components/pages/feed'));
-const MessagesUI = lazy(() => import('./components/pages/msg'));
+const SwipeMatchPage = lazy(() => import('./components/pages/SwipeMatchPage'));
 const RankingPage = lazy(() => import('./components/pages/RankingPage'));
 const VideoPage = lazy(() => import('./components/pages/VideoPage'));
 const ImagePage = lazy(() => import('./components/pages/ImagePage'));
@@ -203,7 +203,7 @@ const AppRoutes = () => {
       <Route path="/feed" element={<ProtectedRoute><SocialFeedScreen /></ProtectedRoute>} />
       <Route path="/rankingpage" element={<ProtectedRoute><RankingPage /></ProtectedRoute>} />
       <Route path="/GenreNavigationSystem" element={<ProtectedRoute><GenreNavigationSystem /></ProtectedRoute>} />
-      <Route path="/messages" element={<ProtectedRoute><MessagesUI /></ProtectedRoute>} />
+      <Route path="/messages" element={<ProtectedRoute><SwipeMatchPage /></ProtectedRoute>} />
       {/* <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} /> */}
       <Route path="/account" element={<ProtectedRoute><AccountWrapper /></ProtectedRoute>} />
       <Route path="/create-post" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
