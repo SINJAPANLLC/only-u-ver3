@@ -23,10 +23,10 @@ const RankingPage = () => {
         const fetchLiveRooms = async () => {
             try {
                 // リアルタイムのライブルームを取得
+                // Note: インデックス不要にするため、orderByを削除してクライアント側でソート
                 const liveQuery = query(
                     collection(db, 'liveRooms'),
                     where('isActive', '==', true),
-                    orderBy('createdAt', 'desc'),
                     limit(20)
                 );
                 
@@ -43,8 +43,16 @@ const RankingPage = () => {
                             isLive: true,
                             isRealLive: true,
                             viewers: data.viewers || 0,
-                            creatorId: data.creatorId
+                            creatorId: data.creatorId,
+                            createdAt: data.createdAt
                         });
+                    });
+                    
+                    // クライアント側で作成日時でソート
+                    rooms.sort((a, b) => {
+                        const timeA = a.createdAt?.toMillis?.() || 0;
+                        const timeB = b.createdAt?.toMillis?.() || 0;
+                        return timeB - timeA;
                     });
                     
                     // リアルタイムライブがない場合は、モックデータとして投稿の動画を使用
