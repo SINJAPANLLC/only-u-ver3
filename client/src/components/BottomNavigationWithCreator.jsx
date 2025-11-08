@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Star, Crown, User, MessageCircle, Plus, BarChart3 } from "lucide-react";
+import { Home, Film, Radio, Heart, User, Plus, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -15,9 +15,9 @@ const BottomNavigationWithCreator = ({ active = "Home" }) => {
     // 基本のナビゲーション項目
     const baseItems = [
         { icon: Home, key: "home", onClick: () => navigate("/") },
-        { icon: Star, key: "feed", onClick: () => navigate("/feed") },
-        { icon: Crown, key: "ranking", onClick: () => navigate("/rankingpage") },
-        { icon: MessageCircle, key: "messages", onClick: () => navigate("/messages") },
+        { icon: Film, key: "feed", onClick: () => navigate("/feed") },
+        { icon: Radio, key: "ranking", onClick: () => navigate("/rankingpage") },
+        { icon: Heart, key: "messages", onClick: () => navigate("/messages") },
         { icon: User, key: "account", onClick: () => navigate("/account") },
     ];
 
