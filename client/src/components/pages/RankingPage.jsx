@@ -1,25 +1,77 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Radio } from 'lucide-react';
+import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { Send, Radio, Users, Heart, Gift } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 
 const RankingPage = () => {
     const { t } = useTranslation();
-    const [messages, setMessages] = useState([]);
+    const [liveRooms, setLiveRooms] = useState([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [messages, setMessages] = useState({});
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
-    const messagesEndRef = useRef(null);
+    const [viewerCounts, setViewerCounts] = useState({});
+    const containerRef = useRef(null);
+    const y = useMotionValue(0);
     const user = auth.currentUser;
 
-    // メッセージをリアルタイムで取得
+    // モックライブルームデータを取得
     useEffect(() => {
+        const fetchLiveRooms = async () => {
+            try {
+                // 投稿から動画データを取得してライブルームとして使用
+                const q = query(
+                    collection(db, 'posts'),
+                    where('visibility', '==', 'public'),
+                    orderBy('createdAt', 'desc'),
+                    limit(10)
+                );
+                
+                const snapshot = await getDocs(q);
+                const rooms = [];
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.files && data.files.length > 0) {
+                        const videoFile = data.files.find(f => f.resourceType === 'video');
+                        if (videoFile) {
+                            rooms.push({
+                                id: doc.id,
+                                title: data.title || 'ライブ配信中',
+                                creatorName: data.userName || 'Anonymous',
+                                creatorAvatar: data.userAvatar || '',
+                                videoUrl: videoFile.url?.startsWith('http') 
+                                    ? `/api/proxy/${videoFile.url.split('/').pop()}`
+                                    : videoFile.url,
+                                thumbnailUrl: videoFile.thumbnailUrl || '',
+                                isLive: true,
+                                viewers: Math.floor(Math.random() * 1000) + 100
+                            });
+                        }
+                    }
+                });
+                
+                setLiveRooms(rooms);
+            } catch (error) {
+                console.error('Error fetching live rooms:', error);
+            }
+        };
+
+        fetchLiveRooms();
+    }, []);
+
+    // 現在のルームのチャットメッセージを取得
+    useEffect(() => {
+        if (!liveRooms[currentIndex]) return;
+
+        const roomId = liveRooms[currentIndex].id;
         const q = query(
-            collection(db, 'liveChat'),
+            collection(db, `liveChat/${roomId}/messages`),
             orderBy('timestamp', 'desc'),
-            limit(100)
+            limit(50)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -27,27 +79,26 @@ const RankingPage = () => {
             snapshot.forEach((doc) => {
                 msgs.push({ id: doc.id, ...doc.data() });
             });
-            setMessages(msgs.reverse());
+            setMessages(prev => ({
+                ...prev,
+                [roomId]: msgs.reverse()
+            }));
         });
 
         return () => unsubscribe();
-    }, []);
-
-    // 新しいメッセージが来たら自動スクロール
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [currentIndex, liveRooms]);
 
     // メッセージ送信
     const handleSendMessage = async (e) => {
         e.preventDefault();
         
-        if (!newMessage.trim() || !user) return;
+        if (!newMessage.trim() || !user || !liveRooms[currentIndex]) return;
         
         setIsSending(true);
         
         try {
-            await addDoc(collection(db, 'liveChat'), {
+            const roomId = liveRooms[currentIndex].id;
+            await addDoc(collection(db, `liveChat/${roomId}/messages`), {
                 text: newMessage.trim(),
                 userId: user.uid,
                 userName: user.displayName || 'Anonymous',
@@ -63,115 +114,208 @@ const RankingPage = () => {
         }
     };
 
-    return (
-        <div className="min-h-screen bg-gray-50 dark:bg-black pb-20 flex flex-col">
-            {/* ヘッダー */}
-            <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 shadow-sm">
-                <div className="max-w-6xl mx-auto px-4 py-4">
-                    <div className="flex items-center justify-center space-x-3">
-                        <motion.div
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ repeat: Infinity, duration: 2 }}
-                            className="w-3 h-3 bg-red-500 rounded-full"
-                        />
-                        <Radio className="w-6 h-6 text-pink-500" />
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
-                            {t('navigation.ranking')}
-                        </h1>
-                    </div>
-                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        リアルタイムで会話しよう
-                    </p>
-                </div>
-            </div>
+    // 縦スワイプでルーム切り替え
+    const handleDragEnd = (event, info) => {
+        const threshold = 100;
+        
+        if (info.offset.y < -threshold && currentIndex < liveRooms.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+        } else if (info.offset.y > threshold && currentIndex > 0) {
+            setCurrentIndex(prev => prev - 1);
+        }
+    };
 
-            {/* チャットメッセージエリア */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ height: 'calc(100vh - 240px)' }}>
-                <AnimatePresence>
-                    {messages.map((message, index) => {
-                        const isOwnMessage = message.userId === user?.uid;
-                        
-                        return (
-                            <motion.div
-                                key={message.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ delay: index * 0.02 }}
-                                className={`flex items-start space-x-3 ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}
-                                data-testid={`message-${message.id}`}
-                            >
-                                {/* ユーザーアイコン */}
-                                <div className="flex-shrink-0">
-                                    {message.userPhoto ? (
-                                        <img
-                                            src={message.userPhoto}
-                                            alt={message.userName}
-                                            className="w-10 h-10 rounded-full object-cover border-2 border-pink-500"
+    const currentRoom = liveRooms[currentIndex];
+    const currentMessages = currentRoom ? messages[currentRoom.id] || [] : [];
+
+    return (
+        <div 
+            ref={containerRef}
+            className="fixed inset-0 bg-black overflow-hidden"
+            style={{ height: '100vh', width: '100vw' }}
+        >
+            <AnimatePresence mode="wait">
+                {currentRoom && (
+                    <motion.div
+                        key={currentRoom.id}
+                        drag="y"
+                        dragConstraints={{ top: 0, bottom: 0 }}
+                        dragElastic={0.2}
+                        onDragEnd={handleDragEnd}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 flex items-center justify-center"
+                        data-testid={`live-room-${currentRoom.id}`}
+                    >
+                        {/* 動画背景 */}
+                        <video
+                            key={currentRoom.videoUrl}
+                            src={currentRoom.videoUrl}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="absolute inset-0 w-full h-full object-cover"
+                        />
+
+                        {/* グラデーションオーバーレイ */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
+
+                        {/* トップ情報バー */}
+                        <div className="absolute top-0 left-0 right-0 p-4 safe-top z-20">
+                            <div className="flex items-center justify-between">
+                                {/* クリエイター情報 */}
+                                <div className="flex items-center space-x-3">
+                                    <div className="relative">
+                                        {currentRoom.creatorAvatar ? (
+                                            <img
+                                                src={currentRoom.creatorAvatar}
+                                                alt={currentRoom.creatorName}
+                                                className="w-12 h-12 rounded-full object-cover border-2 border-pink-500"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-white font-bold border-2 border-pink-500">
+                                                {currentRoom.creatorName[0]}
+                                            </div>
+                                        )}
+                                        <motion.div
+                                            animate={{ scale: [1, 1.2, 1] }}
+                                            transition={{ repeat: Infinity, duration: 2 }}
+                                            className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-black"
                                         />
-                                    ) : (
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-white font-bold">
-                                            {message.userName?.[0]?.toUpperCase() || 'A'}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-bold text-sm">{currentRoom.creatorName}</h3>
+                                        <div className="flex items-center space-x-2 text-white/80 text-xs">
+                                            <Radio className="w-3 h-3" />
+                                            <span>LIVE</span>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* 視聴者数 */}
+                                <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                                    <Users className="w-4 h-4 text-white" />
+                                    <span className="text-white text-sm font-bold">{currentRoom.viewers}</span>
+                                </div>
+                            </div>
+
+                            {/* タイトル */}
+                            <div className="mt-3 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-lg">
+                                <p className="text-white text-sm font-medium">{currentRoom.title}</p>
+                            </div>
+                        </div>
+
+                        {/* チャットメッセージエリア */}
+                        <div className="absolute bottom-32 left-0 right-0 px-4 space-y-2 max-h-64 overflow-y-auto z-10">
+                            <AnimatePresence>
+                                {currentMessages.slice(-5).map((message, index) => (
+                                    <motion.div
+                                        key={message.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="bg-black/40 backdrop-blur-sm px-3 py-2 rounded-lg max-w-xs"
+                                        data-testid={`chat-message-${message.id}`}
+                                    >
+                                        <div className="flex items-start space-x-2">
+                                            {message.userPhoto && (
+                                                <img
+                                                    src={message.userPhoto}
+                                                    alt={message.userName}
+                                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                                                />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <span className="text-pink-400 font-bold text-xs">{message.userName}</span>
+                                                <p className="text-white text-sm break-words">{message.text}</p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* サイドアクションボタン */}
+                        <div className="absolute right-4 bottom-40 space-y-4 z-20">
+                            <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                className="flex flex-col items-center"
+                            >
+                                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                    <Heart className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="text-white text-xs mt-1">いいね</span>
+                            </motion.button>
+
+                            <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                className="flex flex-col items-center"
+                            >
+                                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                    <Gift className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="text-white text-xs mt-1">投げ銭</span>
+                            </motion.button>
+                        </div>
+
+                        {/* メッセージ入力エリア */}
+                        <div className="absolute bottom-20 left-0 right-0 px-4 safe-bottom z-20">
+                            <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+                                <input
+                                    type="text"
+                                    value={newMessage}
+                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    placeholder={user ? "コメントを入力..." : "ログインしてコメント"}
+                                    disabled={!user || isSending}
+                                    className="flex-1 px-4 py-2.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50"
+                                    data-testid="input-chat-message"
+                                />
+                                <motion.button
+                                    type="submit"
+                                    disabled={!user || !newMessage.trim() || isSending}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="p-2.5 rounded-full bg-gradient-to-r from-pink-500 to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                                    data-testid="button-send-chat"
+                                >
+                                    <Send className="w-5 h-5" />
+                                </motion.button>
+                            </form>
+                        </div>
+
+                        {/* スワイプヒント */}
+                        {liveRooms.length > 1 && (
+                            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+                                <div className="flex flex-col items-center space-y-1 text-white/60 text-xs">
+                                    {currentIndex < liveRooms.length - 1 && (
+                                        <motion.div
+                                            animate={{ y: [0, 5, 0] }}
+                                            transition={{ repeat: Infinity, duration: 1.5 }}
+                                        >
+                                            ↓ スワイプで次へ
+                                        </motion.div>
+                                    )}
+                                    {currentIndex > 0 && (
+                                        <motion.div
+                                            animate={{ y: [0, -5, 0] }}
+                                            transition={{ repeat: Infinity, duration: 1.5 }}
+                                        >
+                                            ↑ スワイプで前へ
+                                        </motion.div>
                                     )}
                                 </div>
-
-                                {/* メッセージバブル */}
-                                <div className={`flex-1 max-w-xs md:max-w-md ${isOwnMessage ? 'text-right' : ''}`}>
-                                    <div className={`text-xs text-gray-500 dark:text-gray-400 mb-1 ${isOwnMessage ? 'text-right' : ''}`}>
-                                        {message.userName}
-                                    </div>
-                                    <div
-                                        className={`inline-block px-4 py-2 rounded-2xl ${
-                                            isOwnMessage
-                                                ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white'
-                                                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700'
-                                        }`}
-                                    >
-                                        <p className="text-sm break-words">{message.text}</p>
-                                    </div>
-                                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                        {message.timestamp?.toDate?.()?.toLocaleTimeString('ja-JP', { 
-                                            hour: '2-digit', 
-                                            minute: '2-digit' 
-                                        })}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        );
-                    })}
-                </AnimatePresence>
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* メッセージ入力エリア */}
-            <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-4 sticky bottom-16 z-40">
-                <form onSubmit={handleSendMessage} className="max-w-6xl mx-auto">
-                    <div className="flex items-center space-x-2">
-                        <input
-                            type="text"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder={user ? "メッセージを入力..." : "ログインしてメッセージを送信"}
-                            disabled={!user || isSending}
-                            className="flex-1 px-4 py-3 rounded-full border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent disabled:opacity-50"
-                            data-testid="input-message"
-                        />
-                        <motion.button
-                            type="submit"
-                            disabled={!user || !newMessage.trim() || isSending}
-                            whileTap={{ scale: 0.95 }}
-                            className="p-3 rounded-full bg-gradient-to-r from-pink-500 to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-shadow"
-                            data-testid="button-send"
-                        >
-                            <Send className="w-5 h-5" />
-                        </motion.button>
-                    </div>
-                </form>
-            </div>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* ボトムナビゲーション */}
-            <BottomNavigationWithCreator active="ranking" />
+            <div className="absolute bottom-0 left-0 right-0 z-30">
+                <BottomNavigationWithCreator active="ranking" />
+            </div>
         </div>
     );
 };
