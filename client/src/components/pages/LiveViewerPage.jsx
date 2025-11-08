@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Users, Send, X, ArrowLeft, Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Users, Send, X, ArrowLeft, Heart, Gift } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, collection, addDoc, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
@@ -19,10 +19,22 @@ const LiveViewerPage = () => {
     const [remoteStream, setRemoteStream] = useState(null);
     const [isConnecting, setIsConnecting] = useState(true);
     const [connectionStatus, setConnectionStatus] = useState('接続中...');
+    const [user, setUser] = useState(null);
     const videoRef = useRef(null);
     const wsRef = useRef(null);
     const peerConnectionRef = useRef(null);
-    const user = auth.currentUser;
+    const anonymousIdRef = useRef(`anonymous-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+    
+    // 認証状態を監視
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+            setUser(currentUser);
+        });
+        return () => unsubscribe();
+    }, []);
+    
+    // 現在のユーザーIDを取得（認証済みまたは匿名）
+    const getUserId = () => user?.uid || anonymousIdRef.current;
 
     // ルーム情報を取得
     useEffect(() => {
@@ -69,8 +81,9 @@ const LiveViewerPage = () => {
 
     // WebRTC接続を確立
     useEffect(() => {
-        if (!roomId || !user) return;
+        if (!roomId) return;
 
+        // ユーザーがログインしていなくても視聴可能
         setupWebRTC();
 
         return () => {
@@ -78,7 +91,7 @@ const LiveViewerPage = () => {
                 wsRef.current.send(JSON.stringify({
                     type: 'viewer-leave',
                     roomId,
-                    userId: user.uid
+                    userId: getUserId()
                 }));
                 wsRef.current.close();
             }
@@ -112,9 +125,9 @@ const LiveViewerPage = () => {
             ws.send(JSON.stringify({
                 type: 'viewer-join',
                 roomId,
-                userId: user.uid,
-                userName: user.displayName || 'Anonymous',
-                userAvatar: user.photoURL || ''
+                userId: getUserId(),
+                userName: user?.displayName || 'ゲスト',
+                userAvatar: user?.photoURL || ''
             }));
         };
 
@@ -203,7 +216,7 @@ const LiveViewerPage = () => {
                     wsRef.current.send(JSON.stringify({
                         type: 'ice-candidate',
                         roomId,
-                        userId: user.uid,
+                        userId: getUserId(),
                         data: event.candidate
                     }));
                 }
@@ -239,7 +252,7 @@ const LiveViewerPage = () => {
                 wsRef.current.send(JSON.stringify({
                     type: 'answer',
                     roomId,
-                    userId: user.uid,
+                    userId: getUserId(),
                     data: answer
                 }));
             }
@@ -267,7 +280,17 @@ const LiveViewerPage = () => {
     // チャットメッセージを送信
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim() || !user) return;
+        if (!newMessage.trim()) return;
+        
+        // ログインしていない場合は送信できない
+        if (!user) {
+            toast({
+                title: 'ログインが必要です',
+                description: 'チャットを送信するにはログインしてください',
+                variant: 'destructive'
+            });
+            return;
+        }
 
         try {
             await addDoc(collection(db, `liveChat/${roomId}/messages`), {
@@ -296,14 +319,14 @@ const LiveViewerPage = () => {
     }
 
     return (
-        <div className="fixed inset-0 bg-black">
+        <div className="fixed inset-0 bg-black overflow-hidden">
             {/* ビデオプレイヤー */}
             <div className="relative w-full h-full">
                 {isConnecting ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
                         <div className="text-center">
-                            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-pink-500 border-r-transparent mb-4"></div>
-                            <p className="text-white text-lg">{connectionStatus}</p>
+                            <div className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-solid border-pink-500 border-r-transparent mb-6"></div>
+                            <p className="text-white text-lg font-medium">{connectionStatus}</p>
                         </div>
                     </div>
                 ) : (
@@ -316,88 +339,140 @@ const LiveViewerPage = () => {
                     />
                 )}
 
-                {/* ヘッダー */}
-                <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent">
-                    <div className="flex items-center justify-between">
-                        <motion.button
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => navigate('/rankingpage')}
-                            className="p-2 bg-black/40 rounded-full"
-                            data-testid="button-back"
-                        >
-                            <ArrowLeft className="w-6 h-6 text-white" />
-                        </motion.button>
-
-                        <div className="flex items-center space-x-2 bg-red-500/90 px-3 py-1 rounded-full">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                            <span className="text-white text-sm font-bold">LIVE</span>
+                {/* ヘッダー - 配信者情報とLIVE表示 */}
+                <div className="absolute top-0 left-0 right-0 p-4 z-10">
+                    <div className="flex items-start justify-between">
+                        {/* 左側: 配信者情報 */}
+                        <div className="flex items-center space-x-3 flex-1">
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="relative"
+                            >
+                                <img
+                                    src={room.creatorAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+                                    alt={room.creatorName}
+                                    className="w-12 h-12 rounded-full border-2 border-pink-500 object-cover"
+                                />
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-pulse"></div>
+                            </motion.div>
+                            <div className="flex-1">
+                                <div className="flex items-center space-x-2">
+                                    <h2 className="text-white font-bold text-base truncate max-w-[120px]">{room.creatorName}</h2>
+                                    <div className="flex items-center space-x-1 bg-red-500 px-2 py-0.5 rounded-md">
+                                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                                        <span className="text-white text-xs font-bold">LIVE</span>
+                                    </div>
+                                </div>
+                                <p className="text-white/90 text-sm mt-0.5">{room.title}</p>
+                            </div>
                         </div>
 
-                        <div className="flex items-center space-x-2 bg-black/40 px-3 py-1 rounded-full">
+                        {/* 右側: 視聴者数 */}
+                        <motion.div
+                            initial={{ x: 50, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            className="flex items-center space-x-1.5 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20"
+                        >
                             <Users className="w-4 h-4 text-white" />
                             <span className="text-white text-sm font-bold" data-testid="text-viewer-count">
                                 {viewers}
                             </span>
-                        </div>
-                    </div>
-
-                    <div className="mt-3 flex items-center space-x-3">
-                        <img
-                            src={room.creatorAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
-                            alt={room.creatorName}
-                            className="w-10 h-10 rounded-full border-2 border-pink-500"
-                        />
-                        <div>
-                            <h2 className="text-white font-bold">{room.creatorName}</h2>
-                            <p className="text-white/80 text-sm">{room.title}</p>
-                        </div>
+                        </motion.div>
                     </div>
                 </div>
 
-                {/* チャットオーバーレイ */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                    <div className="max-h-48 overflow-y-auto mb-3 space-y-2">
-                        {messages.slice(-10).map((msg) => (
+                {/* 右側インタラクションボタン */}
+                <div className="absolute right-2 sm:right-4 bottom-28 sm:bottom-32 flex flex-col items-center space-y-4 sm:space-y-6 z-10">
+                    {/* いいねボタン */}
+                    <motion.button
+                        whileTap={{ scale: 0.85 }}
+                        className="flex flex-col items-center space-y-0.5 sm:space-y-1"
+                        data-testid="button-like"
+                    >
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-pink-500/30 transition-all">
+                            <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        </div>
+                        <span className="text-white text-[10px] sm:text-xs font-medium">いいね</span>
+                    </motion.button>
+
+                    {/* 投げ銭ボタン */}
+                    <motion.button
+                        whileTap={{ scale: 0.85 }}
+                        className="flex flex-col items-center space-y-0.5 sm:space-y-1"
+                        data-testid="button-gift"
+                    >
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-pink-500/30 transition-all">
+                            <Gift className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        </div>
+                        <span className="text-white text-[10px] sm:text-xs font-medium">投げ銭</span>
+                    </motion.button>
+                </div>
+
+                {/* チャットメッセージ表示エリア */}
+                <div className="absolute left-4 right-24 bottom-24 max-h-[300px] overflow-y-auto space-y-2 z-10 pointer-events-none">
+                    <AnimatePresence>
+                        {messages.slice(-8).map((msg) => (
                             <motion.div
                                 key={msg.id}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="bg-black/40 backdrop-blur-sm px-3 py-2 rounded-lg"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                className="bg-black/50 backdrop-blur-md px-3 py-2 rounded-2xl inline-block max-w-[85%] border border-white/10"
                             >
                                 <div className="flex items-start space-x-2">
                                     <img
                                         src={msg.userAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
                                         alt={msg.userName}
-                                        className="w-6 h-6 rounded-full"
+                                        className="w-5 h-5 rounded-full flex-shrink-0"
                                     />
-                                    <div className="flex-1">
-                                        <p className="text-pink-400 text-xs font-bold">{msg.userName}</p>
-                                        <p className="text-white text-sm break-words">{msg.message}</p>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-pink-400 text-xs font-semibold truncate">{msg.userName}</p>
+                                        <p className="text-white text-sm break-words leading-snug">{msg.message}</p>
                                     </div>
                                 </div>
                             </motion.div>
                         ))}
-                    </div>
+                    </AnimatePresence>
+                </div>
 
-                    <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                        <input
-                            type="text"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="コメントを入力..."
-                            className="flex-1 bg-black/40 backdrop-blur-sm text-white px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500"
-                            data-testid="input-chat-message"
-                        />
+                {/* チャット入力欄 */}
+                <div className="absolute bottom-4 sm:bottom-6 left-2 right-2 sm:left-4 sm:right-4 z-10">
+                    <form onSubmit={handleSendMessage} className="flex items-center space-x-1.5 sm:space-x-2">
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                placeholder={user ? "コメントを入力..." : "ログインしてチャット"}
+                                disabled={!user}
+                                className="w-full bg-[#3a3a3a]/90 backdrop-blur-md text-white placeholder-gray-400 px-4 py-2.5 sm:px-5 sm:py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500/50 border border-white/10 disabled:opacity-60 text-sm sm:text-base"
+                                data-testid="input-chat-message"
+                            />
+                        </div>
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             type="submit"
-                            className="p-2 bg-pink-500 rounded-full"
+                            disabled={!newMessage.trim() || !user}
+                            className="w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-pink-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                             data-testid="button-send-message"
                         >
-                            <Send className="w-5 h-5 text-white" />
+                            <Send className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </motion.button>
                     </form>
                 </div>
+
+                {/* 戻るボタン */}
+                <motion.button
+                    initial={{ x: -50, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => navigate('/rankingpage')}
+                    className="absolute top-4 left-4 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 z-20"
+                    data-testid="button-back"
+                >
+                    <ArrowLeft className="w-5 h-5 text-white" />
+                </motion.button>
             </div>
         </div>
     );

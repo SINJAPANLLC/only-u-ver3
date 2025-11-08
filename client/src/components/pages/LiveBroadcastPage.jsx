@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Users, Send, X, Video, Mic, MicOff, VideoOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Users, Send, X, Video, Mic, MicOff, VideoOff, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, updateDoc, onSnapshot, collection, addDoc, query, orderBy, limit, serverTimestamp, deleteDoc } from 'firebase/firestore';
@@ -348,87 +348,122 @@ const LiveBroadcastPage = () => {
 
     if (!room) {
         return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <p className="text-white">読み込み中...</p>
+            <div className="fixed inset-0 bg-black flex items-center justify-center">
+                <div className="text-center">
+                    <div className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-solid border-pink-500 border-r-transparent mb-6"></div>
+                    <p className="text-white text-lg font-medium">配信を準備中...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="fixed inset-0 bg-black flex flex-col">
-            {/* 配信プレビュー */}
-            <div className="flex-1 relative">
+        <div className="fixed inset-0 bg-black overflow-hidden">
+            {/* ビデオプレビュー */}
+            <div className="relative w-full h-full">
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    className="absolute inset-0 w-full h-full object-cover transform -scale-x-100"
+                    className="w-full h-full object-cover transform -scale-x-100"
                     data-testid="video-broadcast"
                 />
 
                 {!isVideoEnabled && (
-                    <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-                        <VideoOff className="w-20 h-20 text-gray-600" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
+                        <motion.div
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="text-center"
+                        >
+                            <VideoOff className="w-24 h-24 text-gray-600 mx-auto mb-4" />
+                            <p className="text-gray-400 text-lg">カメラオフ</p>
+                        </motion.div>
                     </div>
                 )}
 
-                {/* グラデーションオーバーレイ */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
-
-                {/* トップ情報バー */}
-                <div className="absolute top-0 left-0 right-0 p-4 safe-top z-20">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3 bg-red-500 px-3 py-1.5 rounded-full">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                            <span className="text-white text-sm font-bold">LIVE</span>
-                        </div>
-
-                        <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                            <Users className="w-4 h-4 text-white" />
-                            <span className="text-white text-sm font-bold">{viewers}</span>
-                        </div>
-                    </div>
-
-                    <div className="mt-3 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-lg">
-                        <p className="text-white text-sm font-medium">{room.title}</p>
-                    </div>
-                </div>
-
-                {/* チャットメッセージ */}
-                <div className="absolute bottom-32 left-0 right-0 px-4 space-y-2 max-h-64 overflow-y-auto z-10">
-                    {messages.slice(-5).map((message) => (
-                        <motion.div
-                            key={message.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="bg-black/40 backdrop-blur-sm px-3 py-2 rounded-lg max-w-xs"
-                        >
-                            <div className="flex items-start space-x-2">
-                                {message.userPhoto && (
-                                    <img
-                                        src={message.userPhoto}
-                                        alt={message.userName}
-                                        className="w-6 h-6 rounded-full object-cover"
-                                    />
-                                )}
-                                <div>
-                                    <span className="text-pink-400 font-bold text-xs">{message.userName}</span>
-                                    <p className="text-white text-sm">{message.text}</p>
+                {/* ヘッダー - 配信情報 */}
+                <div className="absolute top-0 left-0 right-0 p-4 z-10">
+                    <div className="flex items-start justify-between">
+                        {/* 左側: 配信者情報とタイトル */}
+                        <div className="flex items-center space-x-3 flex-1">
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="relative"
+                            >
+                                <img
+                                    src={user.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=broadcaster'}
+                                    alt="あなた"
+                                    className="w-12 h-12 rounded-full border-2 border-pink-500 object-cover"
+                                />
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-pulse"></div>
+                            </motion.div>
+                            <div className="flex-1">
+                                <div className="flex items-center space-x-2">
+                                    <h2 className="text-white font-bold text-base truncate max-w-[120px]">{user.displayName}</h2>
+                                    <div className="flex items-center space-x-1 bg-red-500 px-2 py-0.5 rounded-md">
+                                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                                        <span className="text-white text-xs font-bold">配信中</span>
+                                    </div>
                                 </div>
+                                <p className="text-white/90 text-sm mt-0.5 truncate max-w-[200px]">{room.title}</p>
                             </div>
+                        </div>
+
+                        {/* 右側: 視聴者数 */}
+                        <motion.div
+                            initial={{ x: 50, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            className="flex items-center space-x-1.5 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20"
+                        >
+                            <Eye className="w-4 h-4 text-white" />
+                            <span className="text-white text-sm font-bold" data-testid="text-viewer-count">
+                                {viewers}
+                            </span>
                         </motion.div>
-                    ))}
+                    </div>
                 </div>
 
-                {/* コントロール */}
-                <div className="absolute bottom-4 left-0 right-0 px-4 safe-bottom z-20">
-                    <div className="flex items-center justify-center space-x-4 mb-4">
+                {/* チャットメッセージ表示エリア */}
+                <div className="absolute left-4 right-4 bottom-32 max-h-[300px] overflow-y-auto space-y-2 z-10 pointer-events-none">
+                    <AnimatePresence>
+                        {messages.slice(-8).map((msg) => (
+                            <motion.div
+                                key={msg.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                className="bg-black/50 backdrop-blur-md px-3 py-2 rounded-2xl inline-block max-w-[75%] border border-white/10"
+                            >
+                                <div className="flex items-start space-x-2">
+                                    <img
+                                        src={msg.userAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+                                        alt={msg.userName}
+                                        className="w-5 h-5 rounded-full flex-shrink-0"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-pink-400 text-xs font-semibold truncate">{msg.userName}</p>
+                                        <p className="text-white text-sm break-words leading-snug">{msg.message}</p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+
+                {/* 配信コントロール */}
+                <div className="absolute bottom-6 left-0 right-0 px-4 z-10">
+                    <div className="flex items-center justify-center space-x-4">
+                        {/* ビデオトグル */}
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             onClick={toggleVideo}
-                            className={`p-3 rounded-full ${
-                                isVideoEnabled ? 'bg-white/20' : 'bg-red-500'
+                            className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-md border border-white/20 transition-all ${
+                                isVideoEnabled 
+                                    ? 'bg-white/20 hover:bg-white/30' 
+                                    : 'bg-red-500/90 hover:bg-red-600'
                             }`}
                             data-testid="button-toggle-video-live"
                         >
@@ -439,11 +474,14 @@ const LiveBroadcastPage = () => {
                             )}
                         </motion.button>
 
+                        {/* オーディオトグル */}
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             onClick={toggleAudio}
-                            className={`p-3 rounded-full ${
-                                isAudioEnabled ? 'bg-white/20' : 'bg-red-500'
+                            className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-md border border-white/20 transition-all ${
+                                isAudioEnabled 
+                                    ? 'bg-white/20 hover:bg-white/30' 
+                                    : 'bg-red-500/90 hover:bg-red-600'
                             }`}
                             data-testid="button-toggle-audio-live"
                         >
@@ -454,15 +492,33 @@ const LiveBroadcastPage = () => {
                             )}
                         </motion.button>
 
+                        {/* 配信終了ボタン */}
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             onClick={handleEndLive}
-                            className="px-6 py-3 rounded-full bg-red-500 text-white font-bold"
+                            className="px-8 py-3.5 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white font-bold shadow-lg shadow-red-500/30 flex items-center space-x-2 border border-red-400/30"
                             data-testid="button-end-live"
                         >
-                            <X className="w-6 h-6" />
+                            <X className="w-5 h-5" />
+                            <span>配信終了</span>
                         </motion.button>
                     </div>
+
+                    {/* ステータス表示 */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-4 text-center"
+                    >
+                        <div className="inline-flex items-center space-x-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                            <div className="flex items-center space-x-1.5">
+                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                <span className="text-white/80 text-sm">接続中</span>
+                            </div>
+                            <span className="text-white/40">•</span>
+                            <span className="text-white/80 text-sm">{viewers} 人が視聴中</span>
+                        </div>
+                    </motion.div>
                 </div>
             </div>
         </div>
