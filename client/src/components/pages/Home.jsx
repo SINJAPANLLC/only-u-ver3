@@ -288,12 +288,12 @@ const Home = () => {
                             return (
                                 <div 
                                     key={post.id}
-                                    className="group relative flex-none w-[calc(30%-8px)] rounded-2xl overflow-hidden shadow-[0_8px_32px_-8px_rgba(236,72,153,0.3)] hover:shadow-[0_12px_48px_-12px_rgba(236,72,153,0.5)] transition-all duration-300 hover:-translate-y-2 cursor-pointer" 
+                                    className="group relative flex-none w-[calc(35%-8px)] rounded-2xl overflow-hidden shadow-[0_8px_32px_-8px_rgba(236,72,153,0.3)] hover:shadow-[0_12px_48px_-12px_rgba(236,72,153,0.5)] transition-all duration-300 hover:-translate-y-2 cursor-pointer" 
                                     style={{ scrollSnapAlign: 'start' }}
                                     data-testid={`card-vertical-${index + 1}`}
                                     onClick={() => navigate(`/video/${post.id}`)}
                                 >
-                                    <div className="relative w-full h-56 bg-gradient-to-br from-pink-200 to-purple-200">
+                                    <div className="relative w-full h-64 bg-gradient-to-br from-pink-200 to-purple-200">
                                         {thumbnailUrl ? (
                                             <img 
                                                 src={thumbnailUrl}
@@ -361,7 +361,7 @@ const Home = () => {
                                 onClick={() => navigate(`/creator-profile/${creator.id}`)}
                             >
                                 <div className="group relative cursor-pointer">
-                                    <div className="w-20 h-20 rounded-full overflow-hidden shadow-md transition-all duration-300 group-hover:shadow-lg group-hover:scale-110 border-2 border-pink-200 group-hover:border-pink-400">
+                                    <div className="w-24 h-24 rounded-full overflow-hidden shadow-md transition-all duration-300 group-hover:shadow-lg group-hover:scale-110 border-2 border-pink-200 group-hover:border-pink-400">
                                         {creator.avatar ? (
                                             <img 
                                                 src={creator.avatar}
@@ -369,13 +369,13 @@ const Home = () => {
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <div className="w-full h-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center text-gray-400 text-xs">
+                                            <div className="w-full h-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center text-gray-400 text-sm">
                                                 {creator.displayName?.[0] || 'U'}
                                             </div>
                                         )}
                                     </div>
                                     {creator.displayName && (
-                                        <p className="text-xs text-center mt-1 text-gray-600 dark:text-gray-400 truncate w-20">
+                                        <p className="text-xs text-center mt-1 text-gray-600 dark:text-gray-400 truncate w-24">
                                             {creator.displayName}
                                         </p>
                                     )}
