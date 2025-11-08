@@ -20,6 +20,37 @@ const RankingPage = () => {
     const y = useMotionValue(0);
     const user = auth.currentUser;
 
+    // 画像URLをプロキシURLに変換するヘルパー関数
+    const getProxyImageUrl = (url) => {
+        if (!url) return '';
+        
+        // Base64エンコードされた画像データの場合はそのまま返す
+        if (url.startsWith('data:image/')) {
+            return url;
+        }
+        
+        // 既にプロキシURLの場合はそのまま返す
+        if (url.startsWith('/api/proxy/')) {
+            return url;
+        }
+        
+        // Bunny CDN URLの場合
+        if (url.includes('only-u.fun') || url.includes('bunnycdn.com')) {
+            const filename = url.split('/').pop();
+            return `/api/proxy/public/${filename}`;
+        }
+        
+        // 古いReplit URLやその他の外部URLの場合
+        if (url.startsWith('http')) {
+            // ファイル名を抽出してプロキシ経由で取得
+            const filename = url.split('/').pop();
+            return `/api/proxy/public/${filename}`;
+        }
+        
+        // それ以外の場合はそのまま返す
+        return url;
+    };
+
     // アクティブなライブルームデータを取得
     useEffect(() => {
         const fetchLiveRooms = async () => {
@@ -212,12 +243,21 @@ const RankingPage = () => {
                                     <div className="relative">
                                         {currentRoom.creatorAvatar ? (
                                             <img
-                                                src={currentRoom.creatorAvatar}
+                                                src={getProxyImageUrl(currentRoom.creatorAvatar)}
                                                 alt={currentRoom.creatorName}
                                                 className="w-12 h-12 rounded-full object-cover border-2 border-pink-500"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
                                             />
-                                        ) : (
+                                        ) : null}
+                                        {!currentRoom.creatorAvatar || currentRoom.creatorAvatar === '' ? (
                                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-white font-bold border-2 border-pink-500">
+                                                {currentRoom.creatorName[0]}
+                                            </div>
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-white font-bold border-2 border-pink-500 hidden">
                                                 {currentRoom.creatorName[0]}
                                             </div>
                                         )}
@@ -277,9 +317,12 @@ const RankingPage = () => {
                                         <div className="flex items-start space-x-2">
                                             {message.userPhoto && (
                                                 <img
-                                                    src={message.userPhoto}
+                                                    src={getProxyImageUrl(message.userPhoto)}
                                                     alt={message.userName}
                                                     className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                    }}
                                                 />
                                             )}
                                             <div className="flex-1 min-w-0">
