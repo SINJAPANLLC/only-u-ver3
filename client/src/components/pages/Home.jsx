@@ -10,7 +10,6 @@ import Header from '../../Header/Header';
 // import Notifications from '../../Header/Notifications';
 import UserNotifications from '../UserNotifications';
 import FeaturedCreators from '../FeaturedCreators';
-import PostLibrary from '../PostLibrary';
 import RecommendedGenres from '../RecommendedGenres';
 import Ranking from '../RomanticRanking';
 import CreatorPage from '../CreatorPage';
@@ -389,7 +388,6 @@ const Home = () => {
                     </div>
                 </div>
 
-                <PostLibrary likedItems={likedItems} />
                 <RecommendedGenres likedItems={likedItems} toggleLike={toggleLike} />
                 <Ranking />
                 <CreatorPage />
