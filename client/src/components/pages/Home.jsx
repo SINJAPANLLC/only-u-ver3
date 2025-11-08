@@ -11,7 +11,6 @@ import Header from '../../Header/Header';
 import UserNotifications from '../UserNotifications';
 import FeaturedCreators from '../FeaturedCreators';
 import RecommendedGenres from '../RecommendedGenres';
-import CreatorPage from '../CreatorPage';
 import CleanCreatorPage from '../FollowCreatorPage';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 
@@ -387,7 +386,6 @@ const Home = () => {
                 </div>
 
                 <RecommendedGenres likedItems={likedItems} toggleLike={toggleLike} />
-                <CreatorPage />
                 <CleanCreatorPage />
             </div>
 
