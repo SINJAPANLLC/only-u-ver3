@@ -124,12 +124,13 @@ const LiveViewerPage = () => {
 
             switch (message.type) {
                 case 'joined':
-                    console.log('✅ Joined as viewer');
-                    await createOffer();
+                    console.log('✅ Joined as viewer, waiting for broadcaster offer...');
+                    setConnectionStatus('配信者の準備を待っています...');
                     break;
 
-                case 'answer':
-                    await handleAnswer(message.answer);
+                case 'offer':
+                    // 配信者からのofferを受信してanswerを作成
+                    await handleOffer(message.offer);
                     break;
 
                 case 'ice-candidate':
@@ -173,9 +174,10 @@ const LiveViewerPage = () => {
         };
     };
 
-    // Offerを作成して送信
-    const createOffer = async () => {
+    // 配信者からのOfferを処理してAnswerを作成
+    const handleOffer = async (offer) => {
         try {
+            console.log('📥 Received offer from broadcaster');
             setConnectionStatus('ピア接続を確立中...');
 
             const peerConnection = new RTCPeerConnection({
@@ -187,13 +189,15 @@ const LiveViewerPage = () => {
 
             peerConnectionRef.current = peerConnection;
 
+            // リモートストリームを受信
             peerConnection.ontrack = (event) => {
                 console.log('📺 Received remote stream');
                 setRemoteStream(event.streams[0]);
                 setIsConnecting(false);
-                setConnectionStatus('接続完了');
+                setConnectionStatus('配信中');
             };
 
+            // ICE候補を配信者に送信
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate && wsRef.current?.readyState === WebSocket.OPEN) {
                     wsRef.current.send(JSON.stringify({
@@ -223,35 +227,28 @@ const LiveViewerPage = () => {
                 }
             };
 
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
+            // リモートDescriptionを設定
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
+            // Answerを作成
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            // Answerを配信者に送信
             if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
-                    type: 'offer',
+                    type: 'answer',
                     roomId,
                     userId: user.uid,
-                    data: offer
+                    data: answer
                 }));
             }
 
-            console.log('✅ Offer sent to broadcaster');
+            console.log('✅ Answer created and sent to broadcaster');
         } catch (error) {
-            console.error('❌ Error creating offer:', error);
+            console.error('❌ Error handling offer:', error);
             setConnectionStatus('接続エラー');
             setIsConnecting(false);
-        }
-    };
-
-    // Answerを処理
-    const handleAnswer = async (answer) => {
-        try {
-            if (peerConnectionRef.current) {
-                await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-                console.log('✅ Answer received and set');
-            }
-        } catch (error) {
-            console.error('❌ Error handling answer:', error);
         }
     };
 

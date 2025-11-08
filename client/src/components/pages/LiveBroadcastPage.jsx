@@ -19,9 +19,9 @@ const LiveBroadcastPage = () => {
     const [isVideoEnabled, setIsVideoEnabled] = useState(true);
     const [isAudioEnabled, setIsAudioEnabled] = useState(true);
     const [localStream, setLocalStream] = useState(null);
-    const [peerConnections, setPeerConnections] = useState({});
     const videoRef = useRef(null);
     const wsRef = useRef(null);
+    const peerConnectionsRef = useRef({});
     const user = auth.currentUser;
 
     // ルーム情報を取得
@@ -96,7 +96,7 @@ const LiveBroadcastPage = () => {
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
             }
-            Object.values(peerConnections).forEach(pc => pc.close());
+            Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
         };
     }, []);
 
@@ -133,8 +133,14 @@ const LiveBroadcastPage = () => {
                     console.log('✅ Joined as broadcaster');
                     break;
 
-                case 'offer':
-                    await handleViewerOffer(message.viewerId, message.offer, stream);
+                case 'new-viewer':
+                    // 新しい視聴者が参加した - offerを作成して送信
+                    await createOfferForViewer(message.viewerId, stream);
+                    break;
+
+                case 'answer':
+                    // 視聴者からのanswerを受信
+                    await handleViewerAnswer(message.viewerId, message.answer);
                     break;
 
                 case 'ice-candidate':
@@ -166,10 +172,10 @@ const LiveBroadcastPage = () => {
         };
     };
 
-    // 視聴者からのOfferを処理
-    const handleViewerOffer = async (viewerId, offer, stream) => {
+    // 新しい視聴者のためにOfferを作成
+    const createOfferForViewer = async (viewerId, stream) => {
         try {
-            console.log(`📥 Received offer from viewer ${viewerId}`);
+            console.log(`🎬 Creating offer for viewer ${viewerId}`);
 
             const peerConnection = new RTCPeerConnection({
                 iceServers: [
@@ -178,17 +184,22 @@ const LiveBroadcastPage = () => {
                 ]
             });
 
+            // ストリームのトラックを追加
             stream.getTracks().forEach(track => {
                 peerConnection.addTrack(track, stream);
             });
 
+            // ICE候補をシグナリングサーバーに送信（視聴者IDを含める）
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate && wsRef.current?.readyState === WebSocket.OPEN) {
                     wsRef.current.send(JSON.stringify({
                         type: 'ice-candidate',
                         roomId,
                         userId: user.uid,
-                        data: event.candidate
+                        data: {
+                            targetViewerId: viewerId,
+                            candidate: event.candidate
+                        }
                     }));
                 }
             };
@@ -198,46 +209,64 @@ const LiveBroadcastPage = () => {
                 
                 if (peerConnection.connectionState === 'disconnected' || 
                     peerConnection.connectionState === 'failed') {
-                    setPeerConnections(prev => {
-                        const newConnections = { ...prev };
-                        delete newConnections[viewerId];
-                        return newConnections;
-                    });
+                    delete peerConnectionsRef.current[viewerId];
+                    console.log(`🗑️ Removed peer connection for ${viewerId}`);
                 }
             };
 
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            // Offerを作成
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
 
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-
+            // Offerをシグナリングサーバー経由で視聴者に送信
             if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
-                    type: 'answer',
+                    type: 'offer',
                     roomId,
-                    userId: viewerId,
-                    data: answer
+                    userId: user.uid,
+                    data: {
+                        targetViewerId: viewerId,
+                        sdp: offer
+                    }
                 }));
             }
 
-            setPeerConnections(prev => ({
-                ...prev,
-                [viewerId]: peerConnection
-            }));
+            // ピア接続を保存（refに直接保存）
+            peerConnectionsRef.current[viewerId] = peerConnection;
 
-            console.log(`✅ Answer sent to viewer ${viewerId}`);
+            console.log(`✅ Offer created and sent to viewer ${viewerId}`);
         } catch (error) {
-            console.error('❌ Error handling viewer offer:', error);
+            console.error('❌ Error creating offer for viewer:', error);
+        }
+    };
+
+    // 視聴者からのAnswerを処理
+    const handleViewerAnswer = async (viewerId, answer) => {
+        try {
+            console.log(`📥 Received answer from viewer ${viewerId}`);
+
+            const peerConnection = peerConnectionsRef.current[viewerId];
+            if (peerConnection) {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                console.log(`✅ Answer set for viewer ${viewerId}`);
+            } else {
+                console.warn(`⚠️ No peer connection found for viewer ${viewerId}`);
+                console.log('Current connections:', Object.keys(peerConnectionsRef.current));
+            }
+        } catch (error) {
+            console.error('❌ Error handling viewer answer:', error);
         }
     };
 
     // 視聴者からのICE候補を処理
     const handleViewerIceCandidate = async (viewerId, candidate) => {
         try {
-            const peerConnection = peerConnections[viewerId];
+            const peerConnection = peerConnectionsRef.current[viewerId];
             if (peerConnection && candidate) {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
                 console.log(`✅ Added ICE candidate from viewer ${viewerId}`);
+            } else {
+                console.warn(`⚠️ No peer connection for viewer ${viewerId} when adding ICE candidate`);
             }
         } catch (error) {
             console.error('❌ Error adding ICE candidate:', error);
@@ -296,7 +325,7 @@ const LiveBroadcastPage = () => {
             }
 
             // すべてのピア接続を閉じる
-            Object.values(peerConnections).forEach(pc => pc.close());
+            Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
 
             // Firestoreのルームを削除
             await deleteDoc(doc(db, 'liveRooms', roomId));

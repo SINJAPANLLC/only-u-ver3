@@ -3,9 +3,10 @@ import { Server } from 'http';
 import { parse } from 'url';
 
 interface SignalingMessage {
-  type: 'join' | 'offer' | 'answer' | 'ice-candidate' | 'leave' | 'viewer-join' | 'viewer-leave';
+  type: 'join' | 'offer' | 'answer' | 'ice-candidate' | 'leave' | 'viewer-join' | 'viewer-leave' | 'new-viewer';
   roomId: string;
   userId?: string;
+  viewerId?: string;
   userName?: string;
   userAvatar?: string;
   data?: any;
@@ -160,52 +161,61 @@ export class SignalingServer {
       roomId
     }));
 
+    // 配信者に新しい視聴者を通知（配信者がofferを作成するため）
+    if (room.broadcaster) {
+      room.broadcaster.ws.send(JSON.stringify({
+        type: 'new-viewer',
+        viewerId: userId,
+        userName,
+        userAvatar
+      }));
+    }
+
     this.broadcastViewerCount(room);
 
     console.log(`✅ Viewer ${userId} joined room ${roomId}, total viewers: ${room.viewers.size}`);
   }
 
-  private handleOffer(roomId: string, viewerId: string, offer: any) {
+  private handleOffer(roomId: string, senderId: string, offer: any) {
     const room = this.rooms.get(roomId);
-    if (!room || !room.broadcaster) {
-      console.warn(`⚠️ No broadcaster in room ${roomId} for offer`);
+    if (!room) {
+      console.warn(`⚠️ Room ${roomId} not found for offer`);
       return;
     }
 
-    const viewer = room.viewers.get(viewerId);
-    if (!viewer) {
-      console.warn(`⚠️ Viewer ${viewerId} not found in room ${roomId}`);
-      return;
+    // 配信者からのofferを視聴者に転送
+    if (room.broadcaster && room.broadcaster.userId === senderId) {
+      // offerのtargetViewerIdを取得（データに含まれているはず）
+      const targetViewerId = offer.targetViewerId;
+      const viewer = room.viewers.get(targetViewerId);
+      
+      if (viewer) {
+        viewer.ws.send(JSON.stringify({
+          type: 'offer',
+          offer: offer.sdp
+        }));
+        console.log(`📤 Forwarded offer from broadcaster to viewer ${targetViewerId}`);
+      }
     }
-
-    room.broadcaster.ws.send(JSON.stringify({
-      type: 'offer',
-      viewerId,
-      offer
-    }));
-
-    console.log(`📤 Forwarded offer from viewer ${viewerId} to broadcaster in room ${roomId}`);
   }
 
-  private handleAnswer(roomId: string, viewerId: string, answer: any) {
+  private handleAnswer(roomId: string, senderId: string, answer: any) {
     const room = this.rooms.get(roomId);
     if (!room) {
       console.warn(`⚠️ Room ${roomId} not found for answer`);
       return;
     }
 
-    const viewer = room.viewers.get(viewerId);
-    if (!viewer) {
-      console.warn(`⚠️ Viewer ${viewerId} not found in room ${roomId}`);
-      return;
+    // 視聴者からのanswerを配信者に転送
+    const viewer = room.viewers.get(senderId);
+    if (viewer && room.broadcaster) {
+      room.broadcaster.ws.send(JSON.stringify({
+        type: 'answer',
+        viewerId: senderId,
+        answer
+      }));
+      console.log(`📤 Forwarded answer from viewer ${senderId} to broadcaster`);
     }
-
-    viewer.ws.send(JSON.stringify({
-      type: 'answer',
-      answer
-    }));
-
-    console.log(`📤 Forwarded answer to viewer ${viewerId} in room ${roomId}`);
   }
 
   private handleIceCandidate(roomId: string, userId: string, candidate: any) {
@@ -215,15 +225,20 @@ export class SignalingServer {
       return;
     }
 
+    // 配信者からのICE候補を特定の視聴者に転送
     if (room.broadcaster && room.broadcaster.userId === userId) {
-      room.viewers.forEach((viewer) => {
+      const targetViewerId = candidate.targetViewerId;
+      const viewer = room.viewers.get(targetViewerId);
+      
+      if (viewer) {
         viewer.ws.send(JSON.stringify({
           type: 'ice-candidate',
-          candidate
+          candidate: candidate.candidate
         }));
-      });
-      console.log(`📤 Broadcast ICE candidate from broadcaster to ${room.viewers.size} viewers`);
+        console.log(`📤 Forwarded ICE candidate from broadcaster to viewer ${targetViewerId}`);
+      }
     } else {
+      // 視聴者からのICE候補を配信者に転送
       const viewer = room.viewers.get(userId);
       if (viewer && room.broadcaster) {
         room.broadcaster.ws.send(JSON.stringify({
