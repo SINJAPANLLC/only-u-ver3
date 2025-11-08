@@ -29,7 +29,14 @@ The platform utilizes a modern web architecture featuring a React frontend built
 *   **Performance Optimization:** Includes React warning fixes, video duration extraction, server-side filtering and pagination, creator information caching, and optimized thumbnail display with fallback logic and automatic generation from videos using HTML5 Canvas API. CDN direct delivery and enhanced cache strategies are implemented.
 *   **API & Security:** Unified API error handling, authentication middleware, XSS protection with input sanitization, DoS protection with rate limiting, and comprehensive Content Security Policy (CSP) configuration supporting blob: URLs, data: URIs, Bunny CDN, Google Fonts, Workbox Service Worker, and all necessary third-party resources while maintaining strict security.
 *   **Deployment:** Configured for Autoscale with `npm run build` and `npm start`, ensuring reliable path resolution and a health endpoint. VPS deployment (only-u.fun) with PM2 process manager, automatic restart, and environment variable management via ecosystem.config.cjs.
-*   **Live Streaming (Phase 1 - MVP):** TikTok-style vertical swipe live streaming interface implemented with WebRTC media access for broadcasters. Features include: CreateLivePage for broadcast setup, LiveBroadcastPage for streaming interface with real-time chat overlay, live room management via Firestore, and integration with Creator Dashboard. RankingPage displays active live rooms with real-time viewer counts. Phase 2 will add full WebRTC peer-to-peer streaming with signaling server.
+*   **Live Streaming (Complete - Phase 2):** Full TikTok-style live streaming with real-time WebRTC peer-to-peer video streaming. Features include:
+    *   **WebSocket Signaling Server:** Integrated into Express.js (server/signaling.ts) for offer/answer/ICE candidate exchange between broadcasters and viewers
+    *   **Broadcaster Flow:** LiveBroadcastPage creates RTCPeerConnection per viewer, sends offers proactively when viewers join, handles answers and ICE candidates using React refs to prevent closure issues
+    *   **Viewer Flow:** LiveViewerPage receives offers from broadcaster, creates answers, establishes WebRTC connection to receive live video stream
+    *   **Real-time Chat:** Firestore-based chat overlay on both broadcaster and viewer interfaces
+    *   **Viewer Management:** Real-time viewer count updates, connection state monitoring, automatic cleanup on disconnect
+    *   **UI Integration:** Creator Dashboard LIVE button, RankingPage live room browsing with "参加する" (Join) button
+    *   **Security Note:** Authentication/authorization for signaling server required before production deployment to prevent spoofing
 
 ## External Dependencies
 *   **Firebase**: Authentication, Firestore (NoSQL database), Realtime Database. Firebase Storage is used for legacy data only.
