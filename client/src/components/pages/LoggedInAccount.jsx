@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, FileText, MoreHorizontal, CreditCard, UserCheck, Lock, BarChart, PenTool, Video, ChevronRight, Sparkles, Crown, Star, TrendingUp, DollarSign, Users, Bell, CheckCircle, Clock, XCircle, AlertTriangle } from 'lucide-react';
+import { Settings, FileText, MoreHorizontal, CreditCard, UserCheck, Lock, BarChart, PenTool, Video, ChevronRight, Sparkles, Crown, Star, TrendingUp, DollarSign, Users, Bell, CheckCircle, Clock, XCircle, AlertTriangle, Radio } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
@@ -331,6 +331,60 @@ const LoggedInAccountPage = () => {
                             </motion.button>
                         </motion.div>
                     </div>
+
+                    {/* Live Button - Only shown for approved creators */}
+                    {userData?.isCreator && userData?.creatorStatus === 'approved' && (
+                        <motion.button
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.25 }}
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => navigate('/create-live')}
+                            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl shadow-xl p-6 border-2 border-red-100 cursor-pointer overflow-hidden relative mb-6"
+                            data-testid="button-start-live"
+                        >
+                            <div className="flex items-center justify-between relative z-10">
+                                <div className="flex items-center space-x-4">
+                                    <motion.div
+                                        animate={{ 
+                                            scale: [1, 1.2, 1],
+                                        }}
+                                        transition={{ 
+                                            duration: 2,
+                                            repeat: Infinity,
+                                            ease: "easeInOut"
+                                        }}
+                                        className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg"
+                                    >
+                                        <Radio className="w-7 h-7 text-white" />
+                                    </motion.div>
+                                    <div className="text-left">
+                                        <h2 className="text-xl font-bold text-white">
+                                            ライブ配信を開始
+                                        </h2>
+                                        <p className="text-sm text-white/80 mt-1">リアルタイムでファンと交流</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-sm font-medium text-white">配信する</span>
+                                    <ChevronRight className="w-5 h-5 text-white" />
+                                </div>
+                            </div>
+                            {/* Animated background effect */}
+                            <motion.div
+                                animate={{
+                                    x: ["-100%", "100%"]
+                                }}
+                                transition={{
+                                    duration: 3,
+                                    repeat: Infinity,
+                                    ease: "linear"
+                                }}
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                            />
+                        </motion.button>
+                    )}
 
                     {/* Posts/Operations/Sales Section */}
                     <div>
