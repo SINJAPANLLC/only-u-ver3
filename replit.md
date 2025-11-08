@@ -21,7 +21,7 @@ The platform utilizes a modern web architecture featuring a React frontend built
 **Technical Implementations:**
 *   **User Management:** Includes Firebase Phone and Email Authentication, KYC/identity verification for creators, and admin route protection with cryptographic session signing.
 *   **Content Management:** Supports image/video posting, likes, comments, subscriber-only content, administrative moderation, and subscription-based content display with blur filters for locked content.
-*   **Communication:** Features real-time messaging with image sharing via Bunny CDN, push/email notifications, and complete tip sending via Stripe Payment Intent integration.
+*   **Communication:** Features Tinder-style swipe-match system (`SwipeMatchPage` at `/messages`) with horizontal swipe gestures for mutual-like matching. Real-time messaging (`MessagesUI` at `/chat`) with image sharing via Bunny CDN, push/email notifications, and complete tip sending via Stripe Payment Intent integration. Firestore collections: `userLikes/{userId}/likes/{targetUserId}` for swipe decisions, `matches/{matchId}` for mutual likes with automatic chat room creation.
 *   **Monetization & Payments:** Implements subscription management with true recurring billing via Stripe Subscriptions, flexible payment options, detailed payment calculations, and subscription-based video quality restrictions. Stripe webhooks manage the subscription lifecycle. Modal-based subscription payments enhance user experience.
 *   **Dynamic Ranking System:** For creators and posts, featuring period-based filtering and real-time updates with optimized Firestore queries using composite indexes.
 *   **Admin and Creator Dashboards:** Provide comprehensive management, analytics, and marketing tools.

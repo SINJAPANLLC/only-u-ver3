@@ -205,7 +205,7 @@ const SwipeMatchPage = () => {
 
     // チャットを開始
     const handleStartChat = (matchedUserId) => {
-        navigate(`/messages?userId=${matchedUserId}`);
+        navigate(`/chat?userId=${matchedUserId}`);
         setShowMatchModal(false);
     };
 

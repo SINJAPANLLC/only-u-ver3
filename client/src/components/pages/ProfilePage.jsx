@@ -631,7 +631,7 @@ const ProfilePage = () => {
 
     const handleMessage = () => {
         if (!profileData) return;
-        navigate(`/messages?user=${profileData.username}`);
+        navigate(`/chat?userId=${profileData.id}`);
     };
 
     const handlePlanConfirm = (planId) => {
