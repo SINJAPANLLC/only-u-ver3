@@ -18,43 +18,75 @@ const RankingPage = () => {
     const y = useMotionValue(0);
     const user = auth.currentUser;
 
-    // モックライブルームデータを取得
+    // アクティブなライブルームデータを取得
     useEffect(() => {
         const fetchLiveRooms = async () => {
             try {
-                // 投稿から動画データを取得してライブルームとして使用
-                const q = query(
-                    collection(db, 'posts'),
-                    where('visibility', '==', 'public'),
+                // リアルタイムのライブルームを取得
+                const liveQuery = query(
+                    collection(db, 'liveRooms'),
+                    where('isActive', '==', true),
                     orderBy('createdAt', 'desc'),
-                    limit(10)
+                    limit(20)
                 );
                 
-                const snapshot = await getDocs(q);
-                const rooms = [];
-                
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.files && data.files.length > 0) {
-                        const videoFile = data.files.find(f => f.resourceType === 'video');
-                        if (videoFile) {
-                            rooms.push({
-                                id: doc.id,
-                                title: data.title || 'ライブ配信中',
-                                creatorName: data.userName || 'Anonymous',
-                                creatorAvatar: data.userAvatar || '',
-                                videoUrl: videoFile.url?.startsWith('http') 
-                                    ? `/api/proxy/${videoFile.url.split('/').pop()}`
-                                    : videoFile.url,
-                                thumbnailUrl: videoFile.thumbnailUrl || '',
-                                isLive: true,
-                                viewers: Math.floor(Math.random() * 1000) + 100
+                const unsubscribe = onSnapshot(liveQuery, (snapshot) => {
+                    const rooms = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        rooms.push({
+                            id: doc.id,
+                            title: data.title || 'ライブ配信中',
+                            creatorName: data.creatorName || 'Anonymous',
+                            creatorAvatar: data.creatorAvatar || '',
+                            videoUrl: null, // WebRTCを使用
+                            isLive: true,
+                            isRealLive: true,
+                            viewers: data.viewers || 0,
+                            creatorId: data.creatorId
+                        });
+                    });
+                    
+                    // リアルタイムライブがない場合は、モックデータとして投稿の動画を使用
+                    if (rooms.length === 0) {
+                        const fallbackQuery = query(
+                            collection(db, 'posts'),
+                            where('visibility', '==', 'public'),
+                            orderBy('createdAt', 'desc'),
+                            limit(10)
+                        );
+                        
+                        getDocs(fallbackQuery).then((snapshot) => {
+                            const fallbackRooms = [];
+                            snapshot.forEach(doc => {
+                                const data = doc.data();
+                                if (data.files && data.files.length > 0) {
+                                    const videoFile = data.files.find(f => f.resourceType === 'video');
+                                    if (videoFile) {
+                                        fallbackRooms.push({
+                                            id: doc.id,
+                                            title: data.title || 'おすすめ動画',
+                                            creatorName: data.userName || 'Anonymous',
+                                            creatorAvatar: data.userAvatar || '',
+                                            videoUrl: videoFile.url?.startsWith('http') 
+                                                ? `/api/proxy/${videoFile.url.split('/').pop()}`
+                                                : videoFile.url,
+                                            thumbnailUrl: videoFile.thumbnailUrl || '',
+                                            isLive: false,
+                                            isRealLive: false,
+                                            viewers: Math.floor(Math.random() * 1000) + 100
+                                        });
+                                    }
+                                }
                             });
-                        }
+                            setLiveRooms(fallbackRooms);
+                        });
+                    } else {
+                        setLiveRooms(rooms);
                     }
                 });
                 
-                setLiveRooms(rooms);
+                return () => unsubscribe();
             } catch (error) {
                 console.error('Error fetching live rooms:', error);
             }

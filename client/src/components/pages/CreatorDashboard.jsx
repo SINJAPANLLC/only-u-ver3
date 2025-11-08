@@ -16,7 +16,8 @@ import {
   Plus,
   Edit3,
   Trash2,
-  MessageCircle
+  MessageCircle,
+  Radio
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -343,6 +344,16 @@ const CreatorDashboard = () => {
             <h1 className="text-base font-bold text-white">クリエイターダッシュボード</h1>
           </div>
           <div className="flex items-center space-x-1">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => navigate('/create-live')}
+              className="px-3 py-2 bg-red-500 hover:bg-red-600 rounded-full transition-colors flex items-center space-x-1"
+              data-testid="button-start-live"
+            >
+              <Radio className="w-4 h-4 text-white" />
+              <span className="text-xs text-white font-bold">LIVE</span>
+            </motion.button>
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}

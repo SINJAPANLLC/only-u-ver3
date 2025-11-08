@@ -1,0 +1,299 @@
+import { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Users, Send, X, Video, Mic, MicOff, VideoOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useParams, useNavigate } from 'react-router-dom';
+import { doc, updateDoc, onSnapshot, collection, addDoc, query, orderBy, limit, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { db, auth } from '../../firebase';
+import { useToast } from '../../hooks/use-toast';
+
+const LiveBroadcastPage = () => {
+    const { t } = useTranslation();
+    const { roomId } = useParams();
+    const navigate = useNavigate();
+    const { toast } = useToast();
+    const [room, setRoom] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [viewers, setViewers] = useState(0);
+    const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+    const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+    const [localStream, setLocalStream] = useState(null);
+    const [peerConnections, setPeerConnections] = useState({});
+    const videoRef = useRef(null);
+    const user = auth.currentUser;
+
+    // ルーム情報を取得
+    useEffect(() => {
+        if (!roomId) return;
+
+        const unsubscribe = onSnapshot(doc(db, 'liveRooms', roomId), (docSnap) => {
+            if (docSnap.exists()) {
+                setRoom({ id: docSnap.id, ...docSnap.data() });
+                setViewers(docSnap.data().viewers || 0);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [roomId]);
+
+    // チャットメッセージを取得
+    useEffect(() => {
+        if (!roomId) return;
+
+        const q = query(
+            collection(db, `liveChat/${roomId}/messages`),
+            orderBy('timestamp', 'desc'),
+            limit(50)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const msgs = [];
+            snapshot.forEach((doc) => {
+                msgs.push({ id: doc.id, ...doc.data() });
+            });
+            setMessages(msgs.reverse());
+        });
+
+        return () => unsubscribe();
+    }, [roomId]);
+
+    // ローカルメディアストリームを取得
+    useEffect(() => {
+        const getLocalStream = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 720 },
+                        height: { ideal: 1280 },
+                        facingMode: 'user'
+                    },
+                    audio: true
+                });
+
+                setLocalStream(stream);
+
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+
+                // WebRTCシグナリングを開始
+                setupWebRTC(stream);
+            } catch (error) {
+                console.error('Error accessing media:', error);
+                toast({
+                    title: 'エラー',
+                    description: 'カメラまたはマイクへのアクセスに失敗しました',
+                    variant: 'destructive'
+                });
+            }
+        };
+
+        getLocalStream();
+
+        return () => {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            Object.values(peerConnections).forEach(pc => pc.close());
+        };
+    }, []);
+
+    // WebRTCセットアップ
+    const setupWebRTC = async (stream) => {
+        // ここではシグナリングサーバーとの接続を実装
+        // 簡易版として、Firestoreをシグナリングに使用
+        console.log('WebRTC setup with stream:', stream);
+        
+        // broadcasterとしてFirestoreにSDPを保存
+        if (roomId && stream) {
+            const offerDoc = doc(db, 'liveRooms', roomId, 'broadcaster', 'offer');
+            
+            // 視聴者からのICE candidatesを監視
+            const candidatesRef = collection(db, 'liveRooms', roomId, 'broadcaster', 'offer', 'candidates');
+            onSnapshot(candidatesRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added') {
+                        console.log('Received ICE candidate from viewer');
+                    }
+                });
+            });
+        }
+    };
+
+    // ビデオトグル
+    const toggleVideo = () => {
+        if (localStream) {
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                setIsVideoEnabled(videoTrack.enabled);
+            }
+        }
+    };
+
+    // オーディオトグル
+    const toggleAudio = () => {
+        if (localStream) {
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                setIsAudioEnabled(audioTrack.enabled);
+            }
+        }
+    };
+
+    // 配信終了
+    const handleEndLive = async () => {
+        try {
+            // ストリームを停止
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+
+            // すべてのピア接続を閉じる
+            Object.values(peerConnections).forEach(pc => pc.close());
+
+            // Firestoreのルームを削除
+            await deleteDoc(doc(db, 'liveRooms', roomId));
+
+            toast({
+                title: '配信終了',
+                description: 'ライブ配信を終了しました'
+            });
+
+            navigate('/rankingpage');
+        } catch (error) {
+            console.error('Error ending live:', error);
+            toast({
+                title: 'エラー',
+                description: '配信の終了に失敗しました',
+                variant: 'destructive'
+            });
+        }
+    };
+
+    if (!room) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <p className="text-white">読み込み中...</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black flex flex-col">
+            {/* 配信プレビュー */}
+            <div className="flex-1 relative">
+                <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="absolute inset-0 w-full h-full object-cover transform -scale-x-100"
+                    data-testid="video-broadcast"
+                />
+
+                {!isVideoEnabled && (
+                    <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+                        <VideoOff className="w-20 h-20 text-gray-600" />
+                    </div>
+                )}
+
+                {/* グラデーションオーバーレイ */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+
+                {/* トップ情報バー */}
+                <div className="absolute top-0 left-0 right-0 p-4 safe-top z-20">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 bg-red-500 px-3 py-1.5 rounded-full">
+                            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                            <span className="text-white text-sm font-bold">LIVE</span>
+                        </div>
+
+                        <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                            <Users className="w-4 h-4 text-white" />
+                            <span className="text-white text-sm font-bold">{viewers}</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-3 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-lg">
+                        <p className="text-white text-sm font-medium">{room.title}</p>
+                    </div>
+                </div>
+
+                {/* チャットメッセージ */}
+                <div className="absolute bottom-32 left-0 right-0 px-4 space-y-2 max-h-64 overflow-y-auto z-10">
+                    {messages.slice(-5).map((message) => (
+                        <motion.div
+                            key={message.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="bg-black/40 backdrop-blur-sm px-3 py-2 rounded-lg max-w-xs"
+                        >
+                            <div className="flex items-start space-x-2">
+                                {message.userPhoto && (
+                                    <img
+                                        src={message.userPhoto}
+                                        alt={message.userName}
+                                        className="w-6 h-6 rounded-full object-cover"
+                                    />
+                                )}
+                                <div>
+                                    <span className="text-pink-400 font-bold text-xs">{message.userName}</span>
+                                    <p className="text-white text-sm">{message.text}</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* コントロール */}
+                <div className="absolute bottom-4 left-0 right-0 px-4 safe-bottom z-20">
+                    <div className="flex items-center justify-center space-x-4 mb-4">
+                        <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={toggleVideo}
+                            className={`p-3 rounded-full ${
+                                isVideoEnabled ? 'bg-white/20' : 'bg-red-500'
+                            }`}
+                            data-testid="button-toggle-video-live"
+                        >
+                            {isVideoEnabled ? (
+                                <Video className="w-6 h-6 text-white" />
+                            ) : (
+                                <VideoOff className="w-6 h-6 text-white" />
+                            )}
+                        </motion.button>
+
+                        <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={toggleAudio}
+                            className={`p-3 rounded-full ${
+                                isAudioEnabled ? 'bg-white/20' : 'bg-red-500'
+                            }`}
+                            data-testid="button-toggle-audio-live"
+                        >
+                            {isAudioEnabled ? (
+                                <Mic className="w-6 h-6 text-white" />
+                            ) : (
+                                <MicOff className="w-6 h-6 text-white" />
+                            )}
+                        </motion.button>
+
+                        <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={handleEndLive}
+                            className="px-6 py-3 rounded-full bg-red-500 text-white font-bold"
+                            data-testid="button-end-live"
+                        >
+                            <X className="w-6 h-6" />
+                        </motion.button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default LiveBroadcastPage;
