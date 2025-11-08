@@ -4,20 +4,21 @@
   "description": "Only-U",
   "icons": [
     {
-      "src": "/logo192.png",
+      "src": "https://only-u.fun/logo192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo512.png",
+      "src": "https://only-u.fun/logo512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "https://only-u.fun/",
+  "scope": "https://only-u.fun/",
+  "id": "https://only-u.fun/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#ec4899",
