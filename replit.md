@@ -32,9 +32,10 @@ The platform utilizes a modern web architecture featuring a React frontend built
 *   **Live Streaming (Complete - Phase 2):** Full TikTok-style live streaming with real-time WebRTC peer-to-peer video streaming. Features include:
     *   **WebSocket Signaling Server:** Integrated into Express.js (server/signaling.ts) for offer/answer/ICE candidate exchange between broadcasters and viewers
     *   **Broadcaster Flow:** LiveBroadcastPage creates RTCPeerConnection per viewer, sends offers proactively when viewers join, handles answers and ICE candidates using React refs to prevent closure issues
-    *   **Viewer Flow:** LiveViewerPage receives offers from broadcaster, creates answers, establishes WebRTC connection to receive live video stream
-    *   **Real-time Chat:** Firestore-based chat overlay on both broadcaster and viewer interfaces
-    *   **Viewer Management:** Real-time viewer count updates, connection state monitoring, automatic cleanup on disconnect
+    *   **Viewer Flow:** LiveViewerPage receives offers from broadcaster, creates answers, establishes WebRTC connection to receive live video stream. Anonymous viewers supported with stable session-based IDs (anonymousIdRef) for consistent WebRTC pairing
+    *   **Real-time Chat:** Firestore-based chat overlay on both broadcaster and viewer interfaces. Chat submission requires login, passive viewing is open to guests
+    *   **Viewer Management:** Real-time viewer count updates, connection state monitoring, automatic cleanup on disconnect with proper anonymous ID tracking
+    *   **UI Design:** TikTok-style full-screen vertical layout with glassmorphism effects, pink gradients, floating chat overlay, and vertical interaction buttons (like/gift). Responsive design for mobile with optimized layouts for small screens (≤375px)
     *   **UI Integration:** Creator Dashboard LIVE button, RankingPage live room browsing with "参加する" (Join) button
     *   **Security Note:** Authentication/authorization for signaling server required before production deployment to prevent spoofing
 
