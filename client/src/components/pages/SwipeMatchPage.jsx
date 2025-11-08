@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
-import { Heart, X, MessageCircle, Sparkles, Users } from 'lucide-react';
+import { Heart, X, MessageCircle, Sparkles, Users, MapPin, Briefcase, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
@@ -20,8 +20,12 @@ const SwipeMatchPage = () => {
     const user = auth.currentUser;
 
     const x = useMotionValue(0);
-    const rotate = useTransform(x, [-200, 200], [-25, 25]);
+    const rotate = useTransform(x, [-200, 200], [-15, 15]);
     const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
+    
+    // スワイプインジケーター用
+    const likeOpacity = useTransform(x, [0, 100], [0, 1]);
+    const nopeOpacity = useTransform(x, [-100, 0], [1, 0]);
 
     // 画像URLをプロキシURLに変換
     const getProxyImageUrl = (url) => {
@@ -287,59 +291,127 @@ const SwipeMatchPage = () => {
                                             className="absolute inset-0 cursor-grab active:cursor-grabbing"
                                             data-testid={`card-${currentCandidate.id}`}
                                         >
-                                            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden h-full border-4 border-pink-100">
-                                                {/* Profile Image */}
-                                                <div className="relative h-3/4">
-                                                    <img
-                                                        src={getProxyImageUrl(currentCandidate.photoURL || currentCandidate.avatar)}
-                                                        alt={currentCandidate.displayName || currentCandidate.name}
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            e.target.src = '/logo.webp';
-                                                        }}
-                                                    />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                                    
+                                            <div className="relative bg-gradient-to-br from-white via-pink-50 to-purple-50 rounded-3xl shadow-2xl overflow-hidden h-full">
+                                                {/* Swipe Indicators */}
+                                                <motion.div
+                                                    style={{ opacity: likeOpacity }}
+                                                    className="absolute top-8 right-8 z-10 bg-green-500 text-white px-8 py-3 rounded-2xl font-bold text-2xl rotate-12 border-4 border-white shadow-xl"
+                                                >
+                                                    LIKE
+                                                </motion.div>
+                                                <motion.div
+                                                    style={{ opacity: nopeOpacity }}
+                                                    className="absolute top-8 left-8 z-10 bg-red-500 text-white px-8 py-3 rounded-2xl font-bold text-2xl -rotate-12 border-4 border-white shadow-xl"
+                                                >
+                                                    NOPE
+                                                </motion.div>
+
+                                                {/* Content Container */}
+                                                <div className="h-full flex flex-col p-6">
+                                                    {/* Profile Image - Centered Circle */}
+                                                    <div className="flex-shrink-0 flex justify-center items-center py-6">
+                                                        <div className="relative">
+                                                            <div className="w-64 h-64 rounded-full overflow-hidden border-8 border-white shadow-2xl bg-gradient-to-br from-pink-200 to-purple-200">
+                                                                <img
+                                                                    src={getProxyImageUrl(currentCandidate.photoURL || currentCandidate.avatar)}
+                                                                    alt={currentCandidate.displayName || currentCandidate.name}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        e.target.src = '/logo.webp';
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            {/* Verified Badge */}
+                                                            {currentCandidate.isCreator && (
+                                                                <div className="absolute bottom-2 right-2 bg-gradient-to-r from-pink-500 to-pink-600 rounded-full p-2 border-4 border-white shadow-xl">
+                                                                    <Star className="w-6 h-6 text-white fill-white" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
                                                     {/* User Info */}
-                                                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                                                        <h2 className="text-3xl font-bold mb-2">
-                                                            {currentCandidate.displayName || currentCandidate.name || 'Unknown'}
-                                                        </h2>
+                                                    <div className="flex-1 flex flex-col justify-center px-4 space-y-4">
+                                                        {/* Name and Age */}
+                                                        <div className="text-center">
+                                                            <h2 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                                                                {currentCandidate.displayName || currentCandidate.name || 'Unknown'}
+                                                            </h2>
+                                                            {currentCandidate.age && (
+                                                                <p className="text-xl text-gray-600 font-medium">{currentCandidate.age}歳</p>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Additional Info */}
+                                                        <div className="space-y-2">
+                                                            {currentCandidate.location && (
+                                                                <div className="flex items-center justify-center space-x-2 text-gray-600">
+                                                                    <MapPin className="w-4 h-4 text-pink-500" />
+                                                                    <span className="text-sm">{currentCandidate.location}</span>
+                                                                </div>
+                                                            )}
+                                                            {currentCandidate.occupation && (
+                                                                <div className="flex items-center justify-center space-x-2 text-gray-600">
+                                                                    <Briefcase className="w-4 h-4 text-pink-500" />
+                                                                    <span className="text-sm">{currentCandidate.occupation}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Bio */}
                                                         {currentCandidate.bio && (
-                                                            <p className="text-sm opacity-90">{currentCandidate.bio}</p>
+                                                            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-pink-100">
+                                                                <p className="text-gray-700 text-center leading-relaxed">
+                                                                    {currentCandidate.bio}
+                                                                </p>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Tags/Interests */}
+                                                        {currentCandidate.interests && currentCandidate.interests.length > 0 && (
+                                                            <div className="flex flex-wrap justify-center gap-2">
+                                                                {currentCandidate.interests.slice(0, 5).map((interest, idx) => (
+                                                                    <span
+                                                                        key={idx}
+                                                                        className="px-3 py-1 bg-gradient-to-r from-pink-100 to-purple-100 text-pink-600 rounded-full text-xs font-medium border border-pink-200"
+                                                                    >
+                                                                        {interest}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
                                                         )}
                                                     </div>
-                                                </div>
 
-                                                {/* Card Footer */}
-                                                <div className="h-1/4 p-6 flex items-center justify-center">
-                                                    <p className="text-gray-600 text-center">
-                                                        左右にスワイプするか、下のボタンをタップ
-                                                    </p>
+                                                    {/* Instruction Text */}
+                                                    <div className="flex-shrink-0 text-center pb-4">
+                                                        <p className="text-xs text-gray-400">
+                                                            左右にスワイプするか、下のボタンをタップ
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </motion.div>
                                     </AnimatePresence>
 
                                     {/* Action Buttons */}
-                                    <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-6">
+                                    <div className="absolute -bottom-4 left-0 right-0 flex justify-center space-x-8">
                                         <motion.button
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
+                                            whileHover={{ scale: 1.15 }}
+                                            whileTap={{ scale: 0.85 }}
                                             onClick={handlePass}
-                                            className="w-16 h-16 bg-white rounded-full shadow-2xl flex items-center justify-center border-2 border-gray-200"
+                                            className="w-20 h-20 bg-white rounded-full shadow-2xl flex items-center justify-center border-4 border-red-100 hover:border-red-300 transition-colors"
                                             data-testid="button-pass"
                                         >
-                                            <X className="w-8 h-8 text-gray-500" />
+                                            <X className="w-10 h-10 text-red-500" />
                                         </motion.button>
                                         <motion.button
-                                            whileHover={{ scale: 1.1 }}
-                                            whileTap={{ scale: 0.9 }}
+                                            whileHover={{ scale: 1.15 }}
+                                            whileTap={{ scale: 0.85 }}
                                             onClick={() => handleLike(currentCandidate)}
-                                            className="w-20 h-20 bg-gradient-to-r from-pink-500 to-pink-600 rounded-full shadow-2xl flex items-center justify-center"
+                                            className="w-24 h-24 bg-gradient-to-br from-pink-500 via-pink-600 to-purple-600 rounded-full shadow-2xl flex items-center justify-center border-4 border-white hover:shadow-pink-300 transition-all"
                                             data-testid="button-like"
                                         >
-                                            <Heart className="w-10 h-10 text-white fill-white" />
+                                            <Heart className="w-12 h-12 text-white fill-white" />
                                         </motion.button>
                                     </div>
                                 </>
