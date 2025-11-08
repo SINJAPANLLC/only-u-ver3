@@ -228,7 +228,7 @@ const LoggedInAccountPage = () => {
                             whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => navigate('/create-live')}
-                            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl shadow-xl p-6 border-2 border-red-100 cursor-pointer overflow-hidden relative mb-6"
+                            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white rounded-2xl shadow-xl p-6 border-2 border-pink-100 cursor-pointer overflow-hidden relative mb-6"
                             data-testid="button-start-live"
                         >
                             <div className="flex items-center justify-between relative z-10">
