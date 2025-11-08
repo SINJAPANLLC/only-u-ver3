@@ -49,6 +49,7 @@ const GenreDataPage = lazy(() => import('./components/pages/GenreDataPage'));
 // ライブ配信
 const CreateLivePage = lazy(() => import('./components/pages/CreateLivePage'));
 const LiveBroadcastPage = lazy(() => import('./components/pages/LiveBroadcastPage'));
+const LiveViewerPage = lazy(() => import('./components/pages/LiveViewerPage'));
 
 // 通知・通知一覧
 const NotificationPage = lazy(() => import('./components/pages/NotificationPage'));
@@ -208,6 +209,7 @@ const AppRoutes = () => {
       <Route path="/create-post" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
       <Route path="/create-live" element={<ProtectedRoute><CreateLivePage /></ProtectedRoute>} />
       <Route path="/live-broadcast/:roomId" element={<ProtectedRoute><LiveBroadcastPage /></ProtectedRoute>} />
+      <Route path="/live-viewer/:roomId" element={<ProtectedRoute><LiveViewerPage /></ProtectedRoute>} />
       <Route path="/search" element={<SearchPage />} />
 
       <Route path="/genre/:genreName" element={<ProtectedRoute><GenreDataPage /></ProtectedRoute>} />

@@ -21,6 +21,7 @@ const LiveBroadcastPage = () => {
     const [localStream, setLocalStream] = useState(null);
     const [peerConnections, setPeerConnections] = useState({});
     const videoRef = useRef(null);
+    const wsRef = useRef(null);
     const user = auth.currentUser;
 
     // ルーム情報を取得
@@ -99,25 +100,158 @@ const LiveBroadcastPage = () => {
         };
     }, []);
 
-    // WebRTCセットアップ
+    // WebSocketシグナリング接続
     const setupWebRTC = async (stream) => {
-        // ここではシグナリングサーバーとの接続を実装
-        // 簡易版として、Firestoreをシグナリングに使用
-        console.log('WebRTC setup with stream:', stream);
+        if (!roomId || !user) return;
+
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/signaling`;
         
-        // broadcasterとしてFirestoreにSDPを保存
-        if (roomId && stream) {
-            const offerDoc = doc(db, 'liveRooms', roomId, 'broadcaster', 'offer');
+        console.log('🔌 Connecting to signaling server:', wsUrl);
+        
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+            console.log('✅ WebSocket connected');
             
-            // 視聴者からのICE candidatesを監視
-            const candidatesRef = collection(db, 'liveRooms', roomId, 'broadcaster', 'offer', 'candidates');
-            onSnapshot(candidatesRef, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added') {
-                        console.log('Received ICE candidate from viewer');
-                    }
-                });
+            ws.send(JSON.stringify({
+                type: 'join',
+                roomId,
+                userId: user.uid,
+                userName: user.displayName || 'Anonymous',
+                userAvatar: user.photoURL || ''
+            }));
+        };
+
+        ws.onmessage = async (event) => {
+            const message = JSON.parse(event.data);
+            console.log('📨 Received signaling message:', message.type);
+
+            switch (message.type) {
+                case 'joined':
+                    console.log('✅ Joined as broadcaster');
+                    break;
+
+                case 'offer':
+                    await handleViewerOffer(message.viewerId, message.offer, stream);
+                    break;
+
+                case 'ice-candidate':
+                    await handleViewerIceCandidate(message.viewerId, message.candidate);
+                    break;
+
+                case 'viewer-count':
+                    setViewers(message.count);
+                    updateFirestoreViewerCount(message.count);
+                    break;
+
+                case 'error':
+                    console.error('❌ Signaling error:', message.message);
+                    toast({
+                        title: 'エラー',
+                        description: message.message,
+                        variant: 'destructive'
+                    });
+                    break;
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('❌ WebSocket error:', error);
+        };
+
+        ws.onclose = () => {
+            console.log('🔌 WebSocket disconnected');
+        };
+    };
+
+    // 視聴者からのOfferを処理
+    const handleViewerOffer = async (viewerId, offer, stream) => {
+        try {
+            console.log(`📥 Received offer from viewer ${viewerId}`);
+
+            const peerConnection = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
             });
+
+            stream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, stream);
+            });
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate && wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({
+                        type: 'ice-candidate',
+                        roomId,
+                        userId: user.uid,
+                        data: event.candidate
+                    }));
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                console.log(`🔗 Connection state for ${viewerId}:`, peerConnection.connectionState);
+                
+                if (peerConnection.connectionState === 'disconnected' || 
+                    peerConnection.connectionState === 'failed') {
+                    setPeerConnections(prev => {
+                        const newConnections = { ...prev };
+                        delete newConnections[viewerId];
+                        return newConnections;
+                    });
+                }
+            };
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({
+                    type: 'answer',
+                    roomId,
+                    userId: viewerId,
+                    data: answer
+                }));
+            }
+
+            setPeerConnections(prev => ({
+                ...prev,
+                [viewerId]: peerConnection
+            }));
+
+            console.log(`✅ Answer sent to viewer ${viewerId}`);
+        } catch (error) {
+            console.error('❌ Error handling viewer offer:', error);
+        }
+    };
+
+    // 視聴者からのICE候補を処理
+    const handleViewerIceCandidate = async (viewerId, candidate) => {
+        try {
+            const peerConnection = peerConnections[viewerId];
+            if (peerConnection && candidate) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                console.log(`✅ Added ICE candidate from viewer ${viewerId}`);
+            }
+        } catch (error) {
+            console.error('❌ Error adding ICE candidate:', error);
+        }
+    };
+
+    // Firestoreの視聴者数を更新
+    const updateFirestoreViewerCount = async (count) => {
+        try {
+            await updateDoc(doc(db, 'liveRooms', roomId), {
+                viewers: count
+            });
+        } catch (error) {
+            console.error('Error updating viewer count:', error);
         }
     };
 
@@ -146,6 +280,16 @@ const LiveBroadcastPage = () => {
     // 配信終了
     const handleEndLive = async () => {
         try {
+            // WebSocket通知
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({
+                    type: 'leave',
+                    roomId,
+                    userId: user.uid
+                }));
+                wsRef.current.close();
+            }
+
             // ストリームを停止
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());

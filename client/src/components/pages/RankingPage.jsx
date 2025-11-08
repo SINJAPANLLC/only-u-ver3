@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { Send, Radio, Users, Heart, Gift } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 
 const RankingPage = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [liveRooms, setLiveRooms] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [messages, setMessages] = useState({});
@@ -234,10 +236,22 @@ const RankingPage = () => {
                                     </div>
                                 </div>
 
-                                {/* 視聴者数 */}
-                                <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                                    <Users className="w-4 h-4 text-white" />
-                                    <span className="text-white text-sm font-bold">{currentRoom.viewers}</span>
+                                {/* 視聴者数と参加ボタン */}
+                                <div className="flex items-center space-x-2">
+                                    <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                                        <Users className="w-4 h-4 text-white" />
+                                        <span className="text-white text-sm font-bold">{currentRoom.viewers}</span>
+                                    </div>
+                                    {currentRoom.isRealLive && (
+                                        <motion.button
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => navigate(`/live-viewer/${currentRoom.id}`)}
+                                            className="bg-gradient-to-r from-pink-500 to-pink-600 px-4 py-1.5 rounded-full shadow-lg"
+                                            data-testid="button-join-live"
+                                        >
+                                            <span className="text-white text-sm font-bold">参加する</span>
+                                        </motion.button>
+                                    )}
                                 </div>
                             </div>
 

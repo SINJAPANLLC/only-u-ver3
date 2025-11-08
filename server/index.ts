@@ -6,6 +6,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { admin } from './firebase';
 import { errorHandler } from './middleware/errorHandler';
+import { SignalingServer } from './signaling';
 
 // Force Firebase initialization at startup
 admin.apps;
@@ -119,6 +120,10 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   app.use(errorHandler);
+
+  // Initialize WebSocket signaling server
+  const signalingServer = new SignalingServer(server);
+  log('🚀 WebSocket signaling server initialized');
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
