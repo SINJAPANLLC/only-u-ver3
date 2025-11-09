@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Send, X, Video, Mic, MicOff, VideoOff, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, updateDoc, onSnapshot, collection, addDoc, query, orderBy, limit, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, onSnapshot, collection, addDoc, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { useToast } from '../../hooks/use-toast';
 

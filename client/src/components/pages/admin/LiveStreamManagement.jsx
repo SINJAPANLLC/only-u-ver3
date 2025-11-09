@@ -29,6 +29,17 @@ export default function LiveStreamManagement() {
     fetchLiveRooms();
   }, []);
 
+  // フィルター適用
+  useEffect(() => {
+    if (statusFilter === 'all') {
+      setFilteredRooms(liveRooms);
+    } else if (statusFilter === 'active') {
+      setFilteredRooms(liveRooms.filter(room => room.status === 'active' || room.isActive === true));
+    } else if (statusFilter === 'ended') {
+      setFilteredRooms(liveRooms.filter(room => room.status === 'ended' || room.isActive === false));
+    }
+  }, [statusFilter, liveRooms]);
+
   const fetchLiveRooms = async (skipLoading = false) => {
     try {
       if (!skipLoading) {
@@ -87,6 +98,7 @@ export default function LiveStreamManagement() {
       });
 
       setLiveRooms(roomsData);
+      setFilteredRooms(roomsData); // 初期表示は全て
       
       // 正確な統計を取得（新しく取得したroomsDataを渡す）
       await fetchAccurateStats(roomsData);
@@ -112,12 +124,15 @@ export default function LiveStreamManagement() {
       // ローカルデータから統計を計算
       let totalRooms = dataToUse.length;
       let activeRooms = 0;
+      let endedRooms = 0;
       let totalViewers = 0;
 
       dataToUse.forEach(room => {
-        if (room.status === 'active') {
+        if (room.status === 'active' || room.isActive === true) {
           activeRooms++;
           totalViewers += room.viewerCount || 0;
+        } else if (room.status === 'ended' || room.isActive === false) {
+          endedRooms++;
         }
       });
 
@@ -128,6 +143,7 @@ export default function LiveStreamManagement() {
       setStats({
         totalRooms,
         activeRooms,
+        endedRooms,
         totalViewers,
         averageViewers,
       });
@@ -409,8 +425,45 @@ export default function LiveStreamManagement() {
 
       {/* Live Rooms Table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">ライブルーム一覧</h2>
+          
+          {/* フィルターボタン */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                statusFilter === 'all'
+                  ? 'bg-pink-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              data-testid="filter-all"
+            >
+              全て ({stats.totalRooms})
+            </button>
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                statusFilter === 'active'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              data-testid="filter-active"
+            >
+              配信中 ({stats.activeRooms})
+            </button>
+            <button
+              onClick={() => setStatusFilter('ended')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                statusFilter === 'ended'
+                  ? 'bg-gray-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              data-testid="filter-ended"
+            >
+              終了 ({stats.endedRooms})
+            </button>
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -432,20 +485,25 @@ export default function LiveStreamManagement() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   開始時刻
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  終了時刻
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   アクション
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {liveRooms.length === 0 ? (
+              {filteredRooms.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                    ライブルームがありません
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                    {statusFilter === 'active' && 'アクティブな配信はありません'}
+                    {statusFilter === 'ended' && '終了した配信はありません'}
+                    {statusFilter === 'all' && 'ライブルームがありません'}
                   </td>
                 </tr>
               ) : (
-                liveRooms.map((room) => (
+                filteredRooms.map((room) => (
                   <tr key={room.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(room.status)}
@@ -467,6 +525,9 @@ export default function LiveStreamManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(room.createdAt)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {room.endedAt ? formatDate(room.endedAt) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                       {room.status === 'active' && (
