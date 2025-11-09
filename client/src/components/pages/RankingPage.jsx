@@ -9,6 +9,7 @@ import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { loadStripe } from '@stripe/stripe-js';
+import { useLiveViewer } from '@/hooks/useLiveViewer';
 
 const RankingPage = () => {
     const { t } = useTranslation();
@@ -29,6 +30,15 @@ const RankingPage = () => {
     const y = useMotionValue(0);
     const user = auth.currentUser;
     const { toast } = useToast();
+    
+    // 現在のルームを取得
+    const currentRoom = liveRooms[currentIndex];
+    
+    // リアルライブ配信の場合のみWebRTC接続
+    const liveViewer = useLiveViewer(
+        currentRoom?.isRealLive ? currentRoom.id : null,
+        currentRoom?.isRealLive
+    );
 
     // 画像URLをプロキシURLに変換するヘルパー関数
     const getProxyImageUrl = (url) => {
@@ -332,7 +342,6 @@ const RankingPage = () => {
         }
     };
 
-    const currentRoom = liveRooms[currentIndex];
     const currentMessages = currentRoom ? messages[currentRoom.id] || [] : [];
 
     return (
@@ -357,16 +366,27 @@ const RankingPage = () => {
                         className="absolute inset-0 flex items-center justify-center touch-pan-y"
                         data-testid={`live-room-${currentRoom.id}`}
                     >
-                        {/* 動画背景 - WebRTCライブの場合はプレースホルダー、録画動画の場合は再生 */}
+                        {/* 動画背景 - WebRTCライブまたは録画動画 */}
                         {currentRoom.isRealLive ? (
-                            <div className="absolute inset-0 bg-gradient-to-br from-pink-900/30 to-purple-900/30 flex items-center justify-center">
-                                <div className="text-center">
-                                    <Radio className="w-24 h-24 text-pink-500 mx-auto mb-4 animate-pulse" />
-                                    <p className="text-white text-2xl font-bold">LIVE配信中</p>
-                                    <p className="text-white/80 mt-2">「参加する」ボタンをタップして視聴</p>
-                                </div>
-                            </div>
-                        ) : (
+                            // リアルライブ配信: WebRTC
+                            <>
+                                <video
+                                    ref={liveViewer.videoRef}
+                                    autoPlay
+                                    playsInline
+                                    className="absolute inset-0 w-full h-full object-contain bg-black"
+                                />
+                                {liveViewer.isConnecting && (
+                                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                                        <div className="text-center">
+                                            <Radio className="w-16 h-16 text-pink-500 mx-auto mb-4 animate-pulse" />
+                                            <p className="text-white text-lg font-bold">{liveViewer.connectionStatus}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        ) : currentRoom.videoUrl ? (
+                            // フォールバック動画: 通常のvideo要素
                             <video
                                 key={currentRoom.videoUrl}
                                 src={currentRoom.videoUrl}
@@ -376,7 +396,7 @@ const RankingPage = () => {
                                 playsInline
                                 className="absolute inset-0 w-full h-full object-cover"
                             />
-                        )}
+                        ) : null}
 
                         {/* グラデーションオーバーレイ */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
@@ -387,26 +407,17 @@ const RankingPage = () => {
                                 {/* クリエイター情報 */}
                                 <div className="flex items-center space-x-3">
                                     <div className="relative">
-                                        {currentRoom.creatorAvatar ? (
-                                            <img
-                                                src={getProxyImageUrl(currentRoom.creatorAvatar)}
-                                                alt={currentRoom.creatorName}
-                                                className="w-12 h-12 rounded-full object-cover border-2 border-pink-500"
-                                                onError={(e) => {
-                                                    e.target.style.display = 'none';
-                                                    e.target.nextSibling.style.display = 'flex';
-                                                }}
-                                            />
-                                        ) : null}
-                                        {!currentRoom.creatorAvatar || currentRoom.creatorAvatar === '' ? (
-                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-white font-bold border-2 border-pink-500">
-                                                {currentRoom.creatorName[0]}
-                                            </div>
-                                        ) : (
-                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center text-white font-bold border-2 border-pink-500 hidden">
-                                                {currentRoom.creatorName[0]}
-                                            </div>
-                                        )}
+                                        <img
+                                            src={currentRoom.creatorAvatar && currentRoom.creatorAvatar.trim() !== '' 
+                                                ? getProxyImageUrl(currentRoom.creatorAvatar)
+                                                : `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentRoom.creatorName}`
+                                            }
+                                            alt={currentRoom.creatorName}
+                                            className="w-12 h-12 rounded-full object-cover border-2 border-pink-500 bg-gradient-to-br from-pink-500 to-pink-600"
+                                            onError={(e) => {
+                                                e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentRoom.creatorName}`;
+                                            }}
+                                        />
                                         <motion.div
                                             animate={{ scale: [1, 1.2, 1] }}
                                             transition={{ repeat: Infinity, duration: 2 }}
@@ -422,22 +433,14 @@ const RankingPage = () => {
                                     </div>
                                 </div>
 
-                                {/* 視聴者数と参加ボタン */}
-                                <div className="flex items-center space-x-2">
-                                    <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                                        <Users className="w-4 h-4 text-white" />
-                                        <span className="text-white text-sm font-bold">{currentRoom.viewers}</span>
-                                    </div>
-                                    {currentRoom.isRealLive && (
-                                        <motion.button
-                                            whileTap={{ scale: 0.9 }}
-                                            onClick={() => navigate(`/live-viewer/${currentRoom.id}`)}
-                                            className="bg-gradient-to-r from-pink-500 to-pink-600 px-4 py-1.5 rounded-full shadow-lg"
-                                            data-testid="button-join-live"
-                                        >
-                                            <span className="text-white text-sm font-bold">参加する</span>
-                                        </motion.button>
-                                    )}
+                                {/* 視聴者数 */}
+                                <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                                    <Users className="w-4 h-4 text-white" />
+                                    <span className="text-white text-sm font-bold">
+                                        {currentRoom.isRealLive && liveViewer.viewers > 0 
+                                            ? liveViewer.viewers 
+                                            : currentRoom.viewers}
+                                    </span>
                                 </div>
                             </div>
 
