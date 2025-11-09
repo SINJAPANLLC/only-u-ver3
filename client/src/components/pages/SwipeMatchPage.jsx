@@ -306,7 +306,23 @@ const SwipeMatchPage = () => {
                                             className="absolute inset-0 cursor-grab active:cursor-grabbing"
                                             data-testid={`card-${currentCandidate.id}`}
                                         >
-                                            <div className="relative bg-gradient-to-br from-white via-pink-50 to-purple-50 rounded-3xl shadow-2xl overflow-hidden h-full">
+                                            <div className="relative rounded-3xl shadow-2xl overflow-hidden h-full">
+                                                {/* Background - Cover Photo or Gradient */}
+                                                {currentCandidate.coverPhoto ? (
+                                                    <div 
+                                                        className="absolute inset-0 bg-cover bg-center"
+                                                        style={{ 
+                                                            backgroundImage: `url(${getProxyImageUrl(currentCandidate.coverPhoto)})`,
+                                                            filter: 'brightness(0.85)'
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white via-pink-50 to-purple-50" />
+                                                )}
+                                                
+                                                {/* Semi-transparent overlay for better text readability */}
+                                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/30" />
+                                                
                                                 {/* Swipe Indicators */}
                                                 <motion.div
                                                     style={{ opacity: likeOpacity }}
@@ -322,9 +338,9 @@ const SwipeMatchPage = () => {
                                                 </motion.div>
 
                                                 {/* Content Container */}
-                                                <div className="h-full flex flex-col p-6">
+                                                <div className="relative z-10 h-full flex flex-col p-6">
                                                     {/* Profile Image - Centered Circle */}
-                                                    <div className="flex-shrink-0 flex flex-col items-center py-6 space-y-4">
+                                                    <div className="flex-shrink-0 flex flex-col items-center py-6">
                                                         <div className="relative">
                                                             <div className="w-64 h-64 rounded-full overflow-hidden border-8 border-white shadow-2xl bg-white">
                                                                 <img
@@ -348,44 +364,53 @@ const SwipeMatchPage = () => {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        
-                                                        {/* Cover Photo/Banner */}
-                                                        <div className="w-full max-w-sm h-32 rounded-2xl overflow-hidden shadow-lg border-4 border-white bg-gradient-to-r from-pink-100 via-purple-100 to-pink-100">
-                                                            <img
-                                                                src={currentCandidate.coverPhoto 
-                                                                    ? getProxyImageUrl(currentCandidate.coverPhoto)
-                                                                    : null
-                                                                }
-                                                                alt="カバー写真"
-                                                                className="w-full h-full object-cover"
-                                                                style={{ display: currentCandidate.coverPhoto ? 'block' : 'none' }}
-                                                            />
-                                                        </div>
                                                     </div>
 
                                                     {/* User Info */}
                                                     <div className="flex-1 flex flex-col justify-center px-4 space-y-4">
                                                         {/* Name and Age */}
                                                         <div className="text-center">
-                                                            <h2 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                                                            <h2 className={`text-4xl font-bold mb-2 ${
+                                                                currentCandidate.coverPhoto 
+                                                                    ? 'text-white drop-shadow-lg' 
+                                                                    : 'bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent'
+                                                            }`}>
                                                                 {currentCandidate.displayName || currentCandidate.name || 'Unknown'}
                                                             </h2>
                                                             {currentCandidate.age && (
-                                                                <p className="text-xl text-gray-600 font-medium">{currentCandidate.age}歳</p>
+                                                                <p className={`text-xl font-medium ${
+                                                                    currentCandidate.coverPhoto 
+                                                                        ? 'text-white drop-shadow-md' 
+                                                                        : 'text-gray-600'
+                                                                }`}>
+                                                                    {currentCandidate.age}歳
+                                                                </p>
                                                             )}
                                                         </div>
 
                                                         {/* Additional Info */}
                                                         <div className="space-y-2">
                                                             {currentCandidate.location && (
-                                                                <div className="flex items-center justify-center space-x-2 text-gray-600">
-                                                                    <MapPin className="w-4 h-4 text-pink-500" />
+                                                                <div className={`flex items-center justify-center space-x-2 ${
+                                                                    currentCandidate.coverPhoto 
+                                                                        ? 'text-white drop-shadow-md' 
+                                                                        : 'text-gray-600'
+                                                                }`}>
+                                                                    <MapPin className={`w-4 h-4 ${
+                                                                        currentCandidate.coverPhoto ? 'text-pink-300' : 'text-pink-500'
+                                                                    }`} />
                                                                     <span className="text-sm">{currentCandidate.location}</span>
                                                                 </div>
                                                             )}
                                                             {currentCandidate.occupation && (
-                                                                <div className="flex items-center justify-center space-x-2 text-gray-600">
-                                                                    <Briefcase className="w-4 h-4 text-pink-500" />
+                                                                <div className={`flex items-center justify-center space-x-2 ${
+                                                                    currentCandidate.coverPhoto 
+                                                                        ? 'text-white drop-shadow-md' 
+                                                                        : 'text-gray-600'
+                                                                }`}>
+                                                                    <Briefcase className={`w-4 h-4 ${
+                                                                        currentCandidate.coverPhoto ? 'text-pink-300' : 'text-pink-500'
+                                                                    }`} />
                                                                     <span className="text-sm">{currentCandidate.occupation}</span>
                                                                 </div>
                                                             )}
@@ -393,7 +418,7 @@ const SwipeMatchPage = () => {
 
                                                         {/* Bio */}
                                                         {currentCandidate.bio && (
-                                                            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-pink-100">
+                                                            <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
                                                                 <p className="text-gray-700 text-center leading-relaxed">
                                                                     {currentCandidate.bio}
                                                                 </p>
@@ -406,7 +431,11 @@ const SwipeMatchPage = () => {
                                                                 {currentCandidate.interests.slice(0, 5).map((interest, idx) => (
                                                                     <span
                                                                         key={idx}
-                                                                        className="px-3 py-1 bg-gradient-to-r from-pink-100 to-purple-100 text-pink-600 rounded-full text-xs font-medium border border-pink-200"
+                                                                        className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                                                                            currentCandidate.coverPhoto
+                                                                                ? 'bg-white/90 text-pink-600 border-white/20'
+                                                                                : 'bg-gradient-to-r from-pink-100 to-purple-100 text-pink-600 border-pink-200'
+                                                                        }`}
                                                                     >
                                                                         {interest}
                                                                     </span>
@@ -417,7 +446,11 @@ const SwipeMatchPage = () => {
 
                                                     {/* Instruction Text */}
                                                     <div className="flex-shrink-0 text-center pb-4">
-                                                        <p className="text-xs text-gray-400">
+                                                        <p className={`text-xs ${
+                                                            currentCandidate.coverPhoto 
+                                                                ? 'text-white/70 drop-shadow-md' 
+                                                                : 'text-gray-400'
+                                                        }`}>
                                                             左右にスワイプするか、下のボタンをタップ
                                                         </p>
                                                     </div>
