@@ -440,7 +440,7 @@ const LiveBroadcastPage = () => {
                 </div>
 
                 {/* チャットメッセージ表示エリア */}
-                <div className="absolute left-1 sm:left-2 bottom-28 sm:bottom-32 max-h-[200px] sm:max-h-[300px] max-w-[40%] sm:max-w-[45%] overflow-y-auto space-y-1 sm:space-y-1.5 z-10 pointer-events-none">
+                <div className="absolute left-1 sm:left-2 bottom-28 sm:bottom-32 max-h-[120px] sm:max-h-[180px] max-w-[40%] sm:max-w-[45%] overflow-y-auto space-y-1 sm:space-y-1.5 z-10 pointer-events-none">
                     <AnimatePresence>
                         {messages.slice(-5).map((msg) => (
                             <motion.div
