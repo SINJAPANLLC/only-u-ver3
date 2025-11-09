@@ -189,11 +189,17 @@ const RankingPage = () => {
 
     // 縦スワイプでルーム切り替え
     const handleDragEnd = (event, info) => {
-        const threshold = 100;
+        const offsetThreshold = 80;
+        const velocityThreshold = 500;
         
-        if (info.offset.y < -threshold && currentIndex < liveRooms.length - 1) {
+        // 上スワイプ（次へ）
+        if ((info.offset.y < -offsetThreshold || info.velocity.y < -velocityThreshold) && 
+            currentIndex < liveRooms.length - 1) {
             setCurrentIndex(prev => prev + 1);
-        } else if (info.offset.y > threshold && currentIndex > 0) {
+        } 
+        // 下スワイプ（前へ）
+        else if ((info.offset.y > offsetThreshold || info.velocity.y > velocityThreshold) && 
+                 currentIndex > 0) {
             setCurrentIndex(prev => prev - 1);
         }
     };
@@ -212,25 +218,37 @@ const RankingPage = () => {
                     <motion.div
                         key={currentRoom.id}
                         drag="y"
-                        dragConstraints={{ top: 0, bottom: 0 }}
-                        dragElastic={0.2}
+                        dragConstraints={containerRef}
+                        dragElastic={0.3}
+                        dragMomentum={false}
                         onDragEnd={handleDragEnd}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 flex items-center justify-center"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute inset-0 flex items-center justify-center touch-pan-y"
                         data-testid={`live-room-${currentRoom.id}`}
                     >
-                        {/* 動画背景 */}
-                        <video
-                            key={currentRoom.videoUrl}
-                            src={currentRoom.videoUrl}
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            className="absolute inset-0 w-full h-full object-cover"
-                        />
+                        {/* 動画背景 - WebRTCライブの場合はプレースホルダー、録画動画の場合は再生 */}
+                        {currentRoom.isRealLive ? (
+                            <div className="absolute inset-0 bg-gradient-to-br from-pink-900/30 to-purple-900/30 flex items-center justify-center">
+                                <div className="text-center">
+                                    <Radio className="w-24 h-24 text-pink-500 mx-auto mb-4 animate-pulse" />
+                                    <p className="text-white text-2xl font-bold">LIVE配信中</p>
+                                    <p className="text-white/80 mt-2">「参加する」ボタンをタップして視聴</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <video
+                                key={currentRoom.videoUrl}
+                                src={currentRoom.videoUrl}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="absolute inset-0 w-full h-full object-cover"
+                            />
+                        )}
 
                         {/* グラデーションオーバーレイ */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />

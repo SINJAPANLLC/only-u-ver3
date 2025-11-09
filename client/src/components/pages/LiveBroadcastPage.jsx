@@ -65,9 +65,10 @@ const LiveBroadcastPage = () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        width: { ideal: 720 },
-                        height: { ideal: 1280 },
-                        facingMode: 'user'
+                        width: { ideal: 1080 },
+                        height: { ideal: 1920 },
+                        facingMode: 'user',
+                        aspectRatio: 9/16
                     },
                     audio: true
                 });
@@ -179,8 +180,15 @@ const LiveBroadcastPage = () => {
 
             const peerConnection = new RTCPeerConnection({
                 iceServers: [
+                    // STUN servers - 無料で利用可能
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:3478' },
+                    { urls: 'stun:stun3.l.google.com:19302' }
+                    // TODO: TURNサーバーを追加（本番環境推奨）
+                    // Open Relay: https://www.metered.ca/tools/openrelay/
+                    // ExpressTURN: https://www.expressturn.com/
+                    // 例: { urls: 'turn:turn.server.com:3478', username: 'user', credential: 'pass' }
                 ]
             });
 
@@ -335,7 +343,7 @@ const LiveBroadcastPage = () => {
                 description: 'ライブ配信を終了しました'
             });
 
-            navigate('/rankingpage');
+            navigate('/live');
         } catch (error) {
             console.error('Error ending live:', error);
             toast({
@@ -366,7 +374,7 @@ const LiveBroadcastPage = () => {
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-full object-cover transform -scale-x-100"
+                    className="w-full h-full object-contain transform -scale-x-100"
                     data-testid="video-broadcast"
                 />
 

@@ -24,7 +24,7 @@ const AccountPage = () => {
         } else if (path === 'messages') {
             navigate('/messages');
         } else if (path === 'ranking') {
-            navigate('/rankingpage');
+            navigate('/live');
         } else if (path === 'account') {
             navigate('/account');
         } else {

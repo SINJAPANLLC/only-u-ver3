@@ -25,9 +25,10 @@ const CreateLivePage = () => {
             try {
                 const mediaStream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        width: { ideal: 720 },
-                        height: { ideal: 1280 },
-                        facingMode: 'user'
+                        width: { ideal: 1080 },
+                        height: { ideal: 1920 },
+                        facingMode: 'user',
+                        aspectRatio: 9/16
                     },
                     audio: true
                 });
@@ -152,7 +153,7 @@ const CreateLivePage = () => {
                     autoPlay
                     playsInline
                     muted
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-contain"
                     data-testid="video-preview"
                 />
 

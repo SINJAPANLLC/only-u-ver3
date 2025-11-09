@@ -30,7 +30,7 @@ const GenreSubcategoryPage = ({ selectedGenre, onBack, onSubcategorySelect }) =>
     const navigate = useNavigate();
 
     const BackTo = () => {
-        navigate('/rankingpage');
+        navigate('/live');
     }
 
     const handleSubcategoryClick = (genreName) => {

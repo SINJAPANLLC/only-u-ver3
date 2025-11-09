@@ -165,7 +165,7 @@ const NotificationPage = () => {
         if (path === 'home') navigate('/');
         else if (path === 'feed') navigate('/feed');
         else if (path === 'messages') navigate('/messages');
-        else if (path === 'ranking') navigate('/rankingpage');
+        else if (path === 'ranking') navigate('/live');
         else if (path === 'account') navigate('/account');
         else navigate('/');
     };

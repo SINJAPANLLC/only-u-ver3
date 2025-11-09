@@ -246,7 +246,7 @@ const CreatorPage = () => {
                     <motion.button
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => navigate('/rankingpage')}
+                        onClick={() => navigate('/live')}
                         className="relative w-full overflow-hidden rounded-full py-4 font-semibold transition-all group"
                         style={{
                             background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',

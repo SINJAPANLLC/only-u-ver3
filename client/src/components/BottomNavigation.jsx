@@ -12,7 +12,7 @@ const BottomNavigation = ({ active = "Home" }) => {
     const items = [
         { icon: Home, key: "home", onClick: () => navigate("/") },
         { icon: Star, key: "feed", onClick: () => navigate("/feed") },
-        { icon: Crown, key: "ranking", onClick: () => navigate("/rankingpage") },
+        { icon: Crown, key: "ranking", onClick: () => navigate("/live") },
         { icon: MessageCircle, key: "messages", onClick: () => navigate("/messages") },
         { icon: User, key: "account", onClick: () => navigate("/account") },
     ];

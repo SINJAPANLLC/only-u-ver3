@@ -16,7 +16,7 @@ const BottomNavigationWithCreator = ({ active = "Home" }) => {
     const baseItems = [
         { icon: Home, key: "home", onClick: () => navigate("/") },
         { icon: Film, key: "feed", onClick: () => navigate("/feed") },
-        { icon: Radio, key: "ranking", onClick: () => navigate("/rankingpage") },
+        { icon: Radio, key: "ranking", onClick: () => navigate("/live") },
         { icon: Heart, key: "messages", onClick: () => navigate("/messages") },
         { icon: User, key: "account", onClick: () => navigate("/account") },
     ];

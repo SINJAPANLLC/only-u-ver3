@@ -51,7 +51,7 @@ const LiveViewerPage = () => {
                     description: 'この配信は終了しました',
                     variant: 'destructive'
                 });
-                navigate('/rankingpage');
+                navigate('/live');
             }
         });
 
@@ -160,7 +160,7 @@ const LiveViewerPage = () => {
                         description: '配信者が退出しました',
                         variant: 'destructive'
                     });
-                    navigate('/rankingpage');
+                    navigate('/live');
                     break;
 
                 case 'error':
@@ -195,8 +195,15 @@ const LiveViewerPage = () => {
 
             const peerConnection = new RTCPeerConnection({
                 iceServers: [
+                    // STUN servers - 無料で利用可能
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:3478' },
+                    { urls: 'stun:stun3.l.google.com:19302' }
+                    // TODO: TURNサーバーを追加（本番環境推奨）
+                    // Open Relay: https://www.metered.ca/tools/openrelay/
+                    // ExpressTURN: https://www.expressturn.com/
+                    // 例: { urls: 'turn:turn.server.com:3478', username: 'user', credential: 'pass' }
                 ]
             });
 
@@ -467,7 +474,7 @@ const LiveViewerPage = () => {
                     initial={{ x: -50, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => navigate('/rankingpage')}
+                    onClick={() => navigate('/live')}
                     className="absolute top-4 left-4 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 z-20"
                     data-testid="button-back"
                 >

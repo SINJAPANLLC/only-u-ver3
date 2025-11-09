@@ -639,7 +639,7 @@ const SocialFeedScreen = () => {
   // Handle navigation
   const handleBottomNavClick = (path) => {
     if (path === 'home') navigate('/');
-    else if (path === 'ranking') navigate('/rankingpage');
+    else if (path === 'ranking') navigate('/live');
     else if (path === 'account') navigate('/account');
     else navigate('/');
   };

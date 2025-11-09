@@ -202,7 +202,8 @@ const AppRoutes = () => {
       {/* Protected routes */}
       <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/feed" element={<ProtectedRoute><SocialFeedScreen /></ProtectedRoute>} />
-      <Route path="/rankingpage" element={<ProtectedRoute><RankingPage /></ProtectedRoute>} />
+      <Route path="/live" element={<ProtectedRoute><RankingPage /></ProtectedRoute>} />
+      <Route path="/rankingpage" element={<Navigate to="/live" replace />} />
       <Route path="/GenreNavigationSystem" element={<ProtectedRoute><GenreNavigationSystem /></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><SwipeMatchPage /></ProtectedRoute>} />
       <Route path="/chat" element={<ProtectedRoute><MessagesUI /></ProtectedRoute>} />
