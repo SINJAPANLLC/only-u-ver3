@@ -47,20 +47,22 @@ export default function MatchManagement() {
         matchesData.flatMap(match => [match.user1Id, match.user2Id]).filter(Boolean)
       )];
       
-      // 全てのユーザー情報を並列取得
+      // 全てのユーザー情報を並列取得（Promise.allSettledでエラー耐性）
       const userMap = {};
       if (userIds.length > 0) {
-        const userDocs = await Promise.all(
+        const userResults = await Promise.allSettled(
           userIds.map(id => getDoc(doc(db, 'users', id)))
         );
         
-        userDocs.forEach((userDoc, index) => {
-          if (userDoc.exists()) {
+        userResults.forEach((result, index) => {
+          if (result.status === 'fulfilled' && result.value.exists()) {
             userMap[userIds[index]] = {
-              displayName: userDoc.data().displayName || 'Unknown',
-              email: userDoc.data().email || '',
-              photoURL: userDoc.data().photoURL || '',
+              displayName: result.value.data().displayName || 'Unknown',
+              email: result.value.data().email || '',
+              photoURL: result.value.data().photoURL || '',
             };
+          } else if (result.status === 'rejected') {
+            console.warn(`Failed to fetch user ${userIds[index]}:`, result.reason);
           }
         });
       }

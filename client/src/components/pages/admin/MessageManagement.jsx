@@ -45,30 +45,52 @@ export default function MessageManagement() {
         matchesData.flatMap(match => [match.user1Id, match.user2Id]).filter(Boolean)
       )];
 
-      // ユーザー情報とメッセージ数を並列取得
-      const [userDocs, messageCounts] = await Promise.all([
-        Promise.all(userIds.map(id => getDoc(doc(db, 'users', id)))),
-        Promise.all(matchesData.map(match => 
+      // ユーザー情報とメッセージ数を並列取得（Promise.allSettledでエラー耐性）
+      const [userResults, messageResults] = await Promise.allSettled([
+        Promise.allSettled(userIds.map(id => getDoc(doc(db, 'users', id)))),
+        Promise.allSettled(matchesData.map(match => 
           getCountFromServer(collection(db, `chatRooms/${match.chatRoomId}/messages`))
-            .catch(() => ({ data: () => ({ count: 0 }) })) // エラー時は0を返す
         ))
       ]);
 
       // ユーザー情報をマップに変換
       const userMap = {};
-      userDocs.forEach((userDoc, index) => {
-        if (userDoc.exists()) {
-          userMap[userIds[index]] = {
-            displayName: userDoc.data().displayName || 'Unknown',
-            photoURL: userDoc.data().photoURL || '',
-          };
-        }
-      });
+      if (userResults.status === 'fulfilled') {
+        userResults.value.forEach((result, index) => {
+          if (result.status === 'fulfilled' && result.value.exists()) {
+            userMap[userIds[index]] = {
+              displayName: result.value.data().displayName || 'Unknown',
+              photoURL: result.value.data().photoURL || '',
+            };
+          } else if (result.status === 'rejected') {
+            console.warn(`Failed to fetch user ${userIds[index]}:`, result.reason);
+          }
+        });
+      } else {
+        console.error('Failed to fetch user data:', userResults.reason);
+      }
+
+      // メッセージ数を取得
+      const messageCounts = [];
+      if (messageResults.status === 'fulfilled') {
+        messageResults.value.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            messageCounts[index] = result.value.data().count;
+          } else {
+            console.warn(`Failed to fetch message count for room ${matchesData[index].chatRoomId}:`, result.reason);
+            messageCounts[index] = 0;
+          }
+        });
+      } else {
+        console.error('Failed to fetch message counts:', messageResults.reason);
+        // 全てのメッセージ数を0にフォールバック
+        matchesData.forEach((_, index) => messageCounts[index] = 0);
+      }
 
       // ルームデータを構築
       let totalMessages = 0;
       const roomsData = matchesData.map((match, index) => {
-        const messageCount = messageCounts[index].data().count;
+        const messageCount = messageCounts[index] || 0;
         totalMessages += messageCount;
 
         return {
@@ -155,16 +177,18 @@ export default function MessageManagement() {
       // ユニークな送信者IDを収集
       const senderIds = [...new Set(messagesData.map(msg => msg.senderId).filter(Boolean))];
 
-      // 送信者情報を並列取得
+      // 送信者情報を並列取得（Promise.allSettledでエラー耐性）
       const userMap = {};
       if (senderIds.length > 0) {
-        const userDocs = await Promise.all(
+        const userResults = await Promise.allSettled(
           senderIds.map(id => getDoc(doc(db, 'users', id)))
         );
 
-        userDocs.forEach((userDoc, index) => {
-          if (userDoc.exists()) {
-            userMap[senderIds[index]] = userDoc.data().displayName || 'Unknown';
+        userResults.forEach((result, index) => {
+          if (result.status === 'fulfilled' && result.value.exists()) {
+            userMap[senderIds[index]] = result.value.data().displayName || 'Unknown';
+          } else if (result.status === 'rejected') {
+            console.warn(`Failed to fetch sender ${senderIds[index]}:`, result.reason);
           }
         });
       }
