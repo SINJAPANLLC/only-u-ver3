@@ -26,9 +26,11 @@ export default function LiveStreamManagement() {
     fetchLiveRooms();
   }, []);
 
-  const fetchLiveRooms = async () => {
+  const fetchLiveRooms = async (skipLoading = false) => {
     try {
-      setLoading(true);
+      if (!skipLoading) {
+        setLoading(true);
+      }
       const q = query(collection(db, 'liveRooms'), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
       
@@ -146,7 +148,7 @@ export default function LiveStreamManagement() {
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
-      await fetchLiveRooms();
+      await fetchLiveRooms(true); // skipLoading = true
       toast({
         title: '更新完了',
         description: 'ライブルームを更新しました',
