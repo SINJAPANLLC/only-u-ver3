@@ -2523,6 +2523,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
           }
 
+          case 'checkout.session.completed': {
+            const session = event.data.object as any;
+            const metadata = session.metadata;
+
+            // Guard against missing metadata
+            if (!metadata || metadata.type !== 'tip') {
+              break;
+            }
+
+            try {
+              const userId = metadata.userId;
+              const creatorId = metadata.creatorId;
+              const creatorName = metadata.creatorName || 'Unknown';
+              const roomId = metadata.roomId || '';
+              
+              // Use Stripe's canonical amount (in cents for JPY, so convert to JPY)
+              const amount = session.amount_total || parseInt(metadata.amount || '0');
+
+              if (!userId || !creatorId || amount <= 0) {
+                console.log(`⚠️ Invalid tip data: userId=${userId}, creatorId=${creatorId}, amount=${amount}`);
+                break;
+              }
+
+              console.log(`💰 Tip payment completed: ${amount} JPY`);
+              console.log(`   From: ${userId}, To: ${creatorId}`);
+
+              // Calculate fees (10% platform fee)
+              const platformFee = Math.floor(amount * 0.10);
+              const creatorAmount = amount - platformFee;
+
+              // Check if this session has already been processed (idempotency)
+              const existingTip = await firestore
+                .collection('tips')
+                .where('sessionId', '==', session.id)
+                .limit(1)
+                .get();
+
+              if (!existingTip.empty) {
+                console.log(`⚠️ Tip already processed for session ${session.id}`);
+                break;
+              }
+
+              // 1. Save tip record
+              await firestore.collection('tips').add({
+                sessionId: session.id,
+                userId,
+                creatorId,
+                creatorName,
+                roomId,
+                amount,
+                creatorAmount,
+                platformFee,
+                currency: session.currency || 'JPY',
+                status: 'completed',
+                paymentMethod: 'stripe_checkout',
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              });
+
+              // 2. Update creator balance
+              const creatorRef = firestore.collection('users').doc(creatorId);
+              await creatorRef.update({
+                availableBalance: admin.firestore.FieldValue.increment(creatorAmount),
+                totalEarnings: admin.firestore.FieldValue.increment(creatorAmount),
+              }).catch((error) => {
+                console.error(`❌ Failed to update creator balance: ${error.message}`);
+                throw error;
+              });
+
+              // 3. Save transaction record (for admin)
+              await firestore.collection('transactions').add({
+                type: 'tip',
+                userId,
+                creatorId,
+                creatorName,
+                amount,
+                creatorAmount,
+                platformFee,
+                currency: session.currency || 'JPY',
+                status: 'completed',
+                sessionId: session.id,
+                roomId,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              });
+
+              console.log(`✅ Tip processed: ${creatorAmount} JPY credited to ${creatorId}`);
+            } catch (error: any) {
+              console.error(`❌ Error processing tip for session ${session.id}:`, error);
+              // Don't re-throw - log error but acknowledge webhook receipt
+            }
+            break;
+          }
+
           default:
             console.log(`Unhandled event type: ${event.type}`);
         }

@@ -117,20 +117,23 @@ const RankingPage = () => {
                             limit(10)
                         );
                         
-                        getDocs(fallbackQuery).then((snapshot) => {
+                        getDocs(fallbackQuery).then(async (snapshot) => {
                             const fallbackRooms = [];
+                            const userIds = new Set();
+                            
                             snapshot.forEach(doc => {
                                 const data = doc.data();
-                                if (data.files && data.files.length > 0) {
+                                if (data.files && data.files.length > 0 && data.userId) {
                                     const videoFile = data.files.find(f => f.resourceType === 'video');
                                     if (videoFile) {
+                                        userIds.add(data.userId);
                                         fallbackRooms.push({
                                             id: doc.id,
                                             title: data.title || 'おすすめ動画',
                                             creatorName: data.userName || 'Anonymous',
                                             creatorAvatar: data.userAvatar || '',
-                                            creatorId: data.userId || null,
-                                            userId: data.userId || null,
+                                            creatorId: data.userId,
+                                            userId: data.userId,
                                             videoUrl: videoFile.url?.startsWith('http') 
                                                 ? `/api/proxy/${videoFile.url.split('/').pop()}`
                                                 : videoFile.url,
@@ -143,6 +146,34 @@ const RankingPage = () => {
                                     }
                                 }
                             });
+                            
+                            // usersコレクションからクリエイター情報を取得
+                            if (userIds.size > 0) {
+                                const userPromises = Array.from(userIds).map(userId => 
+                                    getDoc(doc(db, 'users', userId))
+                                );
+                                const userDocs = await Promise.all(userPromises);
+                                const userMap = {};
+                                
+                                userDocs.forEach(userDoc => {
+                                    if (userDoc.exists()) {
+                                        const userData = userDoc.data();
+                                        userMap[userDoc.id] = {
+                                            name: userData.name || userData.displayName || 'Anonymous',
+                                            avatar: userData.avatarUrl || userData.photoURL || ''
+                                        };
+                                    }
+                                });
+                                
+                                // クリエイター情報を更新
+                                fallbackRooms.forEach(room => {
+                                    if (userMap[room.userId]) {
+                                        room.creatorName = userMap[room.userId].name;
+                                        room.creatorAvatar = userMap[room.userId].avatar;
+                                    }
+                                });
+                            }
+                            
                             setLiveRooms(fallbackRooms);
                         });
                     } else {
@@ -410,12 +441,14 @@ const RankingPage = () => {
                                         <img
                                             src={currentRoom.creatorAvatar && currentRoom.creatorAvatar.trim() !== '' 
                                                 ? getProxyImageUrl(currentRoom.creatorAvatar)
-                                                : `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentRoom.creatorName}`
+                                                : '/logo192.png'
                                             }
                                             alt={currentRoom.creatorName}
-                                            className="w-12 h-12 rounded-full object-cover border-2 border-pink-500 bg-gradient-to-br from-pink-500 to-pink-600"
+                                            className="w-12 h-12 rounded-full object-cover border-2 border-pink-500 bg-white"
                                             onError={(e) => {
-                                                e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentRoom.creatorName}`;
+                                                if (e.target.src !== window.location.origin + '/logo192.png') {
+                                                    e.target.src = '/logo192.png';
+                                                }
                                             }}
                                         />
                                         <motion.div
