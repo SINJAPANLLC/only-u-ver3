@@ -84,6 +84,7 @@ const UserManagement = () => {
   const [banModalOpen, setBanModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [roleChangeModalOpen, setRoleChangeModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [banReason, setBanReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -523,6 +524,16 @@ const UserManagement = () => {
     setDeleteModalOpen(true);
   };
 
+  const openRoleChangeModal = (user) => {
+    setSelectedUser(user);
+    setRoleChangeModalOpen(true);
+  };
+
+  const closeRoleChangeModal = () => {
+    setRoleChangeModalOpen(false);
+    setSelectedUser(null);
+  };
+
   // Fetch detailed user data with parallel queries
   const fetchUserDetail = async (userId) => {
     // Reset state before fetching
@@ -631,6 +642,49 @@ const UserManagement = () => {
     setActiveTab('overview');
     setDetailModalOpen(true);
     await fetchUserDetail(user.id);
+  };
+
+  const handleRoleChange = async () => {
+    if (!selectedUser) return;
+
+    const newRole = selectedUser.role === 'creator' ? 'user' : 'creator';
+    const newIsCreator = newRole === 'creator';
+
+    setIsProcessing(true);
+    try {
+      const userRef = doc(db, 'users', selectedUser.id);
+      await updateDoc(userRef, {
+        isCreator: newIsCreator,
+        updatedAt: serverTimestamp()
+      });
+
+      // Update local state immediately
+      setUsers(prev => prev.map(u => 
+        u.id === selectedUser.id 
+          ? { ...u, role: newRole }
+          : u
+      ));
+
+      // Refresh stats (creator count changed)
+      await fetchAccurateStats();
+
+      toast({
+        title: '成功',
+        description: `${selectedUser.displayName}のロールを${newRole === 'creator' ? 'クリエイター' : '一般ユーザー'}に変更しました`,
+      });
+
+      setRoleChangeModalOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error changing user role:', error);
+      toast({
+        title: 'エラー',
+        description: 'ロールの変更に失敗しました',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (loading) {
@@ -875,6 +929,17 @@ const UserManagement = () => {
                       >
                         <Eye className="w-3 h-3" />
                         <span>詳細</span>
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => openRoleChangeModal(user)}
+                        disabled={isProcessing}
+                        className="flex items-center space-x-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors disabled:opacity-50"
+                        data-testid={`button-role-${user.id}`}
+                      >
+                        <Shield className="w-3 h-3" />
+                        <span>ロール</span>
                       </motion.button>
                       {user.status === 'banned' ? (
                         <motion.button
@@ -1134,6 +1199,106 @@ const UserManagement = () => {
                   data-testid="button-confirm-delete"
                 >
                   {isProcessing ? '削除中...' : '削除する'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ロール変更確認モーダル */}
+      <AnimatePresence>
+        {roleChangeModalOpen && selectedUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => !isProcessing && closeRoleChangeModal()}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              data-testid="modal-role-change"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Shield className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">ロール変更</h3>
+                </div>
+                <button
+                  onClick={() => !isProcessing && closeRoleChangeModal()}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isProcessing}
+                  data-testid="button-close-role-modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  {selectedUser.photoURL ? (
+                    <img
+                      src={selectedUser.photoURL}
+                      alt={selectedUser.displayName}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center text-white font-semibold">
+                      {selectedUser.displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-semibold text-gray-900">{selectedUser.displayName}</div>
+                    <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">現在のロール:</span>
+                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getRoleColor(selectedUser.role)}`}>
+                    {selectedUser.role === 'creator' ? 'クリエイター' : '一般ユーザー'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-center my-3">
+                  <RefreshCw className="w-5 h-5 text-purple-500" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">変更後のロール:</span>
+                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getRoleColor(selectedUser.role === 'creator' ? 'user' : 'creator')}`}>
+                    {selectedUser.role === 'creator' ? '一般ユーザー' : 'クリエイター'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={closeRoleChangeModal}
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  data-testid="button-cancel-role"
+                >
+                  キャンセル
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleRoleChange}
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all disabled:opacity-50"
+                  data-testid="button-confirm-role"
+                >
+                  {isProcessing ? '変更中...' : 'ロールを変更'}
                 </motion.button>
               </div>
             </motion.div>
