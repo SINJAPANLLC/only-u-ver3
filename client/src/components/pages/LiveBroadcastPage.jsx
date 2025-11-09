@@ -379,7 +379,7 @@ const LiveBroadcastPage = () => {
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-full object-contain transform -scale-x-100"
+                    className="w-full h-full object-cover transform -scale-x-100"
                     data-testid="video-broadcast"
                 />
 
