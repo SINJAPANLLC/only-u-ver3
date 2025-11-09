@@ -32,11 +32,13 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
+        display_override: ['window-controls-overlay', 'standalone'],
         orientation: 'portrait-primary',
         theme_color: '#ec4899',
         background_color: '#ffffff',
         categories: ['social', 'entertainment'],
-        lang: 'ja'
+        lang: 'ja',
+        prefer_related_applications: false
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,jpeg}'],
