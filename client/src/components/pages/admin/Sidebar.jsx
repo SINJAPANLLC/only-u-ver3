@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Users, UserPlus, FileText, BarChart3, DollarSign, Shield, LogOut, Mail, Bell, Star, Crown, Image, Coins, User } from "lucide-react";
+import { Users, FileText, BarChart3, DollarSign, Shield, LogOut, Mail, Bell, Crown, Coins, Video, Heart, MessageSquare, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useAuth } from "../../../context/AuthContext";
@@ -10,17 +10,19 @@ export default function Sidebar({ open, setOpen, onLogout }) {
   const { currentUser } = useAuth();
 
   const navItems = [
-    { name: t('AdminPage.dashboardPage.title'), path: "/admin", icon: BarChart3 },
-    { name: t('AdminPage.userPage.title'), path: "/admin/users", icon: Users },
-    { name: t('AdminPage.reportsPage.title'), path: "/admin/reports", icon: FileText },
-    { name: "運営Pick UP管理", path: "/admin/featured-pickup", icon: Star },
-    { name: "Homeスライダー管理", path: "/admin/home-slider", icon: Image },
+    { name: "ダッシュボード", path: "/admin", icon: BarChart3 },
+    { name: "ユーザー管理", path: "/admin/users", icon: Users },
+    { name: "クリエイター管理", path: "/admin/creators", icon: Users },
+    { name: "投稿管理", path: "/admin/posts", icon: FileText },
+    { name: "ライブ配信管理", path: "/admin/live-streams", icon: Video },
+    { name: "マッチング管理", path: "/admin/matches", icon: Heart },
+    { name: "メッセージ管理", path: "/admin/messages", icon: MessageSquare },
+    { name: "収益管理", path: "/admin/sales", icon: DollarSign },
     { name: "振込申請管理", path: "/admin/transfer-requests", icon: Coins },
-    { name: t('AdminPage.postsPage.title'), path: "/admin/posts", icon: FileText },
-    { name: t('AdminPage.salesPage.title'), path: "/admin/sales", icon: DollarSign },
-    { name: t('AdminPage.verificationPage.title'), path: "/admin/verification", icon: Shield },
-    { name: "メール通知管理", path: "/admin/email-notifications", icon: Mail },
-    { name: "プッシュ通知管理", path: "/admin/push-notifications", icon: Bell },
+    { name: "KYC/本人確認", path: "/admin/verification", icon: Shield },
+    { name: "レポート管理", path: "/admin/reports", icon: FileText },
+    { name: "通知管理", path: "/admin/notifications", icon: Bell },
+    { name: "分析", path: "/admin/analytics", icon: TrendingUp },
   ];
 
   return (

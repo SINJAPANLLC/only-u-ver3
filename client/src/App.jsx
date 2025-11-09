@@ -114,16 +114,11 @@ const AnalyticsDashboard = lazy(() => import("./components/pages/admin/Analytics
 const PostManagement = lazy(() => import("./components/pages/admin/PostManagement"));
 const RevenueManagement = lazy(() => import("./components/pages/admin/RevenueManagement"));
 const KYCManagement = lazy(() => import("./components/pages/admin/KYCManagement"));
-const PDCAManagement = lazy(() => import("./components/pages/admin/PDCAManagement"));
-const CustomerFeedback = lazy(() => import("./components/pages/admin/CustomerFeedback"));
-const ABTesting = lazy(() => import("./components/pages/admin/ABTesting"));
-const KPIDashboard = lazy(() => import("./components/pages/admin/KPIDashboard"));
 const ReportManagement = lazy(() => import("./components/pages/admin/ReportManagement"));
-const EmailNotificationManagement = lazy(() => import("./components/pages/admin/EmailNotificationManagement"));
-const PushNotificationManagement = lazy(() => import("./components/pages/admin/PushNotificationManagement"));
-const FeaturedPickupManagement = lazy(() => import("./components/pages/admin/FeaturedPickupManagement"));
-const HomeSliderManagement = lazy(() => import("./components/pages/admin/HomeSliderManagement"));
 const TransferRequestManagement = lazy(() => import("./components/pages/admin/TransferRequestManagement"));
+const LiveStreamManagement = lazy(() => import("./components/pages/admin/LiveStreamManagement"));
+const MatchManagement = lazy(() => import("./components/pages/admin/MatchManagement"));
+const MessageManagement = lazy(() => import("./components/pages/admin/MessageManagement"));
 const AdminLogin = lazy(() => import("./components/pages/admin/AdminLogin"));
 
 const AccountWrapper = () => {
@@ -281,21 +276,16 @@ const AppRoutes = () => {
         <Route index element={<Dashboard />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="creators" element={<Creators />} />
-                <Route path="reports" element={<ReportManagement />} />
-                <Route path="email-notifications" element={<EmailNotificationManagement />} />
-                <Route path="push-notifications" element={<PushNotificationManagement />} />
-        <Route path="featured-pickup" element={<FeaturedPickupManagement />} />
-        <Route path="home-slider" element={<HomeSliderManagement />} />
-        <Route path="transfer-requests" element={<TransferRequestManagement />} />
         <Route path="posts" element={<PostManagement />} />
+        <Route path="live-streams" element={<LiveStreamManagement />} />
+        <Route path="matches" element={<MatchManagement />} />
+        <Route path="messages" element={<MessageManagement />} />
         <Route path="sales" element={<RevenueManagement />} />
+        <Route path="transfer-requests" element={<TransferRequestManagement />} />
         <Route path="verification" element={<KYCManagement />} />
+        <Route path="reports" element={<ReportManagement />} />
         <Route path="notifications" element={<NotificationManagement />} />
         <Route path="analytics" element={<AnalyticsDashboard />} />
-        <Route path="pdca" element={<PDCAManagement />} />
-        <Route path="feedback" element={<CustomerFeedback />} />
-        <Route path="ab-testing" element={<ABTesting />} />
-        <Route path="kpi" element={<KPIDashboard />} />
       </Route>
 
       <Route
