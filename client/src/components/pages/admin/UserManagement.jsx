@@ -26,7 +26,7 @@ import {
   Activity
 } from 'lucide-react';
 import { db } from '../../../firebase';
-import { collection, onSnapshot, query, orderBy, limit, startAfter, getDocs, doc, updateDoc, deleteDoc, serverTimestamp, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, startAfter, getDocs, doc, updateDoc, deleteDoc, serverTimestamp, where, getCountFromServer } from 'firebase/firestore';
 import { useToast } from '../../../hooks/use-toast';
 import { 
   AdminPageContainer, 
@@ -78,6 +78,8 @@ const UserManagement = () => {
     pending: 0,
     creators: 0
   });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(false);
 
   const [banModalOpen, setBanModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -109,6 +111,64 @@ const UserManagement = () => {
     { value: 'user', label: '一般ユーザー' },
     { value: 'creator', label: 'クリエイター' }
   ];
+
+  // Firestoreから正確な統計を取得（getCountFromServer使用）
+  const fetchAccurateStats = async () => {
+    setStatsLoading(true);
+    setStatsError(false);
+
+    try {
+      const results = await Promise.allSettled([
+        // Total users
+        getCountFromServer(collection(db, 'users')),
+        // Active users (not banned)
+        getCountFromServer(query(collection(db, 'users'), where('isBanned', '==', false))),
+        // Banned users
+        getCountFromServer(query(collection(db, 'users'), where('isBanned', '==', true))),
+        // Creators
+        getCountFromServer(query(collection(db, 'users'), where('isCreator', '==', true)))
+      ]);
+
+      const [totalResult, activeResult, bannedResult, creatorsResult] = results;
+
+      // Check if any query failed
+      const hasErrors = results.some(r => r.status === 'rejected');
+      if (hasErrors) {
+        console.error('Some stats queries failed:', results.filter(r => r.status === 'rejected'));
+        setStatsError(true);
+        toast({
+          title: '一部の統計取得に失敗',
+          description: 'Firestoreインデックスが必要な可能性があります',
+          variant: 'destructive'
+        });
+      }
+
+      const newStats = {
+        total: totalResult.status === 'fulfilled' ? totalResult.value.data().count : 0,
+        active: activeResult.status === 'fulfilled' ? activeResult.value.data().count : 0,
+        banned: bannedResult.status === 'fulfilled' ? bannedResult.value.data().count : 0,
+        pending: 0, // Not tracked in current schema
+        creators: creatorsResult.status === 'fulfilled' ? creatorsResult.value.data().count : 0
+      };
+
+      setStats(newStats);
+      console.log('✅ Loaded accurate stats:', newStats);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      setStatsError(true);
+      toast({
+        title: 'エラー',
+        description: '統計情報の取得に失敗しました',
+        variant: 'destructive'
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccurateStats();
+  }, []);
 
   // Firestoreからユーザーデータを取得（getDocs使用でページネーション安定化）
   useEffect(() => {
@@ -186,18 +246,6 @@ const UserManagement = () => {
     setFilteredUsers(filtered);
   }, [users, searchTerm, filterStatus, filterRole]);
 
-  // 統計を更新
-  useEffect(() => {
-    const newStats = {
-      total: users.length,
-      active: users.filter(u => u.status === 'active').length,
-      banned: users.filter(u => u.status === 'banned').length,
-      pending: users.filter(u => u.status === 'pending').length,
-      creators: users.filter(u => u.role === 'creator').length
-    };
-    setStats(newStats);
-  }, [users]);
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     
@@ -239,7 +287,11 @@ const UserManagement = () => {
       }
       
       setUsers(usersData);
-      console.log(`🔄 Refreshed ${usersData.length} users`);
+      
+      // Refresh stats
+      await fetchAccurateStats();
+      
+      console.log(`🔄 Refreshed ${usersData.length} users and stats`);
     } catch (error) {
       console.error('Error refreshing users:', error);
       toast({
@@ -368,6 +420,9 @@ const UserManagement = () => {
           : u
       ));
 
+      // Refresh stats
+      fetchAccurateStats();
+
       toast({
         title: '成功',
         description: `${selectedUser.displayName}をBANしました`,
@@ -406,6 +461,9 @@ const UserManagement = () => {
           : u
       ));
 
+      // Refresh stats
+      fetchAccurateStats();
+
       toast({
         title: '成功',
         description: `${user.displayName}のBANを解除しました`,
@@ -431,6 +489,9 @@ const UserManagement = () => {
 
       // Remove user from local state immediately
       setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
+
+      // Refresh stats
+      fetchAccurateStats();
 
       toast({
         title: '成功',
@@ -611,41 +672,61 @@ const UserManagement = () => {
       />
 
       {/* 統計カード */}
-      <div className="mb-2 text-sm text-gray-500 text-center">
-        ※ 統計は読み込み済みユーザー ({users.length}人) のみを反映しています
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <AdminStatsCard
-          title="総ユーザー数"
-          value={<AnimatedNumber value={stats.total} />}
-          icon={Users}
-          color="blue"
-        />
-        <AdminStatsCard
-          title="アクティブ"
-          value={<AnimatedNumber value={stats.active} />}
-          icon={CheckCircle}
-          color="green"
-        />
-        <AdminStatsCard
-          title="BAN済み"
-          value={<AnimatedNumber value={stats.banned} />}
-          icon={Ban}
-          color="pink"
-        />
-        <AdminStatsCard
-          title="承認待ち"
-          value={<AnimatedNumber value={stats.pending} />}
-          icon={Clock}
-          color="orange"
-        />
-        <AdminStatsCard
-          title="クリエイター"
-          value={<AnimatedNumber value={stats.creators} />}
-          icon={Shield}
-          color="purple"
-        />
-      </div>
+      {statsLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="bg-gray-100 rounded-xl p-6 animate-pulse">
+              <div className="h-12 w-12 bg-gray-200 rounded-lg mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+              <div className="h-8 bg-gray-200 rounded w-16"></div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          {statsError ? (
+            <div className="mb-2 text-sm text-yellow-600 text-center font-medium">
+              ⚠ 一部の統計取得に失敗しました（表示されている数値は不完全な可能性があります）
+            </div>
+          ) : (
+            <div className="mb-2 text-sm text-green-600 text-center font-medium">
+              ✓ 全ユーザーの正確な統計を表示しています
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <AdminStatsCard
+              title="総ユーザー数"
+              value={<AnimatedNumber value={stats.total} />}
+              icon={Users}
+              color="blue"
+            />
+            <AdminStatsCard
+              title="アクティブ"
+              value={<AnimatedNumber value={stats.active} />}
+              icon={CheckCircle}
+              color="green"
+            />
+            <AdminStatsCard
+              title="BAN済み"
+              value={<AnimatedNumber value={stats.banned} />}
+              icon={Ban}
+              color="pink"
+            />
+            <AdminStatsCard
+              title="承認待ち"
+              value={<AnimatedNumber value={stats.pending} />}
+              icon={Clock}
+              color="orange"
+            />
+            <AdminStatsCard
+              title="クリエイター"
+              value={<AnimatedNumber value={stats.creators} />}
+              icon={Shield}
+              color="purple"
+            />
+          </div>
+        </>
+      )}
 
       {/* フィルターと検索 */}
       <AdminContentCard title="検索・フィルター">
