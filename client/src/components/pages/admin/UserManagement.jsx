@@ -15,10 +15,18 @@ import {
   Sparkles,
   Trash2,
   X,
-  AlertTriangle
+  AlertTriangle,
+  DollarSign,
+  Heart,
+  MessageSquare,
+  TrendingUp,
+  CreditCard,
+  Gift,
+  FileText,
+  Activity
 } from 'lucide-react';
 import { db } from '../../../firebase';
-import { collection, onSnapshot, query, orderBy, limit, startAfter, getDocs, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, startAfter, getDocs, doc, updateDoc, deleteDoc, serverTimestamp, where } from 'firebase/firestore';
 import { useToast } from '../../../hooks/use-toast';
 import { 
   AdminPageContainer, 
@@ -73,9 +81,16 @@ const UserManagement = () => {
 
   const [banModalOpen, setBanModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [banReason, setBanReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Detail modal state
+  const [detailUserData, setDetailUserData] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailErrors, setDetailErrors] = useState({});
+  const [activeTab, setActiveTab] = useState('overview');
   
   // Pagination state
   const [lastDoc, setLastDoc] = useState(null);
@@ -447,6 +462,116 @@ const UserManagement = () => {
     setDeleteModalOpen(true);
   };
 
+  // Fetch detailed user data with parallel queries
+  const fetchUserDetail = async (userId) => {
+    // Reset state before fetching
+    setDetailUserData(null);
+    setDetailErrors({});
+    setDetailLoading(true);
+
+    try {
+      const results = await Promise.allSettled([
+        // Transactions (subscriptions)
+        getDocs(query(
+          collection(db, 'transactions'),
+          where('userId', '==', userId),
+          orderBy('createdAt', 'desc'),
+          limit(10)
+        )),
+        // Tips sent
+        getDocs(query(
+          collection(db, 'tips'),
+          where('fromUserId', '==', userId),
+          orderBy('createdAt', 'desc'),
+          limit(10)
+        )),
+        // Tips received
+        getDocs(query(
+          collection(db, 'tips'),
+          where('toUserId', '==', userId),
+          orderBy('createdAt', 'desc'),
+          limit(10)
+        )),
+        // Posts
+        getDocs(query(
+          collection(db, 'posts'),
+          where('userId', '==', userId),
+          orderBy('createdAt', 'desc'),
+          limit(10)
+        ))
+      ]);
+
+      const [transactionsResult, tipsSentResult, tipsReceivedResult, postsResult] = results;
+
+      // Track errors for each query
+      const errors = {};
+      
+      if (transactionsResult.status === 'rejected') {
+        console.error('Transactions query failed:', transactionsResult.reason);
+        errors.transactions = transactionsResult.reason.message || 'データ取得に失敗しました';
+      }
+      
+      if (tipsSentResult.status === 'rejected') {
+        console.error('Tips sent query failed:', tipsSentResult.reason);
+        errors.tipsSent = tipsSentResult.reason.message || 'データ取得に失敗しました';
+      }
+      
+      if (tipsReceivedResult.status === 'rejected') {
+        console.error('Tips received query failed:', tipsReceivedResult.reason);
+        errors.tipsReceived = tipsReceivedResult.reason.message || 'データ取得に失敗しました';
+      }
+      
+      if (postsResult.status === 'rejected') {
+        console.error('Posts query failed:', postsResult.reason);
+        errors.posts = postsResult.reason.message || 'データ取得に失敗しました';
+      }
+
+      // Show toast only if there are errors
+      if (Object.keys(errors).length > 0) {
+        toast({
+          title: '一部のデータ取得に失敗',
+          description: 'Firestoreインデックスが必要な可能性があります',
+          variant: 'destructive'
+        });
+      }
+
+      setDetailErrors(errors);
+
+      const detailData = {
+        transactions: transactionsResult.status === 'fulfilled' 
+          ? transactionsResult.value.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+          : [],
+        tipsSent: tipsSentResult.status === 'fulfilled'
+          ? tipsSentResult.value.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+          : [],
+        tipsReceived: tipsReceivedResult.status === 'fulfilled'
+          ? tipsReceivedResult.value.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+          : [],
+        posts: postsResult.status === 'fulfilled'
+          ? postsResult.value.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+          : []
+      };
+
+      setDetailUserData(detailData);
+    } catch (error) {
+      console.error('Error fetching user detail:', error);
+      toast({
+        title: 'エラー',
+        description: 'ユーザー詳細情報の取得に失敗しました',
+        variant: 'destructive'
+      });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const openDetailModal = async (user) => {
+    setSelectedUser(user);
+    setActiveTab('overview');
+    setDetailModalOpen(true);
+    await fetchUserDetail(user.id);
+  };
+
   if (loading) {
     return <AdminLoadingState message="ユーザーデータを読み込み中..." />;
   }
@@ -660,6 +785,16 @@ const UserManagement = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => openDetailModal(user)}
+                        className="flex items-center space-x-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                        data-testid={`button-detail-${user.id}`}
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>詳細</span>
+                      </motion.button>
                       {user.status === 'banned' ? (
                         <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -919,6 +1054,353 @@ const UserManagement = () => {
                 >
                   {isProcessing ? '削除中...' : '削除する'}
                 </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ユーザー詳細モーダル */}
+      <AnimatePresence>
+        {detailModalOpen && selectedUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setDetailModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+              data-testid="modal-user-detail"
+            >
+              {/* ヘッダー */}
+              <div className="relative bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-8">
+                <button
+                  onClick={() => setDetailModalOpen(false)}
+                  className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
+                  data-testid="button-close-detail-modal"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                
+                <div className="flex items-center space-x-4">
+                  {selectedUser.photoURL ? (
+                    <img
+                      src={selectedUser.photoURL}
+                      alt={selectedUser.displayName}
+                      className="w-20 h-20 rounded-full object-cover ring-4 ring-white"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center text-pink-600 font-bold text-2xl ring-4 ring-white">
+                      {selectedUser.displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="text-white">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h3 className="text-2xl font-bold">{selectedUser.displayName}</h3>
+                      {selectedUser.isVerified && (
+                        <CheckCircle className="w-6 h-6" />
+                      )}
+                    </div>
+                    <p className="text-pink-100">{selectedUser.email}</p>
+                    <div className="flex items-center space-x-3 mt-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        selectedUser.status === 'active' ? 'bg-green-500 text-white' : 
+                        selectedUser.status === 'banned' ? 'bg-red-500 text-white' : 
+                        'bg-yellow-500 text-white'
+                      }`}>
+                        {statusOptions.find(s => s.value === selectedUser.status)?.label}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        selectedUser.role === 'creator' ? 'bg-pink-300 text-pink-900' : 'bg-blue-300 text-blue-900'
+                      }`}>
+                        {roleOptions.find(r => r.value === selectedUser.role)?.label}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* タブナビゲーション */}
+              <div className="flex border-b border-gray-200 px-6">
+                {[
+                  { id: 'overview', label: '概要', icon: Activity },
+                  { id: 'transactions', label: '取引', icon: CreditCard },
+                  { id: 'tips', label: 'チップ', icon: Gift },
+                  { id: 'posts', label: '投稿', icon: FileText }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center space-x-2 px-4 py-3 font-medium transition-colors relative ${
+                      activeTab === tab.id
+                        ? 'text-pink-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                    data-testid={`tab-${tab.id}`}
+                  >
+                    <tab.icon className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                    {activeTab === tab.id && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* タブコンテンツ */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-280px)]">
+                {detailLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-600 rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-gray-500">詳細情報を読み込み中...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* 概要タブ */}
+                    {activeTab === 'overview' && (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-blue-50 rounded-xl p-4">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <FileText className="w-5 h-5 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-900">投稿数</span>
+                            </div>
+                            <p className="text-2xl font-bold text-blue-600">{selectedUser.postsCount}</p>
+                          </div>
+                          <div className="bg-green-50 rounded-xl p-4">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Users className="w-5 h-5 text-green-600" />
+                              <span className="text-sm font-medium text-green-900">フォロワー</span>
+                            </div>
+                            <p className="text-2xl font-bold text-green-600">{selectedUser.followersCount}</p>
+                          </div>
+                          <div className="bg-purple-50 rounded-xl p-4">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Heart className="w-5 h-5 text-purple-600" />
+                              <span className="text-sm font-medium text-purple-900">フォロー中</span>
+                            </div>
+                            <p className="text-2xl font-bold text-purple-600">{selectedUser.followingCount}</p>
+                          </div>
+                          <div className="bg-pink-50 rounded-xl p-4">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <DollarSign className="w-5 h-5 text-pink-600" />
+                              <span className="text-sm font-medium text-pink-900">総収益</span>
+                            </div>
+                            <p className="text-2xl font-bold text-pink-600">¥{selectedUser.totalEarnings.toLocaleString()}</p>
+                          </div>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h4 className="font-semibold text-gray-900 mb-3">アカウント情報</h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">登録日:</span>
+                              <span className="font-medium text-gray-900">{formatDate(selectedUser.createdAt)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">最終ログイン:</span>
+                              <span className="font-medium text-gray-900">{formatDate(selectedUser.lastLogin)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">認証状態:</span>
+                              <span className={`font-medium ${selectedUser.isVerified ? 'text-green-600' : 'text-gray-500'}`}>
+                                {selectedUser.isVerified ? '認証済み' : '未認証'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 取引タブ */}
+                    {activeTab === 'transactions' && detailUserData && (
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-4">サブスクリプション履歴</h4>
+                        {detailErrors.transactions ? (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                            <p className="text-red-800 font-medium mb-2">データ取得エラー</p>
+                            <p className="text-sm text-red-600 mb-4">{detailErrors.transactions}</p>
+                            <button
+                              onClick={() => fetchUserDetail(selectedUser.id)}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                              再試行
+                            </button>
+                          </div>
+                        ) : detailUserData.transactions.length > 0 ? (
+                          <div className="space-y-3">
+                            {detailUserData.transactions.map((tx, idx) => (
+                              <div key={tx.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg" data-testid={`transaction-${idx}`}>
+                                <div className="flex items-center space-x-3">
+                                  <CreditCard className="w-5 h-5 text-blue-600" />
+                                  <div>
+                                    <p className="font-medium text-gray-900">{tx.type === 'subscription' ? 'サブスクリプション' : tx.type}</p>
+                                    <p className="text-sm text-gray-500">
+                                      {tx.createdAt?.toDate ? formatDate(tx.createdAt.toDate()) : 'N/A'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-green-600">¥{(tx.amount || 0).toLocaleString()}</p>
+                                  <p className="text-xs text-gray-500">{tx.status || 'completed'}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p>取引履歴がありません</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* チップタブ */}
+                    {activeTab === 'tips' && detailUserData && (
+                      <div className="space-y-6">
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-4">送信したチップ</h4>
+                          {detailErrors.tipsSent ? (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                              <p className="text-red-800 font-medium mb-2">データ取得エラー</p>
+                              <p className="text-sm text-red-600 mb-4">{detailErrors.tipsSent}</p>
+                              <button
+                                onClick={() => fetchUserDetail(selectedUser.id)}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                              >
+                                再試行
+                              </button>
+                            </div>
+                          ) : detailUserData.tipsSent.length > 0 ? (
+                            <div className="space-y-3">
+                              {detailUserData.tipsSent.map((tip, idx) => (
+                                <div key={tip.id} className="flex items-center justify-between p-4 bg-red-50 rounded-lg" data-testid={`tip-sent-${idx}`}>
+                                  <div className="flex items-center space-x-3">
+                                    <Gift className="w-5 h-5 text-red-600" />
+                                    <div>
+                                      <p className="font-medium text-gray-900">チップ送信</p>
+                                      <p className="text-sm text-gray-500">
+                                        {tip.createdAt?.toDate ? formatDate(tip.createdAt.toDate()) : 'N/A'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <p className="font-bold text-red-600">-¥{(tip.amount || 0).toLocaleString()}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-gray-500">
+                              <Gift className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                              <p>送信したチップがありません</p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-4">受信したチップ</h4>
+                          {detailErrors.tipsReceived ? (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                              <p className="text-red-800 font-medium mb-2">データ取得エラー</p>
+                              <p className="text-sm text-red-600 mb-4">{detailErrors.tipsReceived}</p>
+                              <button
+                                onClick={() => fetchUserDetail(selectedUser.id)}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                              >
+                                再試行
+                              </button>
+                            </div>
+                          ) : detailUserData.tipsReceived.length > 0 ? (
+                            <div className="space-y-3">
+                              {detailUserData.tipsReceived.map((tip, idx) => (
+                                <div key={tip.id} className="flex items-center justify-between p-4 bg-green-50 rounded-lg" data-testid={`tip-received-${idx}`}>
+                                  <div className="flex items-center space-x-3">
+                                    <Gift className="w-5 h-5 text-green-600" />
+                                    <div>
+                                      <p className="font-medium text-gray-900">チップ受信</p>
+                                      <p className="text-sm text-gray-500">
+                                        {tip.createdAt?.toDate ? formatDate(tip.createdAt.toDate()) : 'N/A'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <p className="font-bold text-green-600">+¥{(tip.amount || 0).toLocaleString()}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-gray-500">
+                              <Gift className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                              <p>受信したチップがありません</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 投稿タブ */}
+                    {activeTab === 'posts' && detailUserData && (
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-4">投稿履歴</h4>
+                        {detailErrors.posts ? (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                            <p className="text-red-800 font-medium mb-2">データ取得エラー</p>
+                            <p className="text-sm text-red-600 mb-4">{detailErrors.posts}</p>
+                            <button
+                              onClick={() => fetchUserDetail(selectedUser.id)}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                              再試行
+                            </button>
+                          </div>
+                        ) : detailUserData.posts.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {detailUserData.posts.map((post, idx) => (
+                              <div key={post.id} className="bg-gray-50 rounded-lg p-4" data-testid={`post-${idx}`}>
+                                <div className="flex items-start space-x-3">
+                                  <FileText className="w-5 h-5 text-gray-600 mt-1" />
+                                  <div className="flex-1">
+                                    <p className="font-medium text-gray-900 line-clamp-2">{post.caption || '(キャプションなし)'}</p>
+                                    <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                                      <span className="flex items-center space-x-1">
+                                        <Heart className="w-4 h-4" />
+                                        <span>{post.likesCount || 0}</span>
+                                      </span>
+                                      <span className="flex items-center space-x-1">
+                                        <MessageSquare className="w-4 h-4" />
+                                        <span>{post.commentsCount || 0}</span>
+                                      </span>
+                                      <span>{post.createdAt?.toDate ? formatDate(post.createdAt.toDate()) : 'N/A'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p>投稿がありません</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </motion.div>
           </motion.div>
