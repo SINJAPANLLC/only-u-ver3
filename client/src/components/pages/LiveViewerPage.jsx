@@ -43,6 +43,18 @@ const LiveViewerPage = () => {
         const unsubscribe = onSnapshot(doc(db, 'liveRooms', roomId), (docSnap) => {
             if (docSnap.exists()) {
                 const roomData = { id: docSnap.id, ...docSnap.data() };
+                
+                // 配信が終了状態かチェック
+                if (roomData.status === 'ended' || roomData.isActive === false) {
+                    toast({
+                        title: '配信終了',
+                        description: 'この配信は終了しました',
+                        variant: 'destructive'
+                    });
+                    navigate('/live');
+                    return;
+                }
+                
                 setRoom(roomData);
                 setViewers(roomData.viewers || 0);
             } else {

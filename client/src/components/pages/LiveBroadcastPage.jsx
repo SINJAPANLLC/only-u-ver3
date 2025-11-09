@@ -335,8 +335,13 @@ const LiveBroadcastPage = () => {
             // すべてのピア接続を閉じる
             Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
 
-            // Firestoreのルームを削除
-            await deleteDoc(doc(db, 'liveRooms', roomId));
+            // Firestoreのルームを更新（削除ではなく終了状態に）
+            await updateDoc(doc(db, 'liveRooms', roomId), {
+                isActive: false,
+                status: 'ended',
+                endedAt: serverTimestamp(),
+                viewers: 0
+            });
 
             toast({
                 title: '配信終了',
