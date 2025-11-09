@@ -429,9 +429,9 @@ const LiveViewerPage = () => {
                 </div>
 
                 {/* チャットメッセージ表示エリア */}
-                <div className="absolute left-1 sm:left-2 bottom-28 sm:bottom-32 max-h-[120px] sm:max-h-[180px] max-w-[40%] sm:max-w-[45%] overflow-y-auto space-y-1 sm:space-y-1.5 z-10 pointer-events-none">
+                <div className="absolute left-1 sm:left-2 bottom-28 sm:bottom-32 max-h-[80px] sm:max-h-[100px] max-w-[40%] sm:max-w-[45%] overflow-y-auto space-y-1 sm:space-y-1.5 z-10 pointer-events-none">
                     <AnimatePresence>
-                        {messages.slice(-5).map((msg) => (
+                        {messages.slice(-3).map((msg) => (
                             <motion.div
                                 key={msg.id}
                                 initial={{ opacity: 0, y: 20 }}
