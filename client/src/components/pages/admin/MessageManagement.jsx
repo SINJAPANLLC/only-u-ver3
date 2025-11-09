@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { MessageSquare, Users, Search, XCircle, Eye, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageSquare, Users, XCircle, Eye, RefreshCw, X } from 'lucide-react';
 import { collection, query, getDocs, orderBy, doc, deleteDoc, getDoc, limit as firestoreLimit, getCountFromServer } from 'firebase/firestore';
 import { db } from '../../../firebase';
+import { useToast } from '../../../hooks/use-toast';
 
 export default function MessageManagement() {
+  const { toast } = useToast();
   const [chatRooms, setChatRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [messages, setMessages] = useState([]);
   const [showMessages, setShowMessages] = useState(false);
@@ -15,14 +18,19 @@ export default function MessageManagement() {
     totalMessages: 0,
     activeChatRooms: 0,
   });
+  const [deleteMessageModalOpen, setDeleteMessageModalOpen] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     fetchChatRooms();
   }, []);
 
-  const fetchChatRooms = async () => {
+  const fetchChatRooms = async (skipLoading = false) => {
     try {
-      setLoading(true);
+      if (!skipLoading) {
+        setLoading(true);
+      }
       
       // マッチからチャットルームIDを取得
       const matchesQuery = query(collection(db, 'matches'), orderBy('createdAt', 'desc'));
@@ -79,21 +87,59 @@ export default function MessageManagement() {
       roomsData.sort((a, b) => b.messageCount - a.messageCount);
 
       setChatRooms(roomsData);
-      setStats({
-        totalChatRooms: roomsData.length,
-        totalMessages,
-        activeChatRooms: roomsData.filter(r => r.messageCount > 0).length,
-      });
+      
+      // 正確な統計を計算
+      fetchAccurateStats(roomsData);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
+      toast({
+        title: 'エラー',
+        description: 'チャットルームの取得に失敗しました',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchMessages = async (chatRoomId) => {
+  const fetchAccurateStats = (roomsData) => {
+    const dataToUse = roomsData || chatRooms;
+    
+    const totalMessages = dataToUse.reduce((sum, room) => sum + room.messageCount, 0);
+    const activeChatRooms = dataToUse.filter(r => r.messageCount > 0).length;
+    
+    setStats({
+      totalChatRooms: dataToUse.length,
+      totalMessages,
+      activeChatRooms,
+    });
+  };
+
+  const handleRefresh = async () => {
     try {
-      setLoading(true);
+      setIsRefreshing(true);
+      await fetchChatRooms(true); // skipLoading = true
+      toast({
+        title: '更新完了',
+        description: 'チャットルームを更新しました',
+      });
+    } catch (error) {
+      console.error('Error refreshing:', error);
+      toast({
+        title: 'エラー',
+        description: '更新に失敗しました',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const fetchMessages = async (chatRoomId, skipLoading = false) => {
+    try {
+      if (!skipLoading) {
+        setLoading(true);
+      }
       const messagesQuery = query(
         collection(db, `chatRooms/${chatRoomId}/messages`),
         orderBy('timestamp', 'desc'),
@@ -131,9 +177,24 @@ export default function MessageManagement() {
       setMessages(messagesData);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast({
+        title: 'エラー',
+        description: 'メッセージの取得に失敗しました',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const openDeleteMessageModal = (message) => {
+    setSelectedMessage(message);
+    setDeleteMessageModalOpen(true);
+  };
+
+  const closeDeleteMessageModal = () => {
+    setDeleteMessageModalOpen(false);
+    setSelectedMessage(null);
   };
 
   const handleViewMessages = async (room) => {
@@ -142,40 +203,45 @@ export default function MessageManagement() {
     await fetchMessages(room.chatRoomId);
   };
 
-  const handleDeleteMessage = async (chatRoomId, messageId) => {
-    if (!window.confirm('このメッセージを削除しますか？')) return;
+  const handleDeleteMessage = async () => {
+    if (!selectedMessage || !selectedRoom) return;
 
     try {
-      await deleteDoc(doc(db, `chatRooms/${chatRoomId}/messages`, messageId));
+      setIsProcessing(true);
+      await deleteDoc(doc(db, `chatRooms/${selectedRoom.chatRoomId}/messages`, selectedMessage.id));
       
-      // メッセージリストを更新
-      await fetchMessages(chatRoomId);
+      // ローカル状態からメッセージを削除
+      const updatedMessages = messages.filter(msg => msg.id !== selectedMessage.id);
+      setMessages(updatedMessages);
       
-      // 親のチャットルームリストも更新（メッセージ数を反映）
-      const updatedChatRooms = await Promise.all(
-        chatRooms.map(async (room) => {
-          if (room.chatRoomId === chatRoomId) {
-            const countSnapshot = await getCountFromServer(
-              collection(db, `chatRooms/${chatRoomId}/messages`)
-            );
-            return { ...room, messageCount: countSnapshot.data().count };
-          }
-          return room;
-        })
-      );
+      // チャットルームのメッセージ数を更新（0でクランプ）
+      const updatedChatRooms = chatRooms.map(room => {
+        if (room.chatRoomId === selectedRoom.chatRoomId) {
+          return { ...room, messageCount: Math.max(0, room.messageCount - 1) };
+        }
+        return room;
+      });
       
       setChatRooms(updatedChatRooms);
       
-      // 統計も更新
-      const totalMessages = updatedChatRooms.reduce((sum, room) => sum + room.messageCount, 0);
-      setStats(prev => ({
-        ...prev,
-        totalMessages,
-        activeChatRooms: updatedChatRooms.filter(r => r.messageCount > 0).length,
-      }));
+      // 統計を更新
+      fetchAccurateStats(updatedChatRooms);
+
+      toast({
+        title: '削除完了',
+        description: 'メッセージを削除しました',
+      });
+
+      closeDeleteMessageModal();
     } catch (error) {
       console.error('Error deleting message:', error);
-      alert('メッセージの削除に失敗しました');
+      toast({
+        title: 'エラー',
+        description: 'メッセージの削除に失敗しました',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -209,12 +275,27 @@ export default function MessageManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <MessageSquare className="w-8 h-8 mr-3 text-pink-500" />
-          メッセージ管理
-        </h1>
-        <p className="mt-2 text-gray-600">チャットルームとメッセージの監視と管理</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+            <MessageSquare className="w-8 h-8 mr-3 text-pink-500" />
+            メッセージ管理
+          </h1>
+          <p className="mt-2 text-gray-600">チャットルームとメッセージの監視と管理</p>
+        </div>
+        {!showMessages && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all disabled:opacity-50"
+            data-testid="button-refresh"
+          >
+            <RefreshCw className={`w-5 h-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? '更新中...' : '更新'}
+          </motion.button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -364,6 +445,7 @@ export default function MessageManagement() {
             <button
               onClick={() => setShowMessages(false)}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              data-testid="button-back-to-rooms"
             >
               戻る
             </button>
@@ -390,7 +472,7 @@ export default function MessageManagement() {
                     )}
                   </div>
                   <button
-                    onClick={() => handleDeleteMessage(selectedRoom.chatRoomId, message.id)}
+                    onClick={() => openDeleteMessageModal(message)}
                     className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                     data-testid={`button-delete-message-${message.id}`}
                   >
@@ -402,6 +484,90 @@ export default function MessageManagement() {
           </div>
         </div>
       )}
+
+      {/* メッセージ削除確認モーダル */}
+      <AnimatePresence>
+        {deleteMessageModalOpen && selectedMessage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => !isProcessing && closeDeleteMessageModal()}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              data-testid="modal-delete-message"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">メッセージ削除</h3>
+                </div>
+                <button
+                  onClick={() => !isProcessing && closeDeleteMessageModal()}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={isProcessing}
+                  data-testid="button-close-delete-modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-900">{selectedMessage.senderName}</span>
+                  <span className="text-xs text-gray-500">{formatDate(selectedMessage.timestamp)}</span>
+                </div>
+                <p className="text-sm text-gray-700 break-words">{selectedMessage.text || selectedMessage.message || '(画像メッセージ)'}</p>
+                {selectedMessage.imageUrl && (
+                  <img
+                    src={getProxyImageUrl(selectedMessage.imageUrl)}
+                    alt="Message attachment"
+                    className="mt-2 max-w-full rounded-lg"
+                  />
+                )}
+              </div>
+
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  このメッセージを削除してもよろしいですか？<br />
+                  <span className="font-semibold text-red-600">この操作は取り消すことができません。</span>
+                </p>
+              </div>
+
+              <div className="flex space-x-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={closeDeleteMessageModal}
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  data-testid="button-cancel-delete"
+                >
+                  キャンセル
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleDeleteMessage}
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50"
+                  data-testid="button-confirm-delete"
+                >
+                  {isProcessing ? '削除中...' : 'メッセージを削除'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
