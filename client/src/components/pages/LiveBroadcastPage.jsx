@@ -439,18 +439,18 @@ const LiveBroadcastPage = () => {
                     </div>
                 </div>
 
-                {/* チャットメッセージ表示エリア */}
-                <div className="absolute left-1 sm:left-2 bottom-28 sm:bottom-32 max-h-[80px] sm:max-h-[100px] max-w-[40%] sm:max-w-[45%] overflow-y-auto space-y-1 sm:space-y-1.5 z-10 pointer-events-none">
+                {/* コメント表示エリア - 左端コンパクト版 */}
+                <div className="absolute left-1 sm:left-2 bottom-28 sm:bottom-32 max-h-[80px] sm:max-h-[100px] max-w-[40%] sm:max-w-[45%] overflow-y-auto space-y-1 z-10 pointer-events-none">
                     <AnimatePresence>
                         {messages.slice(-3).map((msg) => (
                             <motion.div
                                 key={msg.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                className="bg-black/40 backdrop-blur-md px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg sm:rounded-xl inline-block border border-white/10"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="bg-black/40 backdrop-blur-sm px-1.5 sm:px-2 py-1 rounded-lg inline-block border border-white/10"
                             >
-                                <div className="flex items-start space-x-1 sm:space-x-1.5">
+                                <div className="flex items-start space-x-1">
                                     <img
                                         src={msg.userAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
                                         alt={msg.userName}
