@@ -95,6 +95,16 @@
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
   }
+  
+  /* フルスクリーンPWA対応：すべての固定ヘッダーに自動的にセーフエリアを適用 */
+  .fixed.top-0, .sticky.top-0 {
+    padding-top: env(safe-area-inset-top) !important;
+  }
+  
+  /* ボトムナビゲーション対応 */
+  .fixed.bottom-0, .sticky.bottom-0 {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
 }
 
 @layer components {
