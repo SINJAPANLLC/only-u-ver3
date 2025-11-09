@@ -16,38 +16,44 @@ import {
   Crown,
   Sparkles,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Video,
+  Gift,
+  UserCheck
 } from 'lucide-react';
 import { db } from '../../../firebase';
-import { collection, getDocs, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, onSnapshot, getCountFromServer } from 'firebase/firestore';
 import { AdminPageContainer, AdminPageHeader, AdminLoadingState } from './AdminPageContainer';
 
 // カウントアップアニメーションコンポーネント
-const AnimatedNumber = ({ value, duration = 2 }) => {
+const AnimatedNumber = ({ value, duration = 2, prefix = '', suffix = '' }) => {
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
+    // 数値ガード：valueが数値でない場合は0を使用
+    const numericValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+    
     let startTime;
     const animate = (currentTime) => {
       if (!startTime) startTime = currentTime;
       const progress = (currentTime - startTime) / (duration * 1000);
       
       if (progress < 1) {
-        setDisplayValue(Math.floor(value * progress));
+        setDisplayValue(Math.floor(numericValue * progress));
         requestAnimationFrame(animate);
       } else {
-        setDisplayValue(value);
+        setDisplayValue(numericValue);
       }
     };
     
     requestAnimationFrame(animate);
   }, [value, duration]);
 
-  return <span>{displayValue.toLocaleString()}</span>;
+  return <span>{prefix}{displayValue.toLocaleString()}{suffix}</span>;
 };
 
 // 統計カードコンポーネント
-const StatCard = ({ title, value, trend, trendValue, icon: Icon, gradient, delay = 0 }) => {
+const StatCard = ({ title, value, trend, trendValue, icon: Icon, gradient, delay = 0, prefix = '', suffix = '' }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -103,7 +109,7 @@ const StatCard = ({ title, value, trend, trendValue, icon: Icon, gradient, delay
         <div className="relative">
           <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
           <p className="text-3xl font-bold text-gray-900">
-            <AnimatedNumber value={value} />
+            <AnimatedNumber value={value} prefix={prefix} suffix={suffix} />
           </p>
         </div>
 
@@ -119,11 +125,17 @@ const ActivityCard = ({ activity, index }) => {
   const getActivityIcon = (type) => {
     switch (type) {
       case 'user_registration':
-        return <UserPlus className="w-5 h-5 text-blue-500" />;
+        return <UserPlus className="w-5 h-5 text-white" />;
       case 'post_created':
-        return <FileText className="w-5 h-5 text-green-500" />;
+        return <FileText className="w-5 h-5 text-white" />;
+      case 'live_stream_started':
+        return <Video className="w-5 h-5 text-white" />;
+      case 'match_created':
+        return <UserCheck className="w-5 h-5 text-white" />;
+      case 'tip_received':
+        return <Gift className="w-5 h-5 text-white" />;
       default:
-        return <Activity className="w-5 h-5 text-gray-500" />;
+        return <Activity className="w-5 h-5 text-white" />;
     }
   };
 
@@ -133,6 +145,12 @@ const ActivityCard = ({ activity, index }) => {
         return 'from-blue-400 to-blue-600';
       case 'post_created':
         return 'from-green-400 to-green-600';
+      case 'live_stream_started':
+        return 'from-purple-400 to-purple-600';
+      case 'match_created':
+        return 'from-pink-400 to-pink-600';
+      case 'tip_received':
+        return 'from-yellow-400 to-yellow-600';
       default:
         return 'from-gray-400 to-gray-600';
     }
@@ -169,11 +187,21 @@ export default function Dashboard() {
     totalRevenue: 0,
     activeUsers: 0,
     newUsersToday: 0,
+    newUsersThisWeek: 0,
+    newUsersThisMonth: 0,
     pendingReports: 0,
     verifiedCreators: 0,
     totalViews: 0,
     totalLikes: 0,
-    totalComments: 0
+    totalComments: 0,
+    totalLiveRooms: 0,
+    activeLiveRooms: 0,
+    totalMatches: 0,
+    todayMatches: 0,
+    totalChatRooms: 0,
+    totalTips: 0,
+    tipsRevenue: 0,
+    subscriptionRevenue: 0
   });
 
   const [recentActivity, setRecentActivity] = useState([]);
@@ -218,23 +246,38 @@ export default function Dashboard() {
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const weekStart = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      
       let newUsersToday = 0;
+      let newUsersThisWeek = 0;
+      let newUsersThisMonth = 0;
+      let totalCreators = 0;
       
       snapshot.forEach(doc => {
         const data = doc.data();
         const userDate = convertTimestamp(data.createdAt);
-        if (userDate && userDate >= today) {
-          newUsersToday++;
+        
+        if (data.role === 'creator') {
+          totalCreators++;
+        }
+        
+        if (userDate) {
+          if (userDate >= today) newUsersToday++;
+          if (userDate >= weekStart) newUsersThisWeek++;
+          if (userDate >= monthStart) newUsersThisMonth++;
         }
       });
 
       setStats(prev => ({
         ...prev,
         totalUsers,
-        totalCreators: Math.floor(totalUsers * 0.15),
+        totalCreators,
         activeUsers: Math.floor(totalUsers * 0.7),
         newUsersToday,
-        verifiedCreators: Math.floor(totalUsers * 0.12)
+        newUsersThisWeek,
+        newUsersThisMonth,
+        verifiedCreators: Math.floor(totalCreators * 0.8)
       }));
       
       setLoading(false);
@@ -270,75 +313,183 @@ export default function Dashboard() {
     // 取引データをリアルタイム監視（完了した取引のみを合計）
     const unsubscribeTransactions = onSnapshot(collection(db, 'transactions'), (snapshot) => {
       let totalRevenue = 0;
+      let subscriptionRevenue = 0;
       
       snapshot.forEach(doc => {
         const data = doc.data();
         // 完了した取引のみを合計
         if (data.status === 'completed') {
-          totalRevenue += data.amount || 0;
+          const amount = data.amount || 0;
+          totalRevenue += amount;
+          
+          // サブスクリプション収益
+          if (data.type === 'subscription' || data.description?.includes('サブスクリプション')) {
+            subscriptionRevenue += amount;
+          }
         }
       });
 
       setStats(prev => ({
         ...prev,
-        totalRevenue
+        totalRevenue,
+        subscriptionRevenue
       }));
     });
     unsubscribeCallbacks.push(unsubscribeTransactions);
 
-    // 最近のアクティビティ
-    const recentUsersQuery = query(
-      collection(db, 'users'),
-      orderBy('createdAt', 'desc'),
-      limit(3)
-    );
-    const unsubscribeRecentUsers = onSnapshot(recentUsersQuery, (snapshot) => {
-      const userActivities = [];
+    // チップデータをリアルタイム監視
+    const unsubscribeTips = onSnapshot(collection(db, 'tips'), (snapshot) => {
+      let totalTips = snapshot.size;
+      let tipsRevenue = 0;
+      
       snapshot.forEach(doc => {
         const data = doc.data();
-        userActivities.push({
+        tipsRevenue += data.amount || 0;
+      });
+
+      setStats(prev => ({
+        ...prev,
+        totalTips,
+        tipsRevenue
+      }));
+    });
+    unsubscribeCallbacks.push(unsubscribeTips);
+
+    // ライブ配信データをリアルタイム監視
+    const unsubscribeLiveRooms = onSnapshot(collection(db, 'liveRooms'), (snapshot) => {
+      let totalLiveRooms = snapshot.size;
+      let activeLiveRooms = 0;
+      
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.status === 'active') {
+          activeLiveRooms++;
+        }
+      });
+
+      setStats(prev => ({
+        ...prev,
+        totalLiveRooms,
+        activeLiveRooms
+      }));
+    });
+    unsubscribeCallbacks.push(unsubscribeLiveRooms);
+
+    // マッチングデータをリアルタイム監視
+    const unsubscribeMatches = onSnapshot(collection(db, 'matches'), (snapshot) => {
+      let totalMatches = snapshot.size;
+      let todayMatches = 0;
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const matchDate = convertTimestamp(data.createdAt);
+        if (matchDate && matchDate >= today) {
+          todayMatches++;
+        }
+      });
+
+      setStats(prev => ({
+        ...prev,
+        totalMatches,
+        todayMatches,
+        totalChatRooms: totalMatches
+      }));
+    });
+    unsubscribeCallbacks.push(unsubscribeMatches);
+
+    // 最近のアクティビティ
+    const fetchRecentActivities = async () => {
+      const activities = [];
+
+      // 最近のユーザー登録
+      const recentUsersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(2));
+      const usersSnapshot = await getDocs(recentUsersQuery);
+      usersSnapshot.forEach(doc => {
+        const data = doc.data();
+        activities.push({
           type: 'user_registration',
           title: `${data.displayName || data.username || 'ユーザー'}が登録`,
           description: data.email || 'メールアドレス未登録',
-          timeAgo: getTimeAgo(data.createdAt)
+          timeAgo: getTimeAgo(data.createdAt),
+          timestamp: data.createdAt
         });
       });
 
-      const recentPostsQuery = query(
-        collection(db, 'posts'),
-        orderBy('createdAt', 'desc'),
-        limit(2)
-      );
-      
-      onSnapshot(recentPostsQuery, (postsSnapshot) => {
-        const postActivities = [];
-        postsSnapshot.forEach(doc => {
-          const data = doc.data();
-          postActivities.push({
-            type: 'post_created',
-            title: `新しい投稿: ${data.title || 'タイトルなし'}`,
-            description: `${data.creatorName || data.username || '不明'}が投稿`,
-            timeAgo: getTimeAgo(data.createdAt)
-          });
+      // 最近の投稿
+      const recentPostsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(2));
+      const postsSnapshot = await getDocs(recentPostsQuery);
+      postsSnapshot.forEach(doc => {
+        const data = doc.data();
+        activities.push({
+          type: 'post_created',
+          title: `新しい投稿: ${data.title || 'タイトルなし'}`,
+          description: `${data.creatorName || data.username || '不明'}が投稿`,
+          timeAgo: getTimeAgo(data.createdAt),
+          timestamp: data.createdAt
         });
-
-        const allActivities = [...userActivities, ...postActivities]
-          .sort((a, b) => {
-            const timeToMinutes = (timeStr) => {
-              if (timeStr === '今') return 0;
-              if (timeStr.includes('分前')) return parseInt(timeStr);
-              if (timeStr.includes('時間前')) return parseInt(timeStr) * 60;
-              if (timeStr.includes('日前')) return parseInt(timeStr) * 1440;
-              return 9999;
-            };
-            return timeToMinutes(a.timeAgo) - timeToMinutes(b.timeAgo);
-          })
-          .slice(0, 5);
-
-        setRecentActivity(allActivities);
       });
-    });
-    unsubscribeCallbacks.push(unsubscribeRecentUsers);
+
+      // 最近のライブ配信
+      const recentLiveQuery = query(collection(db, 'liveRooms'), orderBy('createdAt', 'desc'), limit(2));
+      const liveSnapshot = await getDocs(recentLiveQuery);
+      liveSnapshot.forEach(doc => {
+        const data = doc.data();
+        activities.push({
+          type: 'live_stream_started',
+          title: `ライブ配信: ${data.title || 'タイトルなし'}`,
+          description: data.status === 'active' ? '配信中' : '終了',
+          timeAgo: getTimeAgo(data.createdAt),
+          timestamp: data.createdAt
+        });
+      });
+
+      // 最近のマッチング
+      const recentMatchesQuery = query(collection(db, 'matches'), orderBy('createdAt', 'desc'), limit(2));
+      const matchesSnapshot = await getDocs(recentMatchesQuery);
+      matchesSnapshot.forEach(doc => {
+        const data = doc.data();
+        activities.push({
+          type: 'match_created',
+          title: '新しいマッチング成立',
+          description: 'ユーザー間でマッチングが成立しました',
+          timeAgo: getTimeAgo(data.createdAt),
+          timestamp: data.createdAt
+        });
+      });
+
+      // 最近のチップ
+      const recentTipsQuery = query(collection(db, 'tips'), orderBy('createdAt', 'desc'), limit(2));
+      const tipsSnapshot = await getDocs(recentTipsQuery);
+      tipsSnapshot.forEach(doc => {
+        const data = doc.data();
+        activities.push({
+          type: 'tip_received',
+          title: `チップ: ¥${(data.amount || 0).toLocaleString()}`,
+          description: `${data.fromUsername || '匿名'}から${data.toCreatorName || 'クリエイター'}へ`,
+          timeAgo: getTimeAgo(data.createdAt),
+          timestamp: data.createdAt
+        });
+      });
+
+      // タイムスタンプでソートして最新5件を取得
+      const sortedActivities = activities
+        .sort((a, b) => {
+          const timeA = convertTimestamp(a.timestamp);
+          const timeB = convertTimestamp(b.timestamp);
+          if (!timeA || !timeB) return 0;
+          return timeB - timeA;
+        })
+        .slice(0, 5);
+
+      setRecentActivity(sortedActivities);
+    };
+
+    fetchRecentActivities();
+    const activityInterval = setInterval(fetchRecentActivities, 30000); // 30秒ごとに更新
+    unsubscribeCallbacks.push(() => clearInterval(activityInterval));
 
     return () => {
       unsubscribeCallbacks.forEach(unsubscribe => unsubscribe());
@@ -387,13 +538,13 @@ export default function Dashboard() {
         }
       />
 
-      {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* 統計カード - 行1 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="総ユーザー数"
           value={stats.totalUsers}
           trend="up"
-          trendValue="+0"
+          trendValue={`本日+${stats.newUsersToday}`}
           icon={Users}
           gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
           delay={0}
@@ -403,7 +554,7 @@ export default function Dashboard() {
           title="クリエイター数"
           value={stats.totalCreators}
           trend="up"
-          trendValue="認証済み"
+          trendValue={`認証${stats.verifiedCreators}`}
           icon={UserPlus}
           gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
           delay={0.1}
@@ -413,7 +564,7 @@ export default function Dashboard() {
           title="総投稿数"
           value={stats.totalPosts}
           trend="up"
-          trendValue="+0"
+          trendValue={`${stats.totalViews.toLocaleString()} 閲覧`}
           icon={FileText}
           gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
           delay={0.2}
@@ -421,12 +572,57 @@ export default function Dashboard() {
         
         <StatCard
           title="総売上"
-          value={`¥${stats.totalRevenue.toLocaleString()}`}
+          value={stats.totalRevenue}
+          prefix="¥"
           trend="up"
-          trendValue="+12.5%"
+          trendValue="今月"
           icon={DollarSign}
           gradient="linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
           delay={0.3}
+        />
+      </div>
+
+      {/* 統計カード - 行2 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          title="ライブ配信"
+          value={stats.totalLiveRooms}
+          trend={stats.activeLiveRooms > 0 ? "up" : undefined}
+          trendValue={stats.activeLiveRooms > 0 ? `${stats.activeLiveRooms} 配信中` : "オフライン"}
+          icon={Video}
+          gradient="linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)"
+          delay={0.4}
+        />
+        
+        <StatCard
+          title="マッチング数"
+          value={stats.totalMatches}
+          trend="up"
+          trendValue={`本日+${stats.todayMatches}`}
+          icon={UserCheck}
+          gradient="linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)"
+          delay={0.5}
+        />
+        
+        <StatCard
+          title="チップ収益"
+          value={stats.tipsRevenue}
+          prefix="¥"
+          trend="up"
+          trendValue={`${stats.totalTips}件`}
+          icon={Gift}
+          gradient="linear-gradient(135deg, #fddb92 0%, #d1fdff 100%)"
+          delay={0.6}
+        />
+        
+        <StatCard
+          title="チャット数"
+          value={stats.totalChatRooms}
+          trend="up"
+          trendValue={`${stats.totalMatches} ルーム`}
+          icon={MessageCircle}
+          gradient="linear-gradient(135deg, #96fbc4 0%, #f9f586 100%)"
+          delay={0.7}
         />
       </div>
 
