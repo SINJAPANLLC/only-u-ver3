@@ -440,25 +440,25 @@ const LiveBroadcastPage = () => {
                 </div>
 
                 {/* チャットメッセージ表示エリア */}
-                <div className="absolute left-3 bottom-32 max-h-[300px] max-w-[50%] overflow-y-auto space-y-1.5 z-10 pointer-events-none">
+                <div className="absolute left-1 sm:left-2 bottom-28 sm:bottom-32 max-h-[200px] sm:max-h-[300px] max-w-[40%] sm:max-w-[45%] overflow-y-auto space-y-1 sm:space-y-1.5 z-10 pointer-events-none">
                     <AnimatePresence>
-                        {messages.slice(-8).map((msg) => (
+                        {messages.slice(-5).map((msg) => (
                             <motion.div
                                 key={msg.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
-                                className="bg-black/40 backdrop-blur-md px-2 py-1.5 rounded-xl inline-block border border-white/10"
+                                className="bg-black/40 backdrop-blur-md px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg sm:rounded-xl inline-block border border-white/10"
                             >
-                                <div className="flex items-start space-x-1.5">
+                                <div className="flex items-start space-x-1 sm:space-x-1.5">
                                     <img
                                         src={msg.userAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
                                         alt={msg.userName}
-                                        className="w-4 h-4 rounded-full flex-shrink-0"
+                                        className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
                                     />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-pink-400 text-[10px] font-semibold truncate">{msg.userName}</p>
-                                        <p className="text-white text-xs break-words leading-tight">{msg.message}</p>
+                                        <p className="text-pink-400 text-[9px] sm:text-[10px] font-semibold truncate">{msg.userName}</p>
+                                        <p className="text-white text-[10px] sm:text-xs break-words leading-tight">{msg.message}</p>
                                     </div>
                                 </div>
                             </motion.div>
