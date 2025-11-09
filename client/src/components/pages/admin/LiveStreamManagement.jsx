@@ -8,11 +8,14 @@ import { useToast } from '../../../hooks/use-toast';
 export default function LiveStreamManagement() {
   const { toast } = useToast();
   const [liveRooms, setLiveRooms] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'ended'
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState({
     totalRooms: 0,
     activeRooms: 0,
+    endedRooms: 0,
     totalViewers: 0,
     averageViewers: 0,
   });

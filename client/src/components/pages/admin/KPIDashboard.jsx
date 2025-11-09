@@ -108,69 +108,8 @@ const KPIDashboard = () => {
   }, [kpis]);
 
   const loadKPIs = () => {
-    const mockKpis = [
-      {
-        id: 'KPI_001',
-        name: '月間収益',
-        description: '月間総収益の目標達成',
-        category: 'revenue',
-        currentValue: 12500000,
-        targetValue: 15000000,
-        unit: '円',
-        progress: 83.3,
-        trend: 'up',
-        trendValue: 12.5,
-        status: 'on_track',
-        priority: 'high',
-        owner: '田中太郎'
-      },
-      {
-        id: 'KPI_002',
-        name: 'アクティブユーザー数',
-        description: '月間アクティブユーザー数の目標達成',
-        category: 'users',
-        currentValue: 45000,
-        targetValue: 50000,
-        unit: '人',
-        progress: 90.0,
-        trend: 'up',
-        trendValue: 8.3,
-        status: 'on_track',
-        priority: 'high',
-        owner: '佐藤花子'
-      },
-      {
-        id: 'KPI_003',
-        name: 'コンバージョン率',
-        description: 'サイト全体のコンバージョン率向上',
-        category: 'conversion',
-        currentValue: 3.2,
-        targetValue: 4.0,
-        unit: '%',
-        progress: 80.0,
-        trend: 'up',
-        trendValue: 5.2,
-        status: 'on_track',
-        priority: 'medium',
-        owner: '山田次郎'
-      },
-      {
-        id: 'KPI_004',
-        name: 'エンゲージメント率',
-        description: 'ユーザーエンゲージメント率の向上',
-        category: 'engagement',
-        currentValue: 45,
-        targetValue: 60,
-        unit: '%',
-        progress: 75.0,
-        trend: 'down',
-        trendValue: -2.1,
-        status: 'at_risk',
-        priority: 'medium',
-        owner: '山田美咲'
-      }
-    ];
-    setKpis(mockKpis);
+    // TODO: Firestore から KPI データを取得
+    setKpis([]);
   };
 
   const handleRefresh = () => {

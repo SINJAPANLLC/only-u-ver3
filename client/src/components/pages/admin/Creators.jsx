@@ -16,6 +16,9 @@ import {
   DollarSign,
   FileText
 } from 'lucide-react';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../../../firebase';
+import { useToast } from '../../../hooks/use-toast';
 import { 
   AdminPageContainer, 
   AdminPageHeader, 
@@ -50,6 +53,7 @@ const AnimatedNumber = ({ value, duration = 2 }) => {
 };
 
 export default function Creators() {
+  const { toast } = useToast();
   const [creators, setCreators] = useState([]);
   const [filteredCreators, setFilteredCreators] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -85,64 +89,52 @@ export default function Creators() {
     loadCreators();
   }, []);
 
-  const loadCreators = () => {
-    const mockCreators = [
-      { 
-        id: 1, 
-        name: "田中花子", 
-        email: "hanako@example.com",
-        status: "active", 
-        verification: "verified",
-        joinDate: "2024-01-15",
-        lastLogin: "2024-01-20",
-        posts: 45,
-        followers: 1250,
-        revenue: 125000,
-        rating: 4.8,
-        category: "美容・ファッション"
-      },
-      { 
-        id: 2, 
-        name: "佐藤太郎", 
-        email: "taro@example.com",
-        status: "pending", 
-        verification: "pending",
-        joinDate: "2024-01-18",
-        lastLogin: "2024-01-19",
-        posts: 12,
-        followers: 89,
-        revenue: 0,
-        rating: 4.2,
-        category: "テクノロジー"
-      },
-      { 
-        id: 3, 
-        name: "山田美咲", 
-        email: "misaki@example.com",
-        status: "banned", 
-        verification: "verified",
-        joinDate: "2024-01-10",
-        lastLogin: "2024-01-15",
-        posts: 23,
-        followers: 456,
-        revenue: 0,
-        rating: 3.1,
-        category: "エンターテイメント"
-      }
-    ];
-    
-    setCreators(mockCreators);
-    setFilteredCreators(mockCreators);
-    
-    setStats({
-      total: mockCreators.length,
-      verified: mockCreators.filter(c => c.verification === 'verified').length,
-      pending: mockCreators.filter(c => c.status === 'pending').length,
-      banned: mockCreators.filter(c => c.status === 'banned').length,
-      active: mockCreators.filter(c => c.status === 'active').length
-    });
-    
-    setLoading(false);
+  const loadCreators = async () => {
+    try {
+      setLoading(true);
+      // Firestore から isCreator === true のユーザーを取得
+      const q = query(
+        collection(db, 'users'),
+        where('isCreator', '==', true),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const snapshot = await getDocs(q);
+      const creatorsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().displayName || 'Unknown',
+        email: doc.data().email || '',
+        status: doc.data().creatorStatus || 'active',
+        verification: doc.data().kycStatus || 'pending',
+        joinDate: doc.data().createdAt?.toDate?.()?.toISOString?.().split('T')[0] || '',
+        lastLogin: doc.data().lastLoginAt?.toDate?.()?.toISOString?.().split('T')[0] || '',
+        posts: 0, // TODO: posts collection から取得
+        followers: 0, // TODO: followers collection から取得
+        revenue: doc.data().totalEarnings || 0,
+        rating: 0, // TODO: ratings collection から取得
+        category: doc.data().category || '未設定'
+      }));
+      
+      setCreators(creatorsData);
+      setFilteredCreators(creatorsData);
+      
+      setStats({
+        total: creatorsData.length,
+        verified: creatorsData.filter(c => c.verification === 'verified').length,
+        pending: creatorsData.filter(c => c.status === 'pending').length,
+        banned: creatorsData.filter(c => c.status === 'banned').length,
+        active: creatorsData.filter(c => c.status === 'active').length
+      });
+    } catch (error) {
+      console.error('Error loading creators:', error);
+      toast({
+        title: 'エラー',
+        description: 'クリエイターデータの取得に失敗しました',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

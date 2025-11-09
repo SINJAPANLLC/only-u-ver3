@@ -145,69 +145,6 @@ export default function KYCManagement() {
     return unsubscribe;
   };
 
-  const loadMockApplications = () => {
-    const mockApplications = [
-      {
-        id: 1,
-        userId: 'user001',
-        userName: '田中太郎',
-        email: 'tanaka@example.com',
-        status: 'pending',
-        submittedDate: '2024-01-20',
-        documentType: '運転免許証',
-        reviewedBy: null,
-        reviewedDate: null,
-        notes: ''
-      },
-      {
-        id: 2,
-        userId: 'user002',
-        userName: '佐藤花子',
-        email: 'sato@example.com',
-        status: 'approved',
-        submittedDate: '2024-01-18',
-        documentType: 'パスポート',
-        reviewedBy: 'admin001',
-        reviewedDate: '2024-01-19',
-        notes: '全ての書類が確認されました'
-      },
-      {
-        id: 3,
-        userId: 'user003',
-        userName: '鈴木健一',
-        email: 'suzuki@example.com',
-        status: 'under_review',
-        submittedDate: '2024-01-19',
-        documentType: 'マイナンバーカード',
-        reviewedBy: 'admin002',
-        reviewedDate: null,
-        notes: '追加確認中'
-      },
-      {
-        id: 4,
-        userId: 'user004',
-        userName: '高橋美咲',
-        email: 'takahashi@example.com',
-        status: 'rejected',
-        submittedDate: '2024-01-15',
-        documentType: '運転免許証',
-        reviewedBy: 'admin001',
-        reviewedDate: '2024-01-16',
-        notes: '書類が不鮮明のため却下'
-      }
-    ];
-
-    setApplications(mockApplications);
-    setFilteredApplications(mockApplications);
-
-    setStats({
-      total: mockApplications.length,
-      pending: mockApplications.filter(a => a.status === 'pending').length,
-      approved: mockApplications.filter(a => a.status === 'approved').length,
-      rejected: mockApplications.filter(a => a.status === 'rejected').length,
-      needsReview: mockApplications.filter(a => a.status === 'under_review' || a.status === 'needs_info').length
-    });
-  };
 
   const handleApproveApplication = async (application) => {
     setIsProcessing(true);
