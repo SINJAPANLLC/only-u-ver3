@@ -1073,7 +1073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reference: blueprint:javascript_stripe integration
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
-      const { amount, currency = "jpy", planId, planName } = req.body;
+      const { amount, currency = "jpy", planId, planName, description, creatorId, roomId } = req.body;
       
       // Validate amount
       if (!amount || amount <= 0) {
@@ -1097,9 +1097,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount), // Amount in yen (no need to multiply by 100 for JPY)
         currency: currency,
+        description: description || undefined,
         metadata: {
           planId: planId || '',
           planName: planName || '',
+          creatorId: creatorId || '',
+          roomId: roomId || '',
+          type: roomId ? 'tip' : 'plan',
         },
         automatic_payment_methods: {
           enabled: true,
@@ -1381,6 +1385,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error in upload endpoint:', error);
       res.status(500).json({ error: 'Error uploading image: ' + error.message });
+    }
+  });
+
+  // Stripe Checkout Session for Tips (One-time Payment)
+  app.post("/api/create-tip-checkout", async (req, res) => {
+    try {
+      const { amount, currency = "jpy", description, creatorId, creatorName, roomId, userId, userEmail } = req.body;
+
+      if (!amount || !creatorId || !userId || !userEmail) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Validate amount
+      if (amount <= 0 || amount > 100000) {
+        return res.status(400).json({ error: 'Invalid amount' });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ error: "Payment system not configured" });
+      }
+
+      // Get or create Stripe customer
+      const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+      let customerId: string;
+
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({
+          email: userEmail,
+          metadata: { userId: userId },
+        });
+        customerId = customer.id;
+      }
+
+      // Create Stripe Checkout Session for one-time payment
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        customer: customerId,
+        line_items: [
+          {
+            price_data: {
+              currency: currency,
+              product_data: {
+                name: `投げ銭 - ${creatorName}`,
+                description: description || `${creatorName}さんへの投げ銭`,
+              },
+              unit_amount: Math.round(amount),
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${req.headers.origin}/live?tip=success`,
+        cancel_url: `${req.headers.origin}/live?tip=cancelled`,
+        metadata: {
+          type: 'tip',
+          creatorId,
+          creatorName: creatorName || '',
+          roomId: roomId || '',
+          userId,
+          amount: amount.toString(),
+        },
+      });
+
+      res.json({ sessionId: session.id, url: session.url });
+    } catch (error: any) {
+      console.error('Error creating tip checkout session:', error);
+      res.status(500).json({ error: 'Error creating checkout session: ' + error.message });
     }
   });
 

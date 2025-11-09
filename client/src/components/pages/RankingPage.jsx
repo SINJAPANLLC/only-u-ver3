@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
-import { Send, Radio, Users, Heart, Gift } from 'lucide-react';
+import { Send, Radio, Users, Heart, Gift, DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, where, getDocs, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { loadStripe } from '@stripe/stripe-js';
 
 const RankingPage = () => {
     const { t } = useTranslation();
@@ -16,9 +19,16 @@ const RankingPage = () => {
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [viewerCounts, setViewerCounts] = useState({});
+    const [likes, setLikes] = useState({});
+    const [isLiking, setIsLiking] = useState(false);
+    const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+    const [showTipModal, setShowTipModal] = useState(false);
+    const [selectedTipAmount, setSelectedTipAmount] = useState(null);
+    const [isSendingTip, setIsSendingTip] = useState(false);
     const containerRef = useRef(null);
     const y = useMotionValue(0);
     const user = auth.currentUser;
+    const { toast } = useToast();
 
     // 画像URLをプロキシURLに変換するヘルパー関数
     const getProxyImageUrl = (url) => {
@@ -109,13 +119,16 @@ const RankingPage = () => {
                                             title: data.title || 'おすすめ動画',
                                             creatorName: data.userName || 'Anonymous',
                                             creatorAvatar: data.userAvatar || '',
+                                            creatorId: data.userId || null,
+                                            userId: data.userId || null,
                                             videoUrl: videoFile.url?.startsWith('http') 
                                                 ? `/api/proxy/${videoFile.url.split('/').pop()}`
                                                 : videoFile.url,
                                             thumbnailUrl: videoFile.thumbnailUrl || '',
                                             isLive: false,
                                             isRealLive: false,
-                                            viewers: Math.floor(Math.random() * 1000) + 100
+                                            viewers: Math.floor(Math.random() * 1000) + 100,
+                                            likes: data.likes || 0
                                         });
                                     }
                                 }
@@ -184,6 +197,121 @@ const RankingPage = () => {
             console.error('Error sending message:', error);
         } finally {
             setIsSending(false);
+        }
+    };
+
+    // いいね機能
+    const handleLike = async () => {
+        if (!user || !liveRooms[currentIndex] || isLiking) return;
+        
+        setIsLiking(true);
+        setShowHeartAnimation(true);
+        
+        try {
+            const roomId = liveRooms[currentIndex].id;
+            const roomRef = doc(db, liveRooms[currentIndex].isRealLive ? 'liveRooms' : 'posts', roomId);
+            
+            await updateDoc(roomRef, {
+                likes: increment(1)
+            });
+            
+            // ローカル状態を更新
+            setLikes(prev => ({
+                ...prev,
+                [roomId]: (prev[roomId] || 0) + 1
+            }));
+            
+            // アニメーション終了後に非表示
+            setTimeout(() => setShowHeartAnimation(false), 1000);
+        } catch (error) {
+            console.error('Error liking:', error);
+            toast({
+                title: 'エラー',
+                description: 'いいねに失敗しました',
+                variant: 'destructive'
+            });
+        } finally {
+            setIsLiking(false);
+        }
+    };
+
+    // 投げ銭機能
+    const handleOpenTipModal = () => {
+        if (!user) {
+            toast({
+                title: 'ログインが必要です',
+                description: '投げ銭を送るにはログインしてください',
+                variant: 'destructive'
+            });
+            return;
+        }
+        
+        const currentRoom = liveRooms[currentIndex];
+        if (!currentRoom) return;
+        
+        // creatorIdがない場合は投げ銭できない
+        if (!currentRoom.creatorId && !currentRoom.userId) {
+            toast({
+                title: '投げ銭できません',
+                description: 'このコンテンツには投げ銭できません',
+                variant: 'destructive'
+            });
+            return;
+        }
+        
+        setShowTipModal(true);
+    };
+
+    const handleSendTip = async (amount) => {
+        if (!user || !liveRooms[currentIndex] || isSendingTip) return;
+        
+        setIsSendingTip(true);
+        setSelectedTipAmount(amount);
+        
+        try {
+            const currentRoom = liveRooms[currentIndex];
+            
+            // Stripe Checkoutセッションを作成
+            const response = await fetch('/api/create-tip-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: amount,
+                    currency: 'jpy',
+                    description: `投げ銭: ${currentRoom.title}`,
+                    creatorId: currentRoom.creatorId || currentRoom.userId,
+                    creatorName: currentRoom.creatorName,
+                    roomId: currentRoom.id,
+                    userId: user.uid,
+                    userEmail: user.email
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Checkout session creation failed');
+            }
+            
+            const { sessionId } = await response.json();
+            
+            // Stripe Checkoutにリダイレクト
+            const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+            
+            const { error } = await stripe.redirectToCheckout({
+                sessionId: sessionId
+            });
+            
+            if (error) {
+                throw error;
+            }
+        } catch (error) {
+            console.error('Error sending tip:', error);
+            toast({
+                title: 'エラー',
+                description: '投げ銭の送信に失敗しました',
+                variant: 'destructive'
+            });
+            setIsSendingTip(false);
+            setSelectedTipAmount(null);
         }
     };
 
@@ -357,24 +485,48 @@ const RankingPage = () => {
                         <div className="absolute right-4 bottom-40 space-y-4 z-20">
                             <motion.button
                                 whileTap={{ scale: 0.9 }}
+                                onClick={handleLike}
+                                disabled={!user || isLiking}
                                 className="flex flex-col items-center"
+                                data-testid="button-like"
                             >
                                 <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                    <Heart className="w-6 h-6 text-white" />
+                                    <Heart className={`w-6 h-6 ${isLiking ? 'text-pink-500 fill-pink-500' : 'text-white'}`} />
                                 </div>
-                                <span className="text-white text-xs mt-1">いいね</span>
+                                <span className="text-white text-xs mt-1">
+                                    {likes[currentRoom?.id] || currentRoom?.likes || 0}
+                                </span>
                             </motion.button>
 
-                            <motion.button
-                                whileTap={{ scale: 0.9 }}
-                                className="flex flex-col items-center"
-                            >
-                                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                    <Gift className="w-6 h-6 text-white" />
-                                </div>
-                                <span className="text-white text-xs mt-1">投げ銭</span>
-                            </motion.button>
+                            {(currentRoom?.creatorId || currentRoom?.userId) && (
+                                <motion.button
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={handleOpenTipModal}
+                                    className="flex flex-col items-center"
+                                    data-testid="button-tip"
+                                >
+                                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                        <Gift className="w-6 h-6 text-white" />
+                                    </div>
+                                    <span className="text-white text-xs mt-1">投げ銭</span>
+                                </motion.button>
+                            )}
                         </div>
+
+                        {/* ハートアニメーション */}
+                        <AnimatePresence>
+                            {showHeartAnimation && (
+                                <motion.div
+                                    initial={{ scale: 0, opacity: 1, y: 0 }}
+                                    animate={{ scale: 3, opacity: 0, y: -100 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 1 }}
+                                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none"
+                                >
+                                    <Heart className="w-16 h-16 text-pink-500 fill-pink-500" />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         {/* メッセージ入力エリア */}
                         <div className="absolute bottom-20 left-0 right-0 px-4 safe-bottom z-20">
@@ -431,6 +583,57 @@ const RankingPage = () => {
             <div className="absolute bottom-0 left-0 right-0 z-30">
                 <BottomNavigationWithCreator active="ranking" />
             </div>
+
+            {/* 投げ銭モーダル */}
+            <Dialog open={showTipModal} onOpenChange={setShowTipModal}>
+                <DialogContent className="sm:max-w-md bg-gradient-to-br from-gray-900 to-black border-pink-500/20">
+                    <DialogHeader>
+                        <DialogTitle className="text-white text-xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
+                            投げ銭を送る
+                        </DialogTitle>
+                        <DialogDescription className="text-gray-400">
+                            {currentRoom?.creatorName} さんを応援しよう！
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="grid grid-cols-2 gap-3 py-4">
+                        {[500, 1000, 3000, 5000, 10000].map((amount) => (
+                            <motion.button
+                                key={amount}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleSendTip(amount)}
+                                disabled={isSendingTip}
+                                className={`
+                                    relative overflow-hidden rounded-lg p-4
+                                    bg-gradient-to-br from-pink-500/10 to-pink-600/10
+                                    border-2 border-pink-500/30
+                                    hover:border-pink-500 hover:from-pink-500/20 hover:to-pink-600/20
+                                    transition-all duration-200
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    ${selectedTipAmount === amount ? 'ring-2 ring-pink-500' : ''}
+                                `}
+                                data-testid={`button-tip-amount-${amount}`}
+                            >
+                                <div className="flex flex-col items-center space-y-1">
+                                    <Gift className="w-6 h-6 text-pink-500" />
+                                    <span className="text-white font-bold text-lg">
+                                        ¥{amount.toLocaleString()}
+                                    </span>
+                                </div>
+                                {isSendingTip && selectedTipAmount === amount && (
+                                    <div className="absolute inset-0 bg-pink-500/20 flex items-center justify-center">
+                                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                )}
+                            </motion.button>
+                        ))}
+                    </div>
+
+                    <div className="text-xs text-gray-400 text-center">
+                        ※ Stripe決済を利用します
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
