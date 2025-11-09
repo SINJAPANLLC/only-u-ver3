@@ -205,7 +205,8 @@ const AppRoutes = () => {
       <Route path="/live" element={<ProtectedRoute><RankingPage /></ProtectedRoute>} />
       <Route path="/rankingpage" element={<Navigate to="/live" replace />} />
       <Route path="/GenreNavigationSystem" element={<ProtectedRoute><GenreNavigationSystem /></ProtectedRoute>} />
-      <Route path="/messages" element={<ProtectedRoute><SwipeMatchPage /></ProtectedRoute>} />
+      <Route path="/matching" element={<ProtectedRoute><SwipeMatchPage /></ProtectedRoute>} />
+      <Route path="/messages" element={<Navigate to="/matching" replace />} />
       <Route path="/chat" element={<ProtectedRoute><MessagesUI /></ProtectedRoute>} />
       {/* <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} /> */}
       <Route path="/account" element={<ProtectedRoute><AccountWrapper /></ProtectedRoute>} />

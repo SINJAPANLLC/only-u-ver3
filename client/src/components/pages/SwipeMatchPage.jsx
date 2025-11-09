@@ -162,6 +162,9 @@ const SwipeMatchPage = () => {
         if (!user || !candidate) return;
 
         try {
+            // チャットルームIDを生成（両ユーザーIDをソートして結合）
+            const chatRoomId = [user.uid, candidate.id].sort().join('_');
+            
             // マッチングドキュメントを作成
             const matchRef = await addDoc(collection(db, 'matches'), {
                 userIds: [user.uid, candidate.id],
@@ -176,10 +179,10 @@ const SwipeMatchPage = () => {
                     }
                 },
                 createdAt: serverTimestamp(),
-                chatRoomId: null // チャット開始時に設定
+                chatRoomId: chatRoomId
             });
 
-            console.log('Match created:', matchRef.id);
+            console.log('Match created:', matchRef.id, 'Chat room:', chatRoomId);
 
             // マッチ成立モーダルを表示
             setMatchedUser(candidate);
@@ -208,9 +211,21 @@ const SwipeMatchPage = () => {
     };
 
     // チャットを開始
-    const handleStartChat = (matchedUserId) => {
-        navigate(`/chat?userId=${matchedUserId}`);
-        setShowMatchModal(false);
+    const handleStartChat = async (matchedUserId) => {
+        try {
+            // チャットルームIDを生成
+            const chatRoomId = [user.uid, matchedUserId].sort().join('_');
+            // MessagesUIとの互換性のためuserIdも渡す
+            navigate(`/chat?userId=${matchedUserId}&chatRoomId=${chatRoomId}`);
+            setShowMatchModal(false);
+        } catch (error) {
+            console.error('Error starting chat:', error);
+            toast({
+                title: 'エラー',
+                description: 'チャットを開始できませんでした',
+                variant: 'destructive'
+            });
+        }
     };
 
     const currentCandidate = candidates[currentIndex];
@@ -309,15 +324,20 @@ const SwipeMatchPage = () => {
                                                 {/* Content Container */}
                                                 <div className="h-full flex flex-col p-6">
                                                     {/* Profile Image - Centered Circle */}
-                                                    <div className="flex-shrink-0 flex justify-center items-center py-6">
+                                                    <div className="flex-shrink-0 flex flex-col items-center py-6 space-y-4">
                                                         <div className="relative">
-                                                            <div className="w-64 h-64 rounded-full overflow-hidden border-8 border-white shadow-2xl bg-gradient-to-br from-pink-200 to-purple-200">
+                                                            <div className="w-64 h-64 rounded-full overflow-hidden border-8 border-white shadow-2xl bg-white">
                                                                 <img
-                                                                    src={getProxyImageUrl(currentCandidate.photoURL || currentCandidate.avatar)}
+                                                                    src={currentCandidate.photoURL || currentCandidate.avatar 
+                                                                        ? getProxyImageUrl(currentCandidate.photoURL || currentCandidate.avatar)
+                                                                        : '/logo192.png'
+                                                                    }
                                                                     alt={currentCandidate.displayName || currentCandidate.name}
-                                                                    className="w-full h-full object-cover"
+                                                                    className="w-full h-full object-contain p-2"
                                                                     onError={(e) => {
-                                                                        e.target.src = '/logo.webp';
+                                                                        if (e.target.src !== window.location.origin + '/logo192.png') {
+                                                                            e.target.src = '/logo192.png';
+                                                                        }
                                                                     }}
                                                                 />
                                                             </div>
@@ -327,6 +347,19 @@ const SwipeMatchPage = () => {
                                                                     <Star className="w-6 h-6 text-white fill-white" />
                                                                 </div>
                                                             )}
+                                                        </div>
+                                                        
+                                                        {/* Cover Photo/Banner */}
+                                                        <div className="w-full max-w-sm h-32 rounded-2xl overflow-hidden shadow-lg border-4 border-white bg-gradient-to-r from-pink-100 via-purple-100 to-pink-100">
+                                                            <img
+                                                                src={currentCandidate.coverPhoto 
+                                                                    ? getProxyImageUrl(currentCandidate.coverPhoto)
+                                                                    : null
+                                                                }
+                                                                alt="カバー写真"
+                                                                className="w-full h-full object-cover"
+                                                                style={{ display: currentCandidate.coverPhoto ? 'block' : 'none' }}
+                                                            />
                                                         </div>
                                                     </div>
 
@@ -538,7 +571,7 @@ const SwipeMatchPage = () => {
                 )}
             </AnimatePresence>
 
-            <BottomNavigationWithCreator />
+            <BottomNavigationWithCreator active="messages" />
         </>
     );
 };
