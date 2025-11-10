@@ -27,21 +27,22 @@ const SalesManagementPage = () => {
       return;
     }
 
-    const subscriptionsQuery = query(
-      collection(db, 'subscriptions'),
+    // クリエイターの売上データを取得（tipsコレクションから）
+    const tipsQuery = query(
+      collection(db, 'tips'),
       where('creatorId', '==', currentUser.uid),
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(subscriptionsQuery, (snapshot) => {
+    const unsubscribe = onSnapshot(tipsQuery, (snapshot) => {
       const salesList = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
           date: data.createdAt?.toDate?.() || new Date(),
-          plan: data.planName || 'プラン名不明',
+          plan: 'チップ',
           subscribers: 1,
-          revenue: data.amount || 0,
-          type: data.isNew ? '新規' : '継続'
+          revenue: data.creatorAmount || data.amount || 0, // creatorAmount（手数料控除後）を使用
+          type: '新規'
         };
       });
       setSalesData(salesList);
