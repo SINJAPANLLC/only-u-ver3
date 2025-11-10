@@ -714,10 +714,6 @@ const RankingPage = () => {
                             </motion.button>
                         ))}
                     </div>
-
-                    <div className="text-xs text-gray-400 text-center">
-                        ※ Stripe決済を利用します
-                    </div>
                 </DialogContent>
             </Dialog>
         </div>
