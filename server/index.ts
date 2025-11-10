@@ -86,6 +86,15 @@ app.use("/api/admin/", adminLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
+// Redirect non-www to www in production
+app.use((req, res, next) => {
+  const host = req.get('host');
+  if (!isDevelopment && host === 'only-u.fun') {
+    return res.redirect(301, `https://www.only-u.fun${req.originalUrl}`);
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
