@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Bell, Search, Users, Moon, Sun, Globe, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GenderSelectionModal from './GenderModal';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
+import logger from '../utils/logger';
 
 const Header = () => {
     const { t, i18n } = useTranslation();
@@ -17,8 +18,8 @@ const Header = () => {
     const [showInstallButton, setShowInstallButton] = useState(false);
     const navigate = useNavigate();
 
-    const handleGenderSelect = (gender) => setSelectedGender(gender.label);
-    const handleConfirm = (gender) => console.log('Selected gender preference:', gender);
+    const handleGenderSelect = useCallback((gender) => setSelectedGender(gender.label), []);
+    const handleConfirm = useCallback((gender) => logger.log('Selected gender preference:', gender), []);
 
     // PWA Install Handler
     useEffect(() => {
@@ -26,13 +27,13 @@ const Header = () => {
             e.preventDefault();
             setDeferredPrompt(e);
             setShowInstallButton(true);
-            console.log('📱 PWA install prompt available');
+            logger.log('📱 PWA install prompt available');
         };
 
         const handleAppInstalled = () => {
             setShowInstallButton(false);
             setDeferredPrompt(null);
-            console.log('✅ PWA installed successfully');
+            logger.log('✅ PWA installed successfully');
         };
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -41,11 +42,11 @@ const Header = () => {
         // Check if already installed
         if (window.matchMedia('(display-mode: standalone)').matches) {
             setShowInstallButton(false);
-            console.log('✅ PWA already installed');
+            logger.log('✅ PWA already installed');
         } else {
             // 開発環境でも表示（本番環境では beforeinstallprompt で制御）
             setShowInstallButton(true);
-            console.log('📱 PWA install button enabled (development mode)');
+            logger.log('📱 PWA install button enabled (development mode)');
         }
 
         return () => {
@@ -56,7 +57,7 @@ const Header = () => {
 
     const handleInstallClick = async () => {
         if (!deferredPrompt) {
-            console.log('⚠️ Install prompt not available');
+            logger.log('⚠️ Install prompt not available');
             
             // ブラウザ別の手動インストール手順を表示
             const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -79,7 +80,7 @@ const Header = () => {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
             
-            console.log(`📱 User response to install prompt: ${outcome}`);
+            logger.log(`📱 User response to install prompt: ${outcome}`);
             
             if (outcome === 'accepted') {
                 setShowInstallButton(false);
@@ -87,21 +88,20 @@ const Header = () => {
             
             setDeferredPrompt(null);
         } catch (error) {
-            console.error('PWA install error:', error);
+            logger.error('PWA install error:', error);
         }
     };
 
-    // Languages you want to allow quick switching
-    const languageOptions = [
+    const languageOptions = useMemo(() => [
         { code: 'en', label: 'English', flag: '🇺🇸' },
         { code: 'ja', label: '日本語', flag: '🇯🇵' },
-    ];
+    ], []);
 
-    const changeLanguage = (langCode) => {
+    const changeLanguage = useCallback((langCode) => {
         i18n.changeLanguage(langCode);
         setShowLanguageMenu(false);
-        console.log(`🌐 Language changed to: ${langCode}`);
-    };
+        logger.log(`🌐 Language changed to: ${langCode}`);
+    }, [i18n]);
 
     const getCurrentLanguage = () => {
         const current = languageOptions.find(lang => lang.code === i18n.language);

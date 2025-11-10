@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useCallback } from "react";
 import { Home, Film, Radio, Heart, User, Plus, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -6,29 +6,31 @@ import { useTranslation } from "react-i18next";
 import { useUnreadMessages } from "../context/UnreadMessagesContext";
 import { useCreator } from "../context/CreatorContext";
 
-const BottomNavigationWithCreator = ({ active = "Home" }) => {
+const BottomNavigationWithCreator = React.memo(({ active = "Home" }) => {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const { unreadCount } = useUnreadMessages();
     const { canCreatePosts, canAccessDashboard } = useCreator();
 
-    // 基本のナビゲーション項目
-    const baseItems = [
-        { icon: Home, key: "home", onClick: () => navigate("/") },
-        { icon: Film, key: "feed", onClick: () => navigate("/feed") },
-        { icon: Radio, key: "ranking", onClick: () => navigate("/live") },
-        { icon: Heart, key: "messages", onClick: () => navigate("/matching") },
-        { icon: User, key: "account", onClick: () => navigate("/account") },
-    ];
+    const handleNavigate = useCallback((path) => () => navigate(path), [navigate]);
 
-    // クリエイター用の追加項目
-    const creatorItems = [
-        { icon: Plus, key: "create", onClick: () => navigate("/create-post") },
-        { icon: BarChart3, key: "dashboard", onClick: () => navigate("/creator-dashboard") },
-    ];
+    const baseItems = useMemo(() => [
+        { icon: Home, key: "home", onClick: handleNavigate("/") },
+        { icon: Film, key: "feed", onClick: handleNavigate("/feed") },
+        { icon: Radio, key: "ranking", onClick: handleNavigate("/live") },
+        { icon: Heart, key: "messages", onClick: handleNavigate("/matching") },
+        { icon: User, key: "account", onClick: handleNavigate("/account") },
+    ], [handleNavigate]);
 
-    // クリエイターが承認されている場合のみ追加項目を含める
-    const items = canCreatePosts ? [...baseItems, ...creatorItems] : baseItems;
+    const creatorItems = useMemo(() => [
+        { icon: Plus, key: "create", onClick: handleNavigate("/create-post") },
+        { icon: BarChart3, key: "dashboard", onClick: handleNavigate("/creator-dashboard") },
+    ], [handleNavigate]);
+
+    const items = useMemo(
+        () => canCreatePosts ? [...baseItems, ...creatorItems] : baseItems,
+        [canCreatePosts, baseItems, creatorItems]
+    );
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 glass-effect dark:bg-black/95 border-t border-white/30 dark:border-gray-800/50 z-50 shadow-elevated transition-colors duration-200 pb-safe">
@@ -109,6 +111,8 @@ const BottomNavigationWithCreator = ({ active = "Home" }) => {
             </div>
         </nav>
     );
-};
+});
+
+BottomNavigationWithCreator.displayName = 'BottomNavigationWithCreator';
 
 export default BottomNavigationWithCreator;

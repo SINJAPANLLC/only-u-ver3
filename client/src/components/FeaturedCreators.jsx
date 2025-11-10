@@ -1,16 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import logger from '../utils/logger';
 import slider1 from '@assets/1_1761457956151.png';
 import slider2 from '@assets/2_1761457956151.png';
 import slider3 from '@assets/3_1761457956151.png';
 
-const FeaturedCreators = () => {
+const FeaturedCreators = React.memo(() => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [sliderImages, setSliderImages] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const defaultSliders = useMemo(() => [
+        { id: '1', imageUrl: slider1, title: '' },
+        { id: '2', imageUrl: slider2, title: '' },
+        { id: '3', imageUrl: slider3, title: '' }
+    ], []);
 
     // Firestoreからスライダー画像を取得
     useEffect(() => {
@@ -31,13 +38,8 @@ const FeaturedCreators = () => {
                     // クライアント側でpositionによりソート
                     .sort((a, b) => (a.position || 0) - (b.position || 0));
 
-                // データがない場合はデフォルトの静的画像を使用
                 if (slidersData.length === 0) {
-                    setSliderImages([
-                        { id: '1', imageUrl: slider1, title: '' },
-                        { id: '2', imageUrl: slider2, title: '' },
-                        { id: '3', imageUrl: slider3, title: '' }
-                    ]);
+                    setSliderImages(defaultSliders);
                 } else {
                     setSliderImages(slidersData);
                 }
@@ -45,19 +47,14 @@ const FeaturedCreators = () => {
                 setLoading(false);
             },
             (error) => {
-                console.error('Error loading sliders:', error);
-                // エラーの場合もデフォルト画像を使用
-                setSliderImages([
-                    { id: '1', imageUrl: slider1, title: '' },
-                    { id: '2', imageUrl: slider2, title: '' },
-                    { id: '3', imageUrl: slider3, title: '' }
-                ]);
+                logger.error('Error loading sliders:', error);
+                setSliderImages(defaultSliders);
                 setLoading(false);
             }
         );
 
         return () => unsubscribe();
-    }, []);
+    }, [defaultSliders]);
 
     useEffect(() => {
         if (sliderImages.length === 0) return;
@@ -69,13 +66,13 @@ const FeaturedCreators = () => {
         return () => clearInterval(timer);
     }, [sliderImages.length]);
 
-    const nextSlide = () => {
+    const nextSlide = useCallback(() => {
         setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
-    };
+    }, [sliderImages.length]);
 
-    const prevSlide = () => {
+    const prevSlide = useCallback(() => {
         setCurrentSlide((prev) => (prev - 1 + sliderImages.length) % sliderImages.length);
-    };
+    }, [sliderImages.length]);
 
     if (loading || sliderImages.length === 0) {
         return (
@@ -251,6 +248,8 @@ const FeaturedCreators = () => {
             </div>
         </motion.div>
     );
-};
+});
+
+FeaturedCreators.displayName = 'FeaturedCreators';
 
 export default FeaturedCreators;

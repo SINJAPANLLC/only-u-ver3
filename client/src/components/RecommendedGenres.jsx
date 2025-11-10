@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronRight, Star } from 'lucide-react';
 import { genreData, genreNameMapping } from '../data/constants';
@@ -6,31 +6,29 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import logger from '../utils/logger';
 import squirtingImage from '@assets/S__23355436_1761458269036.jpg';
 import abnormalImage from '@assets/S__23355435_1761458437613.jpg';
 
-const RecommendedGenres = ({ likedItems, toggleLike }) => {
+const RecommendedGenres = React.memo(({ likedItems, toggleLike }) => {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const [genreCounts, setGenreCounts] = useState({});
 
-    // ジャンルカード用の画像
-    const genreImages = [
+    const genreImages = useMemo(() => [
         '/genre-1.png',
         '/genre-2.png',
         '/genre-3.png',
         '/genre-4.png',
         '/genre-5.png',
         '/genre-6.png',
-        squirtingImage,  // 潮吹き (beautifulWoman) の画像
-        abnormalImage,   // アブノーマル (beautifulBreasts) の画像
-    ];
+        squirtingImage,
+        abnormalImage,
+    ], []);
 
-    const handleGenreClick = (genreNameKey) => {
-        // 翻訳されたジャンル名を取得
-        const translatedName = t(`genres.${genreNameKey}`);
-        navigate(`/genre/${encodeURIComponent(translatedName)}`);
-    };
+    const handleGenreClick = useCallback((genreNameKey) => {
+        navigate(`/genre/${genreNameKey}`);
+    }, [navigate]);
 
     // ✅ 最適化: 全ジャンルの動画数を一度に取得
     useEffect(() => {
@@ -57,10 +55,10 @@ const RecommendedGenres = ({ likedItems, toggleLike }) => {
                     }
                 });
                 
-                console.log('📊 Genre counts loaded:', counts);
+                logger.log('📊 Genre counts loaded:', counts);
                 setGenreCounts(counts);
             } catch (error) {
-                console.error('Error loading genre counts:', error);
+                logger.error('Error loading genre counts:', error);
             }
         };
 
@@ -169,6 +167,8 @@ const RecommendedGenres = ({ likedItems, toggleLike }) => {
             </motion.button>
         </motion.div>
     );
-};
+});
+
+RecommendedGenres.displayName = 'RecommendedGenres';
 
 export default RecommendedGenres;
