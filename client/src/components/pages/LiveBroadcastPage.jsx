@@ -65,12 +65,16 @@ const LiveBroadcastPage = () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        width: { ideal: 1080 },
-                        height: { ideal: 1920 },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
                         facingMode: 'user',
-                        aspectRatio: 9/16
+                        frameRate: { ideal: 30, max: 60 }
                     },
-                    audio: true
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
                 });
 
                 setLocalStream(stream);
@@ -192,9 +196,22 @@ const LiveBroadcastPage = () => {
                 ]
             });
 
-            // ストリームのトラックを追加
+            // ストリームのトラックを追加（高品質設定）
             stream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, stream);
+                const sender = peerConnection.addTrack(track, stream);
+                
+                // ビデオトラックのビットレートを設定（高画質）
+                if (track.kind === 'video') {
+                    const parameters = sender.getParameters();
+                    if (!parameters.encodings) {
+                        parameters.encodings = [{}];
+                    }
+                    // 最大3Mbps（高画質）
+                    parameters.encodings[0].maxBitrate = 3000000;
+                    sender.setParameters(parameters).catch(err => 
+                        console.warn('Failed to set encoding parameters:', err)
+                    );
+                }
             });
 
             // ICE候補をシグナリングサーバーに送信（視聴者IDを含める）
