@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import logger from '../utils/logger';
 
 // Create the AuthContext
 const AuthContext = createContext();
@@ -24,7 +25,6 @@ const ensureUserDocument = async (user) => {
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
-      // ユーザードキュメントが存在しない場合は作成
       await setDoc(userDocRef, {
         displayName: user.displayName || 'ユーザー',
         email: user.email,
@@ -39,16 +39,15 @@ const ensureUserDocument = async (user) => {
         followersCount: 0,
         followingCount: 0
       });
-      console.log('Created Firestore document for user:', user.uid);
+      logger.log('Created Firestore document for user:', user.uid);
     } else {
-      // 既存ユーザーの場合、最終ログイン時間を更新
       await setDoc(userDocRef, {
         lastSeen: new Date().toISOString(),
         isOnline: true
       }, { merge: true });
     }
   } catch (error) {
-    console.error('Error creating/updating user document:', error);
+    logger.error('Error creating/updating user document:', error);
   }
 };
 
@@ -59,12 +58,10 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Listen for authentication state changes
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('Auth state changed:', user);
+      logger.log('Auth state changed:', user);
       
       if (user) {
-        // ユーザーがログインしている場合、ドキュメントを作成/更新してから状態を更新
         await ensureUserDocument(user);
       }
       
@@ -73,7 +70,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return unsubscribe;
   }, []);
 

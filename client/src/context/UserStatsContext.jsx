@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { getUserInteractions } from '../utils/userInteractions';
+import logger from '../utils/logger';
 
 const UserStatsContext = createContext();
 
@@ -46,14 +47,14 @@ export const UserStatsProvider = ({ children }) => {
         viewingHistory: interactions.viewingHistory.size
       });
       
-      console.log('📊 User stats loaded:', {
+      logger.log('User stats loaded:', {
         purchased: interactions.purchasedPosts.size,
         saved: interactions.savedPosts.size,
         liked: interactions.likedPosts.size,
         viewingHistory: interactions.viewingHistory.size
       });
     } catch (error) {
-      console.error('Error loading user stats:', error);
+      logger.error('Error loading user stats:', error);
       setStats({
         purchased: 0,
         saved: 0,

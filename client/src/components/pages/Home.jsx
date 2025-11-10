@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
-// import { motion } from 'framer-motion';
-// import { signOut } from 'firebase/auth';
-// import { auth } from '../../firebase';
-// import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
-import { collection, query, where, orderBy, limit, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import { useCreatorCache } from '../../hooks/useCreatorCache';
+import logger from '../../utils/logger';
 import Header from '../../Header/Header';
-// import Notifications from '../../Header/Notifications';
 import UserNotifications from '../UserNotifications';
 import FeaturedCreators from '../FeaturedCreators';
 import RecommendedGenres from '../RecommendedGenres';
@@ -22,7 +19,7 @@ const Home = () => {
     const [verticalPosts, setVerticalPosts] = useState([]);
     const [approvedCreators, setApprovedCreators] = useState([]);
     const [postsWithCreators, setPostsWithCreators] = useState([]);
-    // const { currentUser } = useAuth();
+    const { getCreatorsBatch } = useCreatorCache();
 
     // Logout function
     // const handleLogout = async () => {
@@ -37,23 +34,19 @@ const Home = () => {
     // };
 
     const handleNavigation = (path) => {
-        console.log('Navigation clicked:', path);
+        logger.log('Navigation clicked:', path);
         if (path === 'home') {
             setActiveTab('home');
         } else if (path === 'favorites') {
             // navigate('/feed');
         } else if (path === 'ranking') {
             setActiveTab('ranking');
-            console.log('Ranking navigation not implemented yet');
         } else if (path === 'messages') {
-            console.log('Navigating to messages...');
             // navigate('/msg');
         } else if (path === 'account') {
             setActiveTab('account');
-            console.log('Account navigation not implemented yet');
         } else {
             setActiveTab(path);
-            console.log(`Navigate to: ${path}`);
         }
     };
 
@@ -68,13 +61,10 @@ const Home = () => {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // URLをプロキシURLに変換する関数
-    const convertToProxyUrl = (url) => {
+    const convertToProxyUrl = useMemo(() => (url) => {
         if (!url) return null;
         
-        // すでにプロキシURLの場合、重複パスをチェック
         if (url.startsWith('/api/proxy/')) {
-            // public/public/ または private/private/ の重複を修正
             if (url.includes('/public/public/')) {
                 return url.replace('/public/public/', '/public/');
             }
@@ -86,44 +76,37 @@ const Home = () => {
         
         if (url.startsWith('/api/bunny-stream-thumbnail/')) return url;
         
-        // 完全URL（https://...）の場合、パス部分のみを抽出
         if (url.startsWith('https://') || url.startsWith('http://')) {
             try {
                 const urlObj = new URL(url);
                 const pathname = urlObj.pathname;
                 
-                // /objects/ を含む場合
                 if (pathname.includes('/objects/')) {
                     const filename = pathname.split('/objects/')[1];
                     return `/api/proxy/public/${filename}`;
                 }
                 
-                // /api/proxy/ を含む場合
                 if (pathname.includes('/api/proxy/')) {
-                    return pathname; // パス部分のみを返す
+                    return pathname;
                 }
                 
-                // /public/ を含む場合（重複パス修正）
                 if (pathname.includes('/public/')) {
                     const lastPublicIndex = pathname.lastIndexOf('/public/');
                     const filename = pathname.substring(lastPublicIndex + '/public/'.length);
                     return `/api/proxy/public/${filename}`;
                 }
             } catch (e) {
-                console.error('URL parsing error:', e);
+                logger.error('URL parsing error:', e);
             }
         }
         
-        // /objects/ で始まるURLは /api/proxy/public/ に変換
         if (url.startsWith('/objects/')) {
             return url.replace('/objects/', '/api/proxy/public/');
         }
         
-        // そのまま返す
         return url;
-    };
+    }, []);
 
-    // クリエイターの縦型コンテンツを取得
     useEffect(() => {
         const postsQuery = query(
             collection(db, 'posts'),
@@ -140,53 +123,24 @@ const Home = () => {
                 }));
                 setVerticalPosts(posts);
                 
-                // クリエイター情報のキャッシュ（同じクリエイターの重複取得を防ぐ）
-                const creatorCache = new Map();
+                const userIds = posts.map(p => p.userId).filter(Boolean);
+                const creatorsMap = await getCreatorsBatch(userIds);
                 
-                // 投稿のクリエイター情報を取得
-                const postsWithCreatorData = await Promise.all(
-                    posts.map(async (post) => {
-                        if (post.userId) {
-                            // キャッシュをチェック
-                            if (creatorCache.has(post.userId)) {
-                                return {
-                                    ...post,
-                                    creator: creatorCache.get(post.userId)
-                                };
-                            }
-                            
-                            try {
-                                const userDoc = await getDoc(doc(db, 'users', post.userId));
-                                if (userDoc.exists()) {
-                                    const creatorData = {
-                                        id: userDoc.id,
-                                        displayName: userDoc.data().displayName,
-                                        avatar: userDoc.data().avatar
-                                    };
-                                    creatorCache.set(post.userId, creatorData);
-                                    return {
-                                        ...post,
-                                        creator: creatorData
-                                    };
-                                }
-                            } catch (error) {
-                                console.error(`Failed to fetch creator ${post.userId}:`, error);
-                            }
-                        }
-                        return post;
-                    })
-                );
+                const postsWithCreatorData = posts.map(post => ({
+                    ...post,
+                    creator: post.userId ? creatorsMap[post.userId] : null
+                }));
                 
-                console.log('✅ Fetched', postsWithCreatorData.length, 'posts with creators');
+                logger.log('Fetched posts with creators:', postsWithCreatorData.length);
                 setPostsWithCreators(postsWithCreatorData);
             } catch (error) {
-                console.error('Error fetching posts with creators:', error);
+                logger.error('Error fetching posts with creators:', error);
                 setPostsWithCreators([]);
             }
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [getCreatorsBatch]);
 
     // 承認されたクリエイターを取得
     useEffect(() => {
