@@ -26,7 +26,12 @@ The platform utilizes a modern web architecture featuring a React frontend built
 *   **Dynamic Ranking System:** For creators and posts, featuring period-based filtering and real-time updates with optimized Firestore queries.
 *   **Admin Dashboard:** A comprehensive administrative interface for platform monitoring, moderation, and analytics, including user, live stream, match, message, home slider, and creator management. It uses production Firestore data, toast notifications, confirmation modals, and robust error handling.
 *   **Storage & CDN:** Bunny CDN is the primary storage provider for all new uploads, supporting direct file delivery, filename sanitization, and video streaming with range requests.
-*   **Performance Optimization:** Includes React warning fixes, video duration extraction, server-side filtering and pagination, creator information caching, and optimized thumbnail display with fallback logic.
+*   **Performance Optimization:** Includes React warning fixes, video duration extraction, server-side filtering and pagination, creator information caching, and optimized thumbnail display with fallback logic. Recent optimizations (November 2025):
+    *   **Production Logger** (`utils/logger.js`): Development-only console.log via environment-aware utility (zero log noise in production)
+    *   **Global Creator Cache** (`hooks/useCreatorCache.js`): Batched Firestore queries (10 users/batch), pendingRequests deduplication, global Map cache to eliminate redundant user document fetches across all components
+    *   **Home.jsx & feed.jsx Optimization**: Batched creator fetching with `getCreatorsBatch`, useMemo for URL conversion, complete logger integration
+    *   **Context Optimization**: AuthContext and UserStatsContext use logger instead of direct console methods
+    *   **Memory Safety**: Proper useEffect cleanup in hooks with isMounted guards to prevent setState after unmount
 *   **API & Security:** Unified API error handling, authentication middleware, XSS protection, DoS protection with rate limiting, and comprehensive Content Security Policy (CSP) configuration.
 *   **Deployment:** Configured for Autoscale with `npm run build` and `npm start`, ensuring reliable path resolution and a health endpoint. VPS deployment with PM2 process manager.
 
