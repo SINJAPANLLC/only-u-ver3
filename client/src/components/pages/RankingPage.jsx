@@ -290,12 +290,12 @@ const RankingPage = () => {
         }
     };
 
-    // 投げ銭機能
+    // チップ機能
     const handleOpenTipModal = () => {
         if (!user) {
             toast({
                 title: 'ログインが必要です',
-                description: '投げ銭を送るにはログインしてください',
+                description: 'チップを送るにはログインしてください',
                 variant: 'destructive'
             });
             return;
@@ -304,11 +304,11 @@ const RankingPage = () => {
         const currentRoom = liveRooms[currentIndex];
         if (!currentRoom) return;
         
-        // creatorIdがない場合は投げ銭できない
+        // creatorIdがない場合はチップできない
         if (!currentRoom.creatorId && !currentRoom.userId) {
             toast({
-                title: '投げ銭できません',
-                description: 'このコンテンツには投げ銭できません',
+                title: 'チップを送れません',
+                description: 'このコンテンツにはチップを送れません',
                 variant: 'destructive'
             });
             return;
@@ -333,7 +333,7 @@ const RankingPage = () => {
                 body: JSON.stringify({
                     amount: amount,
                     currency: 'jpy',
-                    description: `投げ銭: ${currentRoom.title}`,
+                    description: `チップ: ${currentRoom.title}`,
                     creatorId: currentRoom.creatorId || currentRoom.userId,
                     creatorName: currentRoom.creatorName,
                     roomId: currentRoom.id,
@@ -362,7 +362,7 @@ const RankingPage = () => {
             console.error('Error sending tip:', error);
             toast({
                 title: 'エラー',
-                description: '投げ銭の送信に失敗しました',
+                description: 'チップの送信に失敗しました',
                 variant: 'destructive'
             });
             setIsSendingTip(false);
@@ -602,7 +602,7 @@ const RankingPage = () => {
                                     <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500/30 to-orange-500/30 backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl group-hover:from-yellow-500/50 group-hover:to-orange-500/50 transition-all">
                                         <Gift className="w-7 h-7 text-white" />
                                     </div>
-                                    <span className="text-white text-xs mt-2 font-bold drop-shadow-lg">投げ銭</span>
+                                    <span className="text-white text-xs mt-2 font-bold drop-shadow-lg">チップ</span>
                                 </motion.button>
                             )}
                         </motion.div>
@@ -684,12 +684,12 @@ const RankingPage = () => {
                 <BottomNavigationWithCreator active="ranking" />
             </div>
 
-            {/* 投げ銭モーダル */}
+            {/* チップモーダル */}
             <Dialog open={showTipModal} onOpenChange={setShowTipModal}>
                 <DialogContent className="sm:max-w-md bg-gradient-to-br from-gray-900 to-black border-pink-500/20">
                     <DialogHeader>
                         <DialogTitle className="text-white text-xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
-                            投げ銭を送る
+                            チップを送る
                         </DialogTitle>
                         <DialogDescription className="text-gray-400">
                             {currentRoom?.creatorName} さんを応援しよう！
