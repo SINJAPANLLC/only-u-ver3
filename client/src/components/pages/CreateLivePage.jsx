@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Video, Mic, MicOff, VideoOff, Radio, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/use-toast';
@@ -102,12 +102,25 @@ const CreateLivePage = () => {
         setIsStarting(true);
 
         try {
+            // Firestoreのusersコレクションから最新のプロフィール情報を取得
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            
+            let creatorName = user.displayName || 'Anonymous';
+            let creatorAvatar = user.photoURL || '';
+            
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                creatorName = userData.name || userData.displayName || creatorName;
+                creatorAvatar = userData.avatarUrl || userData.photoURL || creatorAvatar;
+            }
+
             // Firestoreにライブルームを作成
             const liveRoomRef = await addDoc(collection(db, 'liveRooms'), {
                 title: title.trim(),
                 creatorId: user.uid,
-                creatorName: user.displayName || 'Anonymous',
-                creatorAvatar: user.photoURL || '',
+                creatorName: creatorName,
+                creatorAvatar: creatorAvatar,
                 status: 'live',
                 viewers: 0,
                 createdAt: serverTimestamp(),
