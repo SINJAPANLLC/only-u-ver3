@@ -1,30 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Bookmark, Share, MoreHorizontal, Play, Pause, Volume2, VolumeX, ArrowLeft, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Film, Maximize, Minimize, User } from 'lucide-react';
 import VideoPlayer from '../VideoPlayer';
 import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 import { db } from '../../firebase';
-import { collection, query, where, orderBy, getDocs, limit, doc, addDoc, onSnapshot, updateDoc, increment, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, limit, doc, addDoc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import { useUserInteractions } from '../../hooks/useUserInteractions';
 import { useUserStats } from '../../context/UserStatsContext';
+import { useCreatorCache } from '../../hooks/useCreatorCache';
+import logger from '../../utils/logger';
 
 const SocialFeedScreen = () => {
   const navigate = useNavigate();
   const { likedPosts, savedPosts, toggleLike, toggleSave, isLiked, isSaved } = useUserInteractions();
   
-  // Convert Object Storage URL to proxy URL
-  const convertToProxyUrl = (url) => {
+  const convertToProxyUrl = useMemo(() => (url) => {
     if (!url) return url;
     
-    // Handle /objects/ paths (old format)
     if (url.startsWith('/objects/')) {
       const filename = url.replace('/objects/', '');
       return `/api/proxy/public/${filename}`;
     }
     
-    // Handle Bunny CDN direct URLs (convert to proxy for CORS)
     if (url.includes('only-u.fun/') || url.includes('b-cdn.net/')) {
       const bunnyPattern = /https?:\/\/[^/]+\/(public|private)\/(.+)/;
       const match = url.match(bunnyPattern);
@@ -35,7 +34,6 @@ const SocialFeedScreen = () => {
       }
     }
     
-    // Check if URL is from Object Storage
     const objectStoragePattern = /https:\/\/storage\.googleapis\.com\/[^/]+\/(public|\.private)\/(.+)/;
     const match = url.match(objectStoragePattern);
     
@@ -46,7 +44,7 @@ const SocialFeedScreen = () => {
     }
     
     return url;
-  };
+  }, []);
   
   // Calculate time ago from post creation date
   const getTimeAgo = (date) => {
@@ -77,14 +75,15 @@ const SocialFeedScreen = () => {
     return `${month}/${day} まで公開`;
   };
   
-  // useUserStatsのエラーハンドリング
+  const { getCreatorsBatch } = useCreatorCache();
+  
   let updateLikedCount, updateSavedCount;
   try {
     const userStats = useUserStats();
     updateLikedCount = userStats.updateLikedCount;
     updateSavedCount = userStats.updateSavedCount;
   } catch (error) {
-    console.warn('UserStats not available:', error);
+    logger.warn('UserStats not available:', error);
     updateLikedCount = () => {};
     updateSavedCount = () => {};
   }
@@ -197,7 +196,7 @@ const SocialFeedScreen = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching posts for feed...');
+      logger.log('Fetching posts for feed...');
       
       // Firebaseからデータを取得
       try {
@@ -216,7 +215,7 @@ const SocialFeedScreen = () => {
         const queryPromise = getDocs(postsQuery);
         const postsSnapshot = await Promise.race([queryPromise, timeoutPromise]);
         
-        console.log('Posts snapshot size:', postsSnapshot.size);
+        logger.log('Posts snapshot size:', postsSnapshot.size);
         
         // 投稿データを処理
         const postsData = [];
@@ -230,7 +229,7 @@ const SocialFeedScreen = () => {
             continue;
           }
           
-          console.log('📄 Post data:', {
+          logger.log('📄 Post data:', {
             id: docSnapshot.id,
             hasFiles: !!(postData.files),
             filesLength: postData.files?.length,
@@ -245,7 +244,7 @@ const SocialFeedScreen = () => {
             const originalUrl = firstFile.url || firstFile.secure_url;
             const fileUrl = convertToProxyUrl(originalUrl);
             
-            console.log('🖼️ First file:', firstFile, 'Original URL:', originalUrl, 'Proxy URL:', fileUrl);
+            logger.log('🖼️ First file:', firstFile, 'Original URL:', originalUrl, 'Proxy URL:', fileUrl);
             
             if (fileUrl) {
               const isVideo = firstFile.type && firstFile.type.startsWith('video/');
@@ -290,69 +289,47 @@ const SocialFeedScreen = () => {
           }
         }
         
-        // バッチでユーザー情報を取得（N+1問題を回避）
-        const userDataMap = new Map();
+        let creatorMap = {};
         if (userIds.size > 0) {
-          const uniqueUserIds = Array.from(userIds);
-          
-          // Firestoreのwhere('__name__', 'in', ...)は最大10個まで
-          for (let i = 0; i < uniqueUserIds.length; i += 10) {
-            const chunk = uniqueUserIds.slice(i, i + 10);
-            try {
-              const usersQuery = query(
-                collection(db, 'users'),
-                where('__name__', 'in', chunk)
-              );
-              const usersSnapshot = await getDocs(usersQuery);
-              
-              usersSnapshot.forEach(userDoc => {
-                const userData = userDoc.data();
-                userDataMap.set(userDoc.id, {
-                  userAvatar: userData.photoURL || null,
-                  userName: userData.displayName || userData.username || 'Anonymous',
-                  userFollowers: userData.followers || 0
-                });
-              });
-            } catch (userError) {
-              console.error('Error fetching user batch:', userError);
-            }
+          try {
+            creatorMap = await getCreatorsBatch(Array.from(userIds));
+            logger.log(`Fetched ${Object.keys(creatorMap).length} creators via cache`);
+          } catch (cacheError) {
+            logger.error('Error fetching creators from cache:', cacheError);
           }
-          
-          console.log(`✅ Fetched ${userDataMap.size} users in ${Math.ceil(uniqueUserIds.length / 10)} batch queries`);
         }
         
-        // ユーザー情報を投稿に統合
         const fetchedPosts = postsData.map(post => {
-          const userData = userDataMap.get(post.userId);
-          if (userData) {
+          const creator = creatorMap[post.userId];
+          if (creator) {
             return {
               ...post,
-              userName: userData.userName,
-              userAvatar: userData.userAvatar,
-              userFollowers: userData.userFollowers
+              userName: creator.displayName || creator.username || post.userName,
+              userAvatar: creator.photoURL || creator.avatar || post.userAvatar,
+              userFollowers: post.userFollowers
             };
           }
           return post;
         });
         
-        console.log('Processed feed posts:', fetchedPosts);
+        logger.log('Processed feed posts:', fetchedPosts);
         
         if (fetchedPosts.length > 0) {
           // 新着順にソートしてFirebaseデータで更新
           const sortedPosts = fetchedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
           setPosts(sortedPosts);
-          console.log('Firebase data loaded successfully');
+          logger.log('Firebase data loaded successfully');
         } else {
           // Firebaseにデータがない場合はサンプルデータを使用
           const sortedSamplePosts = samplePosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
           setPosts(sortedSamplePosts);
-          console.log('No Firebase data, using sample posts');
+          logger.log('No Firebase data, using sample posts');
         }
         
         setLoading(false);
         
       } catch (firebaseError) {
-        console.log('Firebase timeout or error, using sample data:', firebaseError.message);
+        logger.log('Firebase timeout or error, using sample data:', firebaseError.message);
         // タイムアウトまたはエラーの場合はサンプルデータを使用
         const sortedSamplePosts = samplePosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setPosts(sortedSamplePosts);
@@ -360,7 +337,7 @@ const SocialFeedScreen = () => {
       }
       
     } catch (error) {
-      console.error('Error fetching feed posts:', error);
+      logger.error('Error fetching feed posts:', error);
       // エラーが発生した場合はサンプルデータを使用
       setPosts(samplePosts);
       setLoading(false);
@@ -389,7 +366,7 @@ const SocialFeedScreen = () => {
       setComments(commentsData);
       setLoadingComments(false);
     }, (error) => {
-      console.error('Error loading comments:', error);
+      logger.error('Error loading comments:', error);
       setLoadingComments(false);
     });
 
@@ -431,7 +408,7 @@ const SocialFeedScreen = () => {
         return updatedPosts;
       });
     } catch (error) {
-      console.error('Error sending comment:', error);
+      logger.error('Error sending comment:', error);
       alert('コメントの送信に失敗しました');
     }
   };
@@ -440,9 +417,9 @@ const SocialFeedScreen = () => {
   useEffect(() => {
     setVideoLoaded(false);
     if (videoRef.current && posts[currentPostIndex]?.type === 'video') {
-      console.log('Playing video:', posts[currentPostIndex].videoUrl);
+      logger.log('Playing video:', posts[currentPostIndex].videoUrl);
       videoRef.current.play().catch(e => {
-        console.log('Auto-play failed:', e);
+        logger.log('Auto-play failed:', e);
         setIsVideoPlaying(false);
       });
     }
@@ -461,14 +438,14 @@ const SocialFeedScreen = () => {
           try {
             updateLikedCount(-1);
           } catch (statsError) {
-            console.warn('Error updating liked count:', statsError);
+            logger.warn('Error updating liked count:', statsError);
           }
         } else {
           newSet.add(postId);
           try {
             updateLikedCount(1);
           } catch (statsError) {
-            console.warn('Error updating liked count:', statsError);
+            logger.warn('Error updating liked count:', statsError);
           }
         }
         return newSet;
@@ -476,15 +453,15 @@ const SocialFeedScreen = () => {
       
       // 非同期でFirebaseにも保存
       toggleLike(postId).catch(error => {
-        console.error('Error toggling like:', error);
+        logger.error('Error toggling like:', error);
         try {
           updateLikedCount(wasLiked ? 1 : -1);
         } catch (statsError) {
-          console.warn('Error reverting liked count:', statsError);
+          logger.warn('Error reverting liked count:', statsError);
         }
       });
     } catch (error) {
-      console.error('Error in handleToggleLike:', error);
+      logger.error('Error in handleToggleLike:', error);
     }
   };
 
@@ -501,14 +478,14 @@ const SocialFeedScreen = () => {
           try {
             updateSavedCount(-1);
           } catch (statsError) {
-            console.warn('Error updating saved count:', statsError);
+            logger.warn('Error updating saved count:', statsError);
           }
         } else {
           newSet.add(postId);
           try {
             updateSavedCount(1);
           } catch (statsError) {
-            console.warn('Error updating saved count:', statsError);
+            logger.warn('Error updating saved count:', statsError);
           }
         }
         return newSet;
@@ -516,15 +493,15 @@ const SocialFeedScreen = () => {
       
       // 非同期でFirebaseにも保存
       toggleSave(postId).catch(error => {
-        console.error('Error toggling save:', error);
+        logger.error('Error toggling save:', error);
         try {
           updateSavedCount(wasSaved ? 1 : -1);
         } catch (statsError) {
-          console.warn('Error reverting saved count:', statsError);
+          logger.warn('Error reverting saved count:', statsError);
         }
       });
     } catch (error) {
-      console.error('Error in handleToggleBookmark:', error);
+      logger.error('Error in handleToggleBookmark:', error);
     }
   };
 
@@ -533,24 +510,24 @@ const SocialFeedScreen = () => {
     if (videoRef.current) {
       try {
         if (isVideoPlaying) {
-          console.log('Pausing video');
+          logger.log('Pausing video');
           videoRef.current.pause();
           setIsVideoPlaying(false);
         } else {
-          console.log('Playing video');
+          logger.log('Playing video');
           const playPromise = videoRef.current.play();
           if (playPromise !== undefined) {
             playPromise.then(() => {
-              console.log('Video started playing');
+              logger.log('Video started playing');
               setIsVideoPlaying(true);
             }).catch(error => {
-              console.log("Playback failed:", error);
+              logger.log("Playback failed:", error);
               setIsVideoPlaying(false);
             });
           }
         }
       } catch (error) {
-        console.error("Error in toggleVideoPlayback:", error);
+        logger.error("Error in toggleVideoPlayback:", error);
         setIsVideoPlaying(false);
       }
     }
@@ -563,7 +540,7 @@ const SocialFeedScreen = () => {
         videoRef.current.muted = !isMuted;
         setIsMuted(!isMuted);
       } catch (error) {
-        console.error("Error in toggleMute:", error);
+        logger.error("Error in toggleMute:", error);
       }
     }
   };
@@ -703,7 +680,7 @@ const SocialFeedScreen = () => {
     try {
       navigate(`/profile/${posts[currentPostIndex].userId}`);
     } catch (error) {
-      console.error('Error navigating to profile:', error);
+      logger.error('Error navigating to profile:', error);
     }
   };
 
@@ -712,7 +689,7 @@ const SocialFeedScreen = () => {
     try {
       navigate(`/profile/${post.userId}`);
     } catch (error) {
-      console.error('Error navigating to profile:', error);
+      logger.error('Error navigating to profile:', error);
     }
   };
 
@@ -722,7 +699,7 @@ const SocialFeedScreen = () => {
       e.stopPropagation();
       e.preventDefault();
       
-      console.log('Fullscreen button clicked');
+      logger.log('Fullscreen button clicked');
       
       if (!document.fullscreenElement) {
         // Enter fullscreen
@@ -736,7 +713,7 @@ const SocialFeedScreen = () => {
             await element.msRequestFullscreen();
           }
           setIsFullscreen(true);
-          console.log('Entered fullscreen mode');
+          logger.log('Entered fullscreen mode');
         }
       } else {
         // Exit fullscreen
@@ -748,10 +725,10 @@ const SocialFeedScreen = () => {
           await document.msExitFullscreen();
         }
         setIsFullscreen(false);
-        console.log('Exited fullscreen mode');
+        logger.log('Exited fullscreen mode');
       }
     } catch (error) {
-      console.error('Error toggling fullscreen:', error);
+      logger.error('Error toggling fullscreen:', error);
     }
   };
   
@@ -784,7 +761,7 @@ const SocialFeedScreen = () => {
         );
         return transformedUrl;
       } catch (error) {
-        console.warn('Error transforming Cloudinary URL:', error);
+        logger.warn('Error transforming Cloudinary URL:', error);
         return originalUrl;
       }
     }
@@ -946,19 +923,19 @@ const SocialFeedScreen = () => {
                       text: posts[currentPostIndex]?.description,
                       url: postUrl
                     }).then(() => {
-                      console.log('Successfully shared');
+                      logger.log('Successfully shared');
                     }).catch(error => {
-                      console.log('Error sharing:', error);
+                      logger.log('Error sharing:', error);
                     });
                   } else {
                     navigator.clipboard.writeText(postUrl).then(() => {
-                      console.log('URL copied to clipboard');
+                      logger.log('URL copied to clipboard');
                     }).catch(error => {
-                      console.log('Error copying to clipboard:', error);
+                      logger.log('Error copying to clipboard:', error);
                     });
                   }
                 } catch (error) {
-                  console.error('Error in share action:', error);
+                  logger.error('Error in share action:', error);
                 }
               }}
               className="cursor-pointer"
@@ -975,15 +952,15 @@ const SocialFeedScreen = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 try {
-                  console.log('More options clicked');
+                  logger.log('More options clicked');
                   // Show options: Report, Not Interested, Block, etc.
                   const options = ['通報する', '興味なし', 'このユーザーをブロック', 'キャンセル'];
                   const selectedOption = confirm('投稿オプション\n\n1. 通報する\n2. 興味なし\n3. このユーザーをブロック\n4. キャンセル');
                   if (selectedOption) {
-                    console.log('Option selected');
+                    logger.log('Option selected');
                   }
                 } catch (error) {
-                  console.error('Error in more options action:', error);
+                  logger.error('Error in more options action:', error);
                 }
               }}
               className="cursor-pointer"
@@ -1044,7 +1021,7 @@ const SocialFeedScreen = () => {
                       setVideoLoaded(true);
                     }}
                     onError={(e) => {
-                      console.error('Video error:', e);
+                      logger.error('Video error:', e);
                       setVideoLoaded(true);
                       e.target.style.display = 'none';
                     }}
@@ -1065,7 +1042,7 @@ const SocialFeedScreen = () => {
                   alt={posts[currentPostIndex].title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    console.error('Image load error:', e);
+                    logger.error('Image load error:', e);
                     // Fallback to placeholder
                     e.target.src = '/logo192.png';
                   }}
@@ -1099,7 +1076,7 @@ const SocialFeedScreen = () => {
                 whileTap={{ scale: 0.9 }}
                 whileHover={{ scale: 1.1 }}
                 onClick={() => {
-                  console.log('Swipe indicator clicked');
+                  logger.log('Swipe indicator clicked');
                   goToNextPost();
                 }}
                 data-testid="button-swipe-next"
