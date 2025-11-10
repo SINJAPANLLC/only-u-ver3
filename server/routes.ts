@@ -1420,7 +1420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId = customer.id;
       }
 
-      // Create Stripe Checkout Session for one-time payment
+      // Create Stripe Checkout Session for one-time payment (Embedded mode)
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         customer: customerId,
@@ -1438,8 +1438,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         ],
         mode: 'payment',
-        success_url: `${req.headers.origin}/live?tip=success`,
-        cancel_url: `${req.headers.origin}/live?tip=cancelled`,
+        ui_mode: 'embedded',
+        return_url: `${req.headers.origin}/live?tip=success`,
         metadata: {
           type: 'tip',
           creatorId,
@@ -1450,7 +1450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      res.json({ sessionId: session.id, url: session.url });
+      res.json({ clientSecret: session.client_secret });
     } catch (error: any) {
       console.error('Error creating tip checkout session:', error);
       res.status(500).json({ error: 'Error creating checkout session: ' + error.message });

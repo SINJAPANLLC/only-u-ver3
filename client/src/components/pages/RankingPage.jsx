@@ -9,6 +9,7 @@ import BottomNavigationWithCreator from '../BottomNavigationWithCreator';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { loadStripe } from '@stripe/stripe-js';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { useLiveViewer } from '@/hooks/useLiveViewer';
 
 const RankingPage = () => {
@@ -27,6 +28,8 @@ const RankingPage = () => {
     const [showTipModal, setShowTipModal] = useState(false);
     const [selectedTipAmount, setSelectedTipAmount] = useState(null);
     const [isSendingTip, setIsSendingTip] = useState(false);
+    const [stripeClientSecret, setStripeClientSecret] = useState(null);
+    const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
     const containerRef = useRef(null);
     const y = useMotionValue(0);
     const user = auth.currentUser;
@@ -346,13 +349,12 @@ const RankingPage = () => {
                 throw new Error('Checkout session creation failed');
             }
             
-            const { url } = await response.json();
+            const { clientSecret } = await response.json();
             
-            // Stripe Checkoutにリダイレクト（新しい方法）
-            if (url) {
-                window.location.href = url;
+            if (clientSecret) {
+                setStripeClientSecret(clientSecret);
             } else {
-                throw new Error('Checkout URL not provided');
+                throw new Error('Client secret not provided');
             }
         } catch (error) {
             console.error('Error sending tip:', error);
@@ -681,49 +683,70 @@ const RankingPage = () => {
             </div>
 
             {/* チップモーダル */}
-            <Dialog open={showTipModal} onOpenChange={setShowTipModal}>
+            <Dialog open={showTipModal} onOpenChange={(open) => {
+                setShowTipModal(open);
+                if (!open) {
+                    setStripeClientSecret(null);
+                    setIsSendingTip(false);
+                    setSelectedTipAmount(null);
+                }
+            }}>
                 <DialogContent className="sm:max-w-md bg-gradient-to-br from-gray-900 to-black border-pink-500/20">
                     <DialogHeader>
                         <DialogTitle className="text-white text-xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
-                            チップを送る
+                            {stripeClientSecret ? '決済情報を入力' : 'チップを送る'}
                         </DialogTitle>
                         <DialogDescription className="text-gray-400">
-                            {currentRoom?.creatorName} さんを応援しよう！
+                            {stripeClientSecret 
+                                ? `¥${selectedTipAmount?.toLocaleString()} - ${currentRoom?.creatorName} さんへ`
+                                : `${currentRoom?.creatorName} さんを応援しよう！`
+                            }
                         </DialogDescription>
                     </DialogHeader>
                     
-                    <div className="grid grid-cols-2 gap-3 py-4">
-                        {[500, 1000, 3000, 5000, 10000].map((amount) => (
-                            <motion.button
-                                key={amount}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleSendTip(amount)}
-                                disabled={isSendingTip}
-                                className={`
-                                    relative overflow-hidden rounded-lg p-4
-                                    bg-gradient-to-br from-pink-500/10 to-pink-600/10
-                                    border-2 border-pink-500/30
-                                    hover:border-pink-500 hover:from-pink-500/20 hover:to-pink-600/20
-                                    transition-all duration-200
-                                    disabled:opacity-50 disabled:cursor-not-allowed
-                                    ${selectedTipAmount === amount ? 'ring-2 ring-pink-500' : ''}
-                                `}
-                                data-testid={`button-tip-amount-${amount}`}
-                            >
-                                <div className="flex flex-col items-center space-y-1">
-                                    <Gift className="w-6 h-6 text-pink-500" />
-                                    <span className="text-white font-bold text-lg">
-                                        ¥{amount.toLocaleString()}
-                                    </span>
-                                </div>
-                                {isSendingTip && selectedTipAmount === amount && (
-                                    <div className="absolute inset-0 bg-pink-500/20 flex items-center justify-center">
-                                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {!stripeClientSecret ? (
+                        <div className="grid grid-cols-2 gap-3 py-4">
+                            {[500, 1000, 3000, 5000, 10000].map((amount) => (
+                                <motion.button
+                                    key={amount}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => handleSendTip(amount)}
+                                    disabled={isSendingTip}
+                                    className={`
+                                        relative overflow-hidden rounded-lg p-4
+                                        bg-gradient-to-br from-pink-500/10 to-pink-600/10
+                                        border-2 border-pink-500/30
+                                        hover:border-pink-500 hover:from-pink-500/20 hover:to-pink-600/20
+                                        transition-all duration-200
+                                        disabled:opacity-50 disabled:cursor-not-allowed
+                                        ${selectedTipAmount === amount ? 'ring-2 ring-pink-500' : ''}
+                                    `}
+                                    data-testid={`button-tip-amount-${amount}`}
+                                >
+                                    <div className="flex flex-col items-center space-y-1">
+                                        <Gift className="w-6 h-6 text-pink-500" />
+                                        <span className="text-white font-bold text-lg">
+                                            ¥{amount.toLocaleString()}
+                                        </span>
                                     </div>
-                                )}
-                            </motion.button>
-                        ))}
-                    </div>
+                                    {isSendingTip && selectedTipAmount === amount && (
+                                        <div className="absolute inset-0 bg-pink-500/20 flex items-center justify-center">
+                                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        </div>
+                                    )}
+                                </motion.button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-4">
+                            <EmbeddedCheckoutProvider
+                                stripe={stripePromise}
+                                options={{ clientSecret: stripeClientSecret }}
+                            >
+                                <EmbeddedCheckout />
+                            </EmbeddedCheckoutProvider>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>
