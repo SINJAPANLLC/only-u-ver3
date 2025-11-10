@@ -85,8 +85,18 @@ const RankingPage = () => {
             liveQuery, 
             (snapshot) => {
                 const rooms = [];
+                console.log('🔴 LIVE: Fetched liveRooms snapshot, size:', snapshot.size);
+                
                 snapshot.forEach(doc => {
                     const data = doc.data();
+                    console.log('🔴 LIVE: Room data:', {
+                        id: doc.id,
+                        title: data.title,
+                        isActive: data.isActive,
+                        creatorId: data.creatorId,
+                        creatorName: data.creatorName
+                    });
+                    
                     rooms.push({
                         id: doc.id,
                         title: data.title || 'ライブ配信中',
@@ -101,6 +111,8 @@ const RankingPage = () => {
                     });
                 });
                 
+                console.log('🔴 LIVE: Total rooms found:', rooms.length);
+                
                 // クライアント側で作成日時でソート
                 rooms.sort((a, b) => {
                     const timeA = a.createdAt?.toMillis?.() || 0;
@@ -110,6 +122,7 @@ const RankingPage = () => {
                 
                 // リアルタイムライブがない場合は、モックデータとして投稿の動画を使用
                 if (rooms.length === 0) {
+                    console.log('🔴 LIVE: No live rooms, showing fallback videos');
                     const fallbackQuery = query(
                         collection(db, 'posts'),
                         where('visibility', '==', 'public'),
