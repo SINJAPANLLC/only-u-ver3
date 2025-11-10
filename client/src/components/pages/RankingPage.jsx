@@ -16,6 +16,7 @@ const RankingPage = () => {
     const navigate = useNavigate();
     const [liveRooms, setLiveRooms] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [hasSetInitialIndex, setHasSetInitialIndex] = useState(false);
     const [messages, setMessages] = useState({});
     const [newMessage, setNewMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -113,12 +114,14 @@ const RankingPage = () => {
                 
                 console.log('🔴 LIVE: Total rooms found:', rooms.length);
                 
-                // クライアント側で作成日時でソート
+                // クライアント側で作成日時でソート（最新が最初）
                 rooms.sort((a, b) => {
                     const timeA = a.createdAt?.toMillis?.() || 0;
                     const timeB = b.createdAt?.toMillis?.() || 0;
-                    return timeB - timeA;
+                    return timeB - timeA; // 最新が先頭
                 });
+                
+                setLiveRooms(rooms);
                 
                 // リアルタイムライブがない場合は、モックデータとして投稿の動画を使用
                 if (rooms.length === 0) {
@@ -191,8 +194,6 @@ const RankingPage = () => {
                     }).catch(error => {
                         console.error('Error fetching fallback rooms:', error);
                     });
-                } else {
-                    setLiveRooms(rooms);
                 }
             },
             (error) => {
