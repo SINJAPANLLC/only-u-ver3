@@ -1429,8 +1429,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             price_data: {
               currency: currency,
               product_data: {
-                name: `投げ銭 - ${creatorName}`,
-                description: description || `${creatorName}さんへの投げ銭`,
+                name: `チップ - ${creatorName}`,
+                description: description || `${creatorName}さんへのチップ`,
               },
               unit_amount: Math.round(amount),
             },

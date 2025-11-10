@@ -346,17 +346,13 @@ const RankingPage = () => {
                 throw new Error('Checkout session creation failed');
             }
             
-            const { sessionId } = await response.json();
+            const { url } = await response.json();
             
-            // Stripe Checkoutにリダイレクト
-            const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-            
-            const { error } = await stripe.redirectToCheckout({
-                sessionId: sessionId
-            });
-            
-            if (error) {
-                throw error;
+            // Stripe Checkoutにリダイレクト（新しい方法）
+            if (url) {
+                window.location.href = url;
+            } else {
+                throw new Error('Checkout URL not provided');
             }
         } catch (error) {
             console.error('Error sending tip:', error);
