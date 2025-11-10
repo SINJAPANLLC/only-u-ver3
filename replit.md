@@ -35,6 +35,14 @@ The platform utilizes a modern web architecture featuring a React frontend built
         *   **Accurate Statistics:** All stats derived from same local dataset to prevent numerator/denominator mismatches
     *   **Match Management:** Track Tinder-style matches between users with accurate statistics (total matches, today's matches, this week's matches, this month's matches). Displays both users' avatars and names in table rows, delete match with confirmation modal showing both users' details, and optimized local state updates for immediate UI reflection.
     *   **Message Management:** Monitor chat rooms and messages with accurate statistics (total chat rooms, total messages, active chat rooms). Features include chat room list sorted by message count, view messages interface with sender information, delete individual messages with confirmation modal showing message preview (text/image), and message count updates using local state arithmetic (avoiding extra Firestore queries).
+    *   **Home Slider Management:** Complete CRUD interface for managing homepage slider images. Features include:
+        *   **Real-time Updates:** Firestore onSnapshot listener for live synchronization across all admin sessions
+        *   **Image Upload:** Object Storage integration with preview and validation
+        *   **Reordering:** Up/down buttons with atomic writeBatch swaps for position changes
+        *   **Visibility Toggle:** Quick show/hide controls without deletion
+        *   **Image Management:** Add, edit, delete sliders with modal confirmations
+        *   **Data Structure:** Firestore `homeSliders` collection with fields: imageUrl, title, link, position, isActive, createdAt, updatedAt
+        *   **Frontend Integration:** FeaturedCreators.jsx fetches active sliders (isActive === true) with client-side position sorting and automatic fallback to static images
     *   **Creator Management:** Displays creators from Firestore users collection (isCreator === true) with real-time stats, verification status, and earnings data (no mock data).
     *   **Common Patterns Across Admin Pages:**
         *   **Production Data Only:** All pages use real Firestore data; mock data completely removed from KPIDashboard, KYCManagement, and Creators

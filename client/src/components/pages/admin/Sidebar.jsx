@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Users, FileText, BarChart3, DollarSign, Shield, LogOut, Mail, Bell, Crown, Coins, Video, Heart, MessageSquare, TrendingUp } from "lucide-react";
+import { Users, FileText, BarChart3, DollarSign, Shield, LogOut, Mail, Bell, Crown, Coins, Video, Heart, MessageSquare, TrendingUp, Image } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useAuth } from "../../../context/AuthContext";
@@ -17,6 +17,7 @@ export default function Sidebar({ open, setOpen, onLogout }) {
     { name: "ライブ配信管理", path: "/admin/live-streams", icon: Video },
     { name: "マッチング管理", path: "/admin/matches", icon: Heart },
     { name: "メッセージ管理", path: "/admin/messages", icon: MessageSquare },
+    { name: "ホームスライダー管理", path: "/admin/home-sliders", icon: Image },
     { name: "収益管理", path: "/admin/sales", icon: DollarSign },
     { name: "振込申請管理", path: "/admin/transfer-requests", icon: Coins },
     { name: "KYC/本人確認", path: "/admin/verification", icon: Shield },

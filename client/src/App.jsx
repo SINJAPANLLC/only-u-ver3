@@ -120,6 +120,7 @@ const TransferRequestManagement = lazy(() => import("./components/pages/admin/Tr
 const LiveStreamManagement = lazy(() => import("./components/pages/admin/LiveStreamManagement"));
 const MatchManagement = lazy(() => import("./components/pages/admin/MatchManagement"));
 const MessageManagement = lazy(() => import("./components/pages/admin/MessageManagement"));
+const HomeSliderManagement = lazy(() => import("./components/pages/admin/HomeSliderManagement"));
 const AdminLogin = lazy(() => import("./components/pages/admin/AdminLogin"));
 
 const AccountWrapper = () => {
@@ -283,6 +284,7 @@ const AppRoutes = () => {
         <Route path="live-streams" element={<LiveStreamManagement />} />
         <Route path="matches" element={<MatchManagement />} />
         <Route path="messages" element={<MessageManagement />} />
+        <Route path="home-sliders" element={<HomeSliderManagement />} />
         <Route path="sales" element={<RevenueManagement />} />
         <Route path="transfer-requests" element={<TransferRequestManagement />} />
         <Route path="verification" element={<KYCManagement />} />
