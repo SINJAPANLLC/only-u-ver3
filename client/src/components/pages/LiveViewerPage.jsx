@@ -415,7 +415,7 @@ const LiveViewerPage = () => {
                         <span className="text-white text-[10px] sm:text-xs font-medium">いいね</span>
                     </motion.button>
 
-                    {/* 投げ銭ボタン */}
+                    {/* チップボタン */}
                     <motion.button
                         whileTap={{ scale: 0.85 }}
                         className="flex flex-col items-center space-y-0.5 sm:space-y-1"
@@ -424,7 +424,7 @@ const LiveViewerPage = () => {
                         <div className="w-11 h-11 sm:w-12 sm:h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:bg-pink-500/30 transition-all">
                             <Gift className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                         </div>
-                        <span className="text-white text-[10px] sm:text-xs font-medium">投げ銭</span>
+                        <span className="text-white text-[10px] sm:text-xs font-medium">チップ</span>
                     </motion.button>
                 </div>
 
