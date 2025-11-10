@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Send, X, Video, Mic, MicOff, VideoOff, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, updateDoc, onSnapshot, collection, addDoc, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, onSnapshot, collection, addDoc, query, orderBy, limit, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { useToast } from '../../hooks/use-toast';
 
@@ -19,10 +19,44 @@ const LiveBroadcastPage = () => {
     const [isVideoEnabled, setIsVideoEnabled] = useState(true);
     const [isAudioEnabled, setIsAudioEnabled] = useState(true);
     const [localStream, setLocalStream] = useState(null);
+    const [userProfile, setUserProfile] = useState(null);
     const videoRef = useRef(null);
     const wsRef = useRef(null);
     const peerConnectionsRef = useRef({});
     const user = auth.currentUser;
+
+    // ユーザープロフィール取得
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchUserProfile = async () => {
+            try {
+                const userDocRef = doc(db, 'users', user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+                
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    setUserProfile({
+                        name: userData.name || userData.displayName || user.displayName || 'Anonymous',
+                        avatar: userData.avatarUrl || userData.photoURL || user.photoURL || ''
+                    });
+                } else {
+                    setUserProfile({
+                        name: user.displayName || 'Anonymous',
+                        avatar: user.photoURL || ''
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+                setUserProfile({
+                    name: user.displayName || 'Anonymous',
+                    avatar: user.photoURL || ''
+                });
+            }
+        };
+
+        fetchUserProfile();
+    }, [user]);
 
     // ルーム情報を取得
     useEffect(() => {
@@ -120,8 +154,8 @@ const LiveBroadcastPage = () => {
                 type: 'join',
                 roomId,
                 userId: user.uid,
-                userName: user.displayName || 'Anonymous',
-                userAvatar: user.photoURL || ''
+                userName: userProfile?.name || user.displayName || 'Anonymous',
+                userAvatar: userProfile?.avatar || user.photoURL || ''
             }));
         };
 
@@ -407,15 +441,16 @@ const LiveBroadcastPage = () => {
                                 className="relative"
                             >
                                 <img
-                                    src={user.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=broadcaster'}
+                                    src={userProfile?.avatar || user.photoURL || 'https://api.dicebear.com/7.x/avataaars/svg?seed=broadcaster'}
                                     alt="あなた"
                                     className="w-12 h-12 rounded-full border-2 border-pink-500 object-cover"
+                                    data-testid="img-broadcaster-avatar"
                                 />
                                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-pulse"></div>
                             </motion.div>
                             <div className="flex-1">
                                 <div className="flex items-center space-x-2">
-                                    <h2 className="text-white font-bold text-base truncate max-w-[120px]">{user.displayName}</h2>
+                                    <h2 className="text-white font-bold text-base truncate max-w-[120px]" data-testid="text-broadcaster-name">{userProfile?.name || user.displayName || 'Anonymous'}</h2>
                                     <div className="flex items-center space-x-1 bg-red-500 px-2 py-0.5 rounded-md">
                                         <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
                                         <span className="text-white text-xs font-bold">配信中</span>
