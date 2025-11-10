@@ -65,10 +65,10 @@ const LiveBroadcastPage = () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
                         facingMode: 'user',
-                        frameRate: { ideal: 30, max: 60 }
+                        frameRate: { ideal: 30 }
                     },
                     audio: {
                         echoCancellation: true,
@@ -206,8 +206,8 @@ const LiveBroadcastPage = () => {
                     if (!parameters.encodings) {
                         parameters.encodings = [{}];
                     }
-                    // 最大3Mbps（高画質）
-                    parameters.encodings[0].maxBitrate = 3000000;
+                    // 最大2Mbps（高画質でバランスの良い設定）
+                    parameters.encodings[0].maxBitrate = 2000000;
                     sender.setParameters(parameters).catch(err => 
                         console.warn('Failed to set encoding parameters:', err)
                     );
