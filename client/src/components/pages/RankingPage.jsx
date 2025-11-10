@@ -429,22 +429,32 @@ const RankingPage = () => {
                             />
                         ) : null}
 
-                        {/* グラデーションオーバーレイ */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
+                        {/* 美しいグラデーションオーバーレイ */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 via-transparent to-purple-500/10" />
 
-                        {/* トップ情報バー */}
-                        <div className="absolute top-0 left-0 right-0 p-4 safe-top z-20">
+                        {/* トップ情報バー - 洗練されたデザイン */}
+                        <motion.div 
+                            initial={{ y: -50, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="absolute top-0 left-0 right-0 p-4 safe-top z-20"
+                        >
                             <div className="flex items-center justify-between">
-                                {/* クリエイター情報 */}
-                                <div className="flex items-center space-x-3">
+                                {/* クリエイター情報 - グラスモーフィズム */}
+                                <motion.div 
+                                    whileTap={{ scale: 0.98 }}
+                                    className="flex items-center space-x-3 bg-black/40 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-white/10 shadow-2xl"
+                                >
                                     <div className="relative">
-                                        <img
+                                        <motion.img
+                                            whileHover={{ scale: 1.1 }}
                                             src={currentRoom.creatorAvatar && currentRoom.creatorAvatar.trim() !== '' 
                                                 ? getProxyImageUrl(currentRoom.creatorAvatar)
                                                 : '/logo192.png'
                                             }
                                             alt={currentRoom.creatorName}
-                                            className="w-12 h-12 rounded-full object-cover border-2 border-pink-500 bg-white"
+                                            className="w-11 h-11 rounded-full object-cover border-2 border-pink-500 bg-white shadow-lg"
                                             onError={(e) => {
                                                 if (e.target.src !== window.location.origin + '/logo192.png') {
                                                     e.target.src = '/logo192.png';
@@ -452,102 +462,136 @@ const RankingPage = () => {
                                             }}
                                         />
                                         <motion.div
-                                            animate={{ scale: [1, 1.2, 1] }}
-                                            transition={{ repeat: Infinity, duration: 2 }}
-                                            className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-black"
+                                            animate={{ 
+                                                scale: [1, 1.3, 1],
+                                                opacity: [1, 0.7, 1]
+                                            }}
+                                            transition={{ repeat: Infinity, duration: 1.5 }}
+                                            className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-gradient-to-r from-red-500 to-pink-500 rounded-full border-2 border-black shadow-lg"
                                         />
                                     </div>
                                     <div>
-                                        <h3 className="text-white font-bold text-sm">{currentRoom.creatorName}</h3>
-                                        <div className="flex items-center space-x-2 text-white/80 text-xs">
-                                            <Radio className="w-3 h-3" />
-                                            <span>LIVE</span>
-                                        </div>
+                                        <h3 className="text-white font-bold text-base drop-shadow-lg">{currentRoom.creatorName}</h3>
+                                        <motion.div 
+                                            animate={{ opacity: [1, 0.7, 1] }}
+                                            transition={{ repeat: Infinity, duration: 2 }}
+                                            className="flex items-center space-x-1.5 mt-0.5"
+                                        >
+                                            <div className="px-2 py-0.5 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center space-x-1">
+                                                <Radio className="w-2.5 h-2.5 text-white" />
+                                                <span className="text-white text-xs font-bold">LIVE</span>
+                                            </div>
+                                        </motion.div>
                                     </div>
-                                </div>
+                                </motion.div>
 
-                                {/* 視聴者数 */}
-                                <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                                    <Users className="w-4 h-4 text-white" />
-                                    <span className="text-white text-sm font-bold">
+                                {/* 視聴者数 - エレガントなデザイン */}
+                                <motion.div 
+                                    whileHover={{ scale: 1.05 }}
+                                    className="flex items-center space-x-2 bg-black/40 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-white/10 shadow-2xl"
+                                >
+                                    <Users className="w-4 h-4 text-pink-400" />
+                                    <span className="text-white text-sm font-bold drop-shadow-lg">
                                         {currentRoom.isRealLive && liveViewer.viewers > 0 
                                             ? liveViewer.viewers 
                                             : currentRoom.viewers}
                                     </span>
-                                </div>
+                                </motion.div>
                             </div>
 
-                            {/* タイトル */}
-                            <div className="mt-3 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-lg">
-                                <p className="text-white text-sm font-medium">{currentRoom.title}</p>
-                            </div>
-                        </div>
+                            {/* タイトル - グラスモーフィズム */}
+                            <motion.div 
+                                initial={{ y: -20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className="mt-3 bg-gradient-to-r from-black/50 to-black/30 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/10 shadow-2xl"
+                            >
+                                <p className="text-white text-sm font-medium drop-shadow-lg">{currentRoom.title}</p>
+                            </motion.div>
+                        </motion.div>
 
-                        {/* チャットメッセージエリア */}
-                        <div className="absolute bottom-32 left-0 right-0 px-4 space-y-2 max-h-64 overflow-y-auto z-10">
+                        {/* チャットメッセージエリア - エレガントなデザイン */}
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                            className="absolute bottom-32 left-0 right-0 px-4 space-y-2 max-h-64 overflow-y-auto z-10"
+                        >
                             <AnimatePresence>
                                 {currentMessages.slice(-5).map((message, index) => (
                                     <motion.div
                                         key={message.id}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="bg-black/40 backdrop-blur-sm px-3 py-2 rounded-lg max-w-xs"
+                                        initial={{ opacity: 0, x: -30, scale: 0.9 }}
+                                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                                        exit={{ opacity: 0, x: 30, scale: 0.9 }}
+                                        transition={{ 
+                                            delay: index * 0.05,
+                                            type: "spring",
+                                            stiffness: 300,
+                                            damping: 25
+                                        }}
+                                        className="bg-gradient-to-r from-black/60 to-black/40 backdrop-blur-xl px-4 py-2.5 rounded-2xl max-w-xs border border-white/10 shadow-2xl"
                                         data-testid={`chat-message-${message.id}`}
                                     >
-                                        <div className="flex items-start space-x-2">
+                                        <div className="flex items-start space-x-2.5">
                                             {message.userPhoto && (
                                                 <img
                                                     src={getProxyImageUrl(message.userPhoto)}
                                                     alt={message.userName}
-                                                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                                                    className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-pink-400/30 shadow-lg"
                                                     onError={(e) => {
                                                         e.target.style.display = 'none';
                                                     }}
                                                 />
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <span className="text-pink-400 font-bold text-xs">{message.userName}</span>
-                                                <p className="text-white text-sm break-words">{message.text}</p>
+                                                <span className="text-pink-400 font-bold text-xs drop-shadow-lg">{message.userName}</span>
+                                                <p className="text-white text-sm break-words drop-shadow-lg leading-relaxed">{message.text}</p>
                                             </div>
                                         </div>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
-                        </div>
+                        </motion.div>
 
-                        {/* サイドアクションボタン */}
-                        <div className="absolute right-4 bottom-40 space-y-4 z-20">
+                        {/* サイドアクションボタン - 美しいグラスモーフィズム */}
+                        <motion.div 
+                            initial={{ x: 50, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            className="absolute right-4 bottom-40 space-y-5 z-20"
+                        >
                             <motion.button
-                                whileTap={{ scale: 0.9 }}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={handleLike}
                                 disabled={!user || isLiking}
-                                className="flex flex-col items-center"
+                                className="flex flex-col items-center group"
                                 data-testid="button-like"
                             >
-                                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                    <Heart className={`w-6 h-6 ${isLiking ? 'text-pink-500 fill-pink-500' : 'text-white'}`} />
+                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500/30 to-purple-500/30 backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl group-hover:from-pink-500/50 group-hover:to-purple-500/50 transition-all">
+                                    <Heart className={`w-7 h-7 transition-all ${isLiking ? 'text-pink-500 fill-pink-500 scale-110' : 'text-white'}`} />
                                 </div>
-                                <span className="text-white text-xs mt-1">
+                                <span className="text-white text-xs mt-2 font-bold drop-shadow-lg">
                                     {likes[currentRoom?.id] || currentRoom?.likes || 0}
                                 </span>
                             </motion.button>
 
                             {(currentRoom?.creatorId || currentRoom?.userId) && (
                                 <motion.button
-                                    whileTap={{ scale: 0.9 }}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
                                     onClick={handleOpenTipModal}
-                                    className="flex flex-col items-center"
+                                    className="flex flex-col items-center group"
                                     data-testid="button-tip"
                                 >
-                                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                        <Gift className="w-6 h-6 text-white" />
+                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500/30 to-orange-500/30 backdrop-blur-xl flex items-center justify-center border border-white/20 shadow-2xl group-hover:from-yellow-500/50 group-hover:to-orange-500/50 transition-all">
+                                        <Gift className="w-7 h-7 text-white" />
                                     </div>
-                                    <span className="text-white text-xs mt-1">投げ銭</span>
+                                    <span className="text-white text-xs mt-2 font-bold drop-shadow-lg">投げ銭</span>
                                 </motion.button>
                             )}
-                        </div>
+                        </motion.div>
 
                         {/* ハートアニメーション */}
                         <AnimatePresence>
@@ -564,9 +608,14 @@ const RankingPage = () => {
                             )}
                         </AnimatePresence>
 
-                        {/* メッセージ入力エリア */}
-                        <div className="absolute bottom-20 left-0 right-0 px-4 safe-bottom z-20">
-                            <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+                        {/* メッセージ入力エリア - エレガントなデザイン */}
+                        <motion.div 
+                            initial={{ y: 50, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                            className="absolute bottom-20 left-0 right-0 px-4 safe-bottom z-20"
+                        >
+                            <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
                                 <input
                                     type="text"
                                     value={newMessage}
@@ -580,13 +629,14 @@ const RankingPage = () => {
                                     type="submit"
                                     disabled={!user || !newMessage.trim() || isSending}
                                     whileTap={{ scale: 0.9 }}
-                                    className="p-2.5 rounded-full bg-gradient-to-r from-pink-500 to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                                    whileHover={{ scale: 1.05 }}
+                                    className="p-3 rounded-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl border border-white/20"
                                     data-testid="button-send-chat"
                                 >
                                     <Send className="w-5 h-5" />
                                 </motion.button>
                             </form>
-                        </div>
+                        </motion.div>
 
                         {/* スワイプヒント */}
                         {liveRooms.length > 1 && (
