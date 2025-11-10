@@ -250,12 +250,20 @@ const SocialFeedScreen = () => {
             if (fileUrl) {
               const isVideo = firstFile.type && firstFile.type.startsWith('video/');
               
+              // サムネイルURLを決定（優先順位: customThumbnail > 自動生成サムネイル > ファイル自体）
+              let thumbnailUrl = fileUrl;
+              if (postData.customThumbnail) {
+                thumbnailUrl = convertToProxyUrl(postData.customThumbnail);
+              } else if (firstFile.thumbnailUrl && !firstFile.thumbnailUrl.match(/\.(mp4|webm|mov|avi)$/i)) {
+                thumbnailUrl = convertToProxyUrl(firstFile.thumbnailUrl);
+              }
+              
               postsData.push({
                 id: docSnapshot.id,
                 ...postData,
                 imageUrl: fileUrl,
                 videoUrl: isVideo ? fileUrl : undefined,
-                thumbnail: fileUrl,
+                thumbnail: thumbnailUrl,
                 type: isVideo ? 'video' : 'image',
                 date: postData.createdAt ? 
                   (postData.createdAt.seconds ? 

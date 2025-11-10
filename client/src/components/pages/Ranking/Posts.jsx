@@ -209,13 +209,16 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                         }
                     }
                     
-                    // サムネイルURLを決定（動画の場合は最初のフレームを使用）
+                    // サムネイルURLを決定（優先順位: customThumbnail > 自動生成サムネイル > 動画の最初のフレーム）
                     const firstFile = data.files && data.files.length > 0 ? data.files[0] : null;
                     const isVideo = firstFile && firstFile.type && firstFile.type.startsWith('video/');
                     let thumbnail = null;
                     let videoUrl = null;
                     
-                    if (firstFile) {
+                    // 1. カスタムサムネイルを最優先で使用
+                    if (data.customThumbnail) {
+                        thumbnail = convertToProxyUrl(data.customThumbnail);
+                    } else if (firstFile) {
                         if (isVideo) {
                             // 動画の場合: まず動画URLを作成（フォールバック用）
                             const rawVideoUrl = firstFile.secure_url || firstFile.url || (firstFile.storageUri ? `/api/proxy/${firstFile.storageUri}` : null);
@@ -223,14 +226,13 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                             // #t=0.001を追加して最初のフレームを表示
                             videoUrl = proxyUrl ? `${proxyUrl}#t=0.001` : null;
                             
-                            // Bunny Stream サムネイル（/api/bunny-stream-thumbnail/）は403エラーの可能性があるため、動画を使用
-                            // thumbnailUrlが画像ファイル（.jpg, .pngなど）であり、Bunny Streamのサムネイルでない場合のみ使用
+                            // 2. 自動生成されたサムネイルを使用
                             if (firstFile.thumbnailUrl && 
                                 !firstFile.thumbnailUrl.match(/\.(mp4|webm|mov|avi)$/i) &&
                                 !firstFile.thumbnailUrl.includes('/api/bunny-stream-thumbnail/')) {
                                 thumbnail = convertToProxyUrl(firstFile.thumbnailUrl);
                             } else {
-                                // サムネイル画像がない場合、またはBunny Streamサムネイルの場合は動画URLを使用
+                                // 3. サムネイル画像がない場合は動画URLを使用
                                 thumbnail = videoUrl;
                             }
                         } else {
@@ -388,13 +390,16 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                     return;
                 }
                 
-                // サムネイルURLを決定（動画の場合は最初のフレームを使用）
+                // サムネイルURLを決定（優先順位: customThumbnail > 自動生成サムネイル > 動画の最初のフレーム）
                 const firstFile = data.files && data.files.length > 0 ? data.files[0] : null;
                 const isVideo = firstFile && firstFile.type && firstFile.type.startsWith('video/');
                 let thumbnail = null;
                 let videoUrl = null;
                 
-                if (firstFile) {
+                // 1. カスタムサムネイルを最優先で使用
+                if (data.customThumbnail) {
+                    thumbnail = convertToProxyUrl(data.customThumbnail);
+                } else if (firstFile) {
                     if (isVideo) {
                         // 動画の場合: まず動画URLを作成（フォールバック用）
                         const rawVideoUrl = firstFile.secure_url || firstFile.url || (firstFile.storageUri ? `/api/proxy/${firstFile.storageUri}` : null);
@@ -402,11 +407,11 @@ const RankingPosts = ({ activeTimeFilter = 'Daily', activeTagFilter = 'all' }) =
                         // #t=0.001を追加して最初のフレームを表示
                         videoUrl = proxyUrl ? `${proxyUrl}#t=0.001` : null;
                         
-                        // thumbnailUrlが画像ファイルならそれを優先的に使用
+                        // 2. 自動生成されたサムネイルを使用
                         if (firstFile.thumbnailUrl && !firstFile.thumbnailUrl.match(/\.(mp4|webm|mov|avi)$/i)) {
                             thumbnail = convertToProxyUrl(firstFile.thumbnailUrl);
                         } else {
-                            // サムネイル画像がない場合は動画URLを使用
+                            // 3. サムネイル画像がない場合は動画URLを使用
                             thumbnail = videoUrl;
                         }
                     } else {
