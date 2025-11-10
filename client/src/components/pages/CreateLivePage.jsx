@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Video, Mic, MicOff, VideoOff, Radio, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/use-toast';
@@ -102,23 +102,6 @@ const CreateLivePage = () => {
         setIsStarting(true);
 
         try {
-            // 🔥 古い自分のライブルームを削除
-            const oldRoomsQuery = query(
-                collection(db, 'liveRooms'),
-                where('creatorId', '==', user.uid)
-            );
-            const oldRoomsSnapshot = await getDocs(oldRoomsQuery);
-            
-            const deletePromises = [];
-            oldRoomsSnapshot.forEach((docSnap) => {
-                deletePromises.push(deleteDoc(doc(db, 'liveRooms', docSnap.id)));
-            });
-            
-            if (deletePromises.length > 0) {
-                await Promise.all(deletePromises);
-                console.log(`🗑️ Deleted ${deletePromises.length} old live rooms`);
-            }
-
             // Firestoreのusersコレクションから最新のプロフィール情報を取得
             const userDocRef = doc(db, 'users', user.uid);
             const userDocSnap = await getDoc(userDocRef);
