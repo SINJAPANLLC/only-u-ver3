@@ -44,53 +44,51 @@ const LiveListPage = () => {
 
     // アクティブなライブルームデータを取得
     useEffect(() => {
-        const fetchLiveRooms = async () => {
-            try {
-                setLoading(true);
-                
-                const liveQuery = query(
-                    collection(db, 'liveRooms'),
-                    where('isActive', '==', true),
-                    limit(50)
-                );
-                
-                const unsubscribe = onSnapshot(liveQuery, (snapshot) => {
-                    const rooms = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        rooms.push({
-                            id: doc.id,
-                            title: data.title || 'ライブ配信中',
-                            creatorName: data.creatorName || 'Anonymous',
-                            creatorAvatar: data.creatorAvatar || '',
-                            videoUrl: null,
-                            thumbnailUrl: data.thumbnailUrl || '',
-                            isLive: true,
-                            isRealLive: true,
-                            viewers: data.viewers || 0,
-                            creatorId: data.creatorId,
-                            createdAt: data.createdAt
-                        });
+        setLoading(true);
+        
+        const liveQuery = query(
+            collection(db, 'liveRooms'),
+            where('isActive', '==', true),
+            limit(50)
+        );
+        
+        const unsubscribe = onSnapshot(
+            liveQuery, 
+            (snapshot) => {
+                const rooms = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    rooms.push({
+                        id: doc.id,
+                        title: data.title || 'ライブ配信中',
+                        creatorName: data.creatorName || 'Anonymous',
+                        creatorAvatar: data.creatorAvatar || '',
+                        videoUrl: null,
+                        thumbnailUrl: data.thumbnailUrl || '',
+                        isLive: true,
+                        isRealLive: true,
+                        viewers: data.viewers || 0,
+                        creatorId: data.creatorId,
+                        createdAt: data.createdAt
                     });
-                    
-                    rooms.sort((a, b) => {
-                        const timeA = a.createdAt?.toMillis?.() || 0;
-                        const timeB = b.createdAt?.toMillis?.() || 0;
-                        return timeB - timeA;
-                    });
-                    
-                    setLiveRooms(rooms);
-                    setLoading(false);
                 });
                 
-                return () => unsubscribe();
-            } catch (error) {
+                rooms.sort((a, b) => {
+                    const timeA = a.createdAt?.toMillis?.() || 0;
+                    const timeB = b.createdAt?.toMillis?.() || 0;
+                    return timeB - timeA;
+                });
+                
+                setLiveRooms(rooms);
+                setLoading(false);
+            },
+            (error) => {
                 console.error('Error fetching live rooms:', error);
                 setLoading(false);
             }
-        };
-
-        fetchLiveRooms();
+        );
+        
+        return () => unsubscribe();
     }, []);
 
     // フィルタリングと検索

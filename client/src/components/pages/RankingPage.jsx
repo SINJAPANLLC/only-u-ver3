@@ -73,121 +73,121 @@ const RankingPage = () => {
 
     // アクティブなライブルームデータを取得
     useEffect(() => {
-        const fetchLiveRooms = async () => {
-            try {
-                // リアルタイムのライブルームを取得
-                // Note: インデックス不要にするため、orderByを削除してクライアント側でソート
-                const liveQuery = query(
-                    collection(db, 'liveRooms'),
-                    where('isActive', '==', true),
-                    limit(20)
-                );
+        // リアルタイムのライブルームを取得
+        // Note: インデックス不要にするため、orderByを削除してクライアント側でソート
+        const liveQuery = query(
+            collection(db, 'liveRooms'),
+            where('isActive', '==', true),
+            limit(20)
+        );
+        
+        const unsubscribe = onSnapshot(
+            liveQuery, 
+            (snapshot) => {
+                const rooms = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    rooms.push({
+                        id: doc.id,
+                        title: data.title || 'ライブ配信中',
+                        creatorName: data.creatorName || 'Anonymous',
+                        creatorAvatar: data.creatorAvatar || '',
+                        videoUrl: null, // WebRTCを使用
+                        isLive: true,
+                        isRealLive: true,
+                        viewers: data.viewers || 0,
+                        creatorId: data.creatorId,
+                        createdAt: data.createdAt
+                    });
+                });
                 
-                const unsubscribe = onSnapshot(liveQuery, (snapshot) => {
-                    const rooms = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        rooms.push({
-                            id: doc.id,
-                            title: data.title || 'ライブ配信中',
-                            creatorName: data.creatorName || 'Anonymous',
-                            creatorAvatar: data.creatorAvatar || '',
-                            videoUrl: null, // WebRTCを使用
-                            isLive: true,
-                            isRealLive: true,
-                            viewers: data.viewers || 0,
-                            creatorId: data.creatorId,
-                            createdAt: data.createdAt
-                        });
-                    });
+                // クライアント側で作成日時でソート
+                rooms.sort((a, b) => {
+                    const timeA = a.createdAt?.toMillis?.() || 0;
+                    const timeB = b.createdAt?.toMillis?.() || 0;
+                    return timeB - timeA;
+                });
+                
+                // リアルタイムライブがない場合は、モックデータとして投稿の動画を使用
+                if (rooms.length === 0) {
+                    const fallbackQuery = query(
+                        collection(db, 'posts'),
+                        where('visibility', '==', 'public'),
+                        orderBy('createdAt', 'desc'),
+                        limit(10)
+                    );
                     
-                    // クライアント側で作成日時でソート
-                    rooms.sort((a, b) => {
-                        const timeA = a.createdAt?.toMillis?.() || 0;
-                        const timeB = b.createdAt?.toMillis?.() || 0;
-                        return timeB - timeA;
-                    });
-                    
-                    // リアルタイムライブがない場合は、モックデータとして投稿の動画を使用
-                    if (rooms.length === 0) {
-                        const fallbackQuery = query(
-                            collection(db, 'posts'),
-                            where('visibility', '==', 'public'),
-                            orderBy('createdAt', 'desc'),
-                            limit(10)
-                        );
+                    getDocs(fallbackQuery).then(async (snapshot) => {
+                        const fallbackRooms = [];
+                        const userIds = new Set();
                         
-                        getDocs(fallbackQuery).then(async (snapshot) => {
-                            const fallbackRooms = [];
-                            const userIds = new Set();
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (data.files && data.files.length > 0 && data.userId) {
+                                const videoFile = data.files.find(f => f.resourceType === 'video');
+                                if (videoFile) {
+                                    userIds.add(data.userId);
+                                    fallbackRooms.push({
+                                        id: doc.id,
+                                        title: data.title || 'おすすめ動画',
+                                        creatorName: data.userName || 'Anonymous',
+                                        creatorAvatar: data.userAvatar || '',
+                                        creatorId: data.userId,
+                                        userId: data.userId,
+                                        videoUrl: videoFile.url?.startsWith('http') 
+                                            ? `/api/proxy/${videoFile.url.split('/').pop()}`
+                                            : videoFile.url,
+                                        thumbnailUrl: videoFile.thumbnailUrl || '',
+                                        isLive: false,
+                                        isRealLive: false,
+                                        viewers: Math.floor(Math.random() * 1000) + 100,
+                                        likes: data.likes || 0
+                                    });
+                                }
+                            }
+                        });
+                        
+                        // usersコレクションからクリエイター情報を取得
+                        if (userIds.size > 0) {
+                            const userPromises = Array.from(userIds).map(userId => 
+                                getDoc(doc(db, 'users', userId))
+                            );
+                            const userDocs = await Promise.all(userPromises);
+                            const userMap = {};
                             
-                            snapshot.forEach(doc => {
-                                const data = doc.data();
-                                if (data.files && data.files.length > 0 && data.userId) {
-                                    const videoFile = data.files.find(f => f.resourceType === 'video');
-                                    if (videoFile) {
-                                        userIds.add(data.userId);
-                                        fallbackRooms.push({
-                                            id: doc.id,
-                                            title: data.title || 'おすすめ動画',
-                                            creatorName: data.userName || 'Anonymous',
-                                            creatorAvatar: data.userAvatar || '',
-                                            creatorId: data.userId,
-                                            userId: data.userId,
-                                            videoUrl: videoFile.url?.startsWith('http') 
-                                                ? `/api/proxy/${videoFile.url.split('/').pop()}`
-                                                : videoFile.url,
-                                            thumbnailUrl: videoFile.thumbnailUrl || '',
-                                            isLive: false,
-                                            isRealLive: false,
-                                            viewers: Math.floor(Math.random() * 1000) + 100,
-                                            likes: data.likes || 0
-                                        });
-                                    }
+                            userDocs.forEach(userDoc => {
+                                if (userDoc.exists()) {
+                                    const userData = userDoc.data();
+                                    userMap[userDoc.id] = {
+                                        name: userData.name || userData.displayName || 'Anonymous',
+                                        avatar: userData.avatarUrl || userData.photoURL || ''
+                                    };
                                 }
                             });
                             
-                            // usersコレクションからクリエイター情報を取得
-                            if (userIds.size > 0) {
-                                const userPromises = Array.from(userIds).map(userId => 
-                                    getDoc(doc(db, 'users', userId))
-                                );
-                                const userDocs = await Promise.all(userPromises);
-                                const userMap = {};
-                                
-                                userDocs.forEach(userDoc => {
-                                    if (userDoc.exists()) {
-                                        const userData = userDoc.data();
-                                        userMap[userDoc.id] = {
-                                            name: userData.name || userData.displayName || 'Anonymous',
-                                            avatar: userData.avatarUrl || userData.photoURL || ''
-                                        };
-                                    }
-                                });
-                                
-                                // クリエイター情報を更新
-                                fallbackRooms.forEach(room => {
-                                    if (userMap[room.userId]) {
-                                        room.creatorName = userMap[room.userId].name;
-                                        room.creatorAvatar = userMap[room.userId].avatar;
-                                    }
-                                });
-                            }
-                            
-                            setLiveRooms(fallbackRooms);
-                        });
-                    } else {
-                        setLiveRooms(rooms);
-                    }
-                });
-                
-                return () => unsubscribe();
-            } catch (error) {
+                            // クリエイター情報を更新
+                            fallbackRooms.forEach(room => {
+                                if (userMap[room.userId]) {
+                                    room.creatorName = userMap[room.userId].name;
+                                    room.creatorAvatar = userMap[room.userId].avatar;
+                                }
+                            });
+                        }
+                        
+                        setLiveRooms(fallbackRooms);
+                    }).catch(error => {
+                        console.error('Error fetching fallback rooms:', error);
+                    });
+                } else {
+                    setLiveRooms(rooms);
+                }
+            },
+            (error) => {
                 console.error('Error fetching live rooms:', error);
             }
-        };
-
-        fetchLiveRooms();
+        );
+        
+        return () => unsubscribe();
     }, []);
 
     // 現在のルームのチャットメッセージを取得
