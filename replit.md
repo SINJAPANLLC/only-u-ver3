@@ -29,10 +29,11 @@ The platform utilizes a modern web architecture featuring a React frontend built
 *   **Performance Optimization:** Includes React warning fixes, video duration extraction, server-side filtering and pagination, creator information caching, and optimized thumbnail display with fallback logic. Recent optimizations (November 2025):
     *   **Production Logger** (`utils/logger.js`): Development-only console.log via environment-aware utility (zero log noise in production)
     *   **Global Creator Cache** (`hooks/useCreatorCache.js`): Batched Firestore queries (10 users/batch), pendingRequests deduplication, global Map cache to eliminate redundant user document fetches across all components
-    *   **Home.jsx & feed.jsx Optimization**: Batched creator fetching with `getCreatorsBatch`, useMemo for URL conversion, complete logger integration
+    *   **Home.jsx & feed.jsx Optimization**: Batched creator fetching with `getCreatorsBatch`, useMemo for URL conversion, complete logger integration, native lazy loading via `loading="lazy"` attribute on all images
     *   **Context Optimization**: AuthContext and UserStatsContext use logger instead of direct console methods
     *   **Memory Safety**: Proper useEffect cleanup in hooks with isMounted guards to prevent setState after unmount
     *   **React Component Optimization**: Applied React.memo, useMemo, and useCallback to FeaturedCreators, BottomNavigationWithCreator, Header, and RecommendedGenres to prevent unnecessary re-renders and improve rendering performance
+    *   **Core Web Vitals Monitoring** (`utils/reportWebVitals.js`): Real-time performance monitoring with web-vitals library measuring LCP, INP, CLS, FCP, and TTFB; integrated with logger for development-only metrics tracking
 *   **API & Security:** Unified API error handling, authentication middleware, XSS protection, DoS protection with rate limiting, and comprehensive Content Security Policy (CSP) configuration.
 *   **Deployment:** Configured for Autoscale with `npm run build` and `npm start`, ensuring reliable path resolution and a health endpoint. VPS deployment with PM2 process manager.
 
