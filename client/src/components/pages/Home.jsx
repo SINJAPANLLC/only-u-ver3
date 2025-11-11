@@ -247,7 +247,7 @@ const Home = () => {
                                     data-testid={`card-vertical-${index + 1}`}
                                     onClick={() => navigate(`/video/${post.id}`)}
                                 >
-                                    <div className="relative w-full h-64 bg-gradient-to-br from-pink-200 to-purple-200">
+                                    <div className="relative w-full aspect-[9/16] bg-gradient-to-br from-pink-200 to-purple-200">
                                         {thumbnailUrl ? (
                                             <img 
                                                 src={thumbnailUrl}

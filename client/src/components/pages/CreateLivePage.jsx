@@ -25,12 +25,16 @@ const CreateLivePage = () => {
             try {
                 const mediaStream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        width: { ideal: 1080 },
-                        height: { ideal: 1920 },
+                        width: { ideal: 720, max: 1280 },
+                        height: { ideal: 1280, max: 1920 },
                         facingMode: 'user',
-                        aspectRatio: 9/16
+                        aspectRatio: { ideal: 9/16 }
                     },
-                    audio: true
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
                 });
                 
                 setStream(mediaStream);
