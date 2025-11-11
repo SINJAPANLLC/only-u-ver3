@@ -17,6 +17,7 @@ The platform utilizes a modern web architecture featuring a React frontend built
 *   Full dark mode implementation with theme persistence and a dedicated toggle is available.
 *   Complete internationalization support, with a focus on the Japanese language, is provided.
 *   Layout is optimized for native app-like experience on mobile, addressing viewport and scrolling issues, and supporting safe areas.
+*   **PWA Fullscreen Implementation** (November 11, 2025): Complete Progressive Web App support with fullscreen display mode, smart install prompt with proper event handling, app icon configuration, and Service Worker auto-update strategy for offline-first experience.
 
 **Technical Implementations:**
 *   **User Management:** Includes Firebase Phone and Email Authentication, KYC/identity verification for creators, and admin route protection with cryptographic session signing.
