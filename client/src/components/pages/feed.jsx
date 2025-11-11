@@ -1041,9 +1041,9 @@ const SocialFeedScreen = () => {
                   src={posts[currentPostIndex].thumbnail || posts[currentPostIndex].imageUrl}
                   alt={posts[currentPostIndex].title}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                   onError={(e) => {
                     logger.error('Image load error:', e);
-                    // Fallback to placeholder
                     e.target.src = '/logo192.png';
                   }}
                 />
