@@ -10,6 +10,7 @@ import { ThemeProvider } from './context/ThemeContext';
 
 // 年齢確認は遅延読み込みしない（最初に必要）
 import AgeVerification from './components/pages/AgeVerification';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 // Loading component
 const PageLoader = () => (
@@ -316,6 +317,7 @@ function App() {
                 <Router>
                   <div className="App min-h-screen bg-white dark:bg-black transition-colors duration-300">
                     <AppRoutes />
+                    <PWAInstallPrompt />
                   </div>
                 </Router>
               </NotificationProvider>
