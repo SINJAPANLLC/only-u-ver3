@@ -34,6 +34,8 @@ The platform utilizes a modern web architecture featuring a React frontend built
     *   **Memory Safety**: Proper useEffect cleanup in hooks with isMounted guards to prevent setState after unmount
     *   **React Component Optimization**: Applied React.memo, useMemo, and useCallback to FeaturedCreators, BottomNavigationWithCreator, Header, and RecommendedGenres to prevent unnecessary re-renders and improve rendering performance
     *   **Core Web Vitals Monitoring** (`utils/reportWebVitals.js`): Real-time performance monitoring with web-vitals library measuring LCP, INP, CLS, FCP, and TTFB; integrated with logger for development-only metrics tracking
+    *   **CLS Reduction** (November 11, 2025): Home.jsx vertical cards use Tailwind `aspect-[9/16]` instead of fixed height to prevent layout shifts during image/video loading
+    *   **Mobile Camera Optimization** (November 11, 2025): LiveBroadcastPage.jsx and CreateLivePage.jsx now use 720x1280 resolution constraints with audio enhancements (echo cancellation, noise suppression, auto gain control) for better mobile framing and quality
 *   **API & Security:** Unified API error handling, authentication middleware, XSS protection, DoS protection with rate limiting, and comprehensive Content Security Policy (CSP) configuration.
 *   **Deployment:** Configured for Autoscale with `npm run build` and `npm start`, ensuring reliable path resolution and a health endpoint. VPS deployment with PM2 process manager.
 
